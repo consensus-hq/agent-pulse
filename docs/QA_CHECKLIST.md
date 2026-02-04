@@ -12,11 +12,16 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 - [ ] `NEXT_PUBLIC_LAST_RUN_*` values render if provided.
 
 ### Core MVP (What ships)
+- [ ] UI: debug console sections render (Routing eligibility console, Status query, Command line, Transmission, Reputation sync, Pulse feed).
+- [ ] Routing eligibility console: cache age/feed age labels render; counts show numeric values or "—" when empty.
+- [ ] Status query: valid address returns TTL + Alive + last pulse; invalid address shows error/empty state.
+- [ ] Command line: curl + cast examples present and use placeholders (no hardcoded addresses).
+- [ ] Transmission: connect/approve/pulse buttons disabled until wallet connect + allowance; pulse consumes 1 PULSE at sink.
+- [ ] Reputation sync: gated by alive status; button disabled until status query confirms alive.
+- [ ] Pulse feed: /api/pulse-feed renders entries or empty state; “Missing registry address or RPC URL” only when env missing.
+- [ ] ERC-8004 badge/CTA renders when REQUIRE_ERC8004 enabled (read-only).
 - [ ] Pulse: sending **1 PULSE** to sink updates eligibility.
 - [ ] Gate: Alive status flips within TTL after pulse.
-- [ ] UI: eligibility state, last-seen, routing log visible.
-- [ ] Agent Inbox gate: key required to access inbox routes.
-- [ ] ERC-8004 badge: read-only registration check renders.
 - [ ] Transfer-log feed: pulse events show with explorer links.
 
 ### Inbox gate flow
@@ -39,7 +44,10 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 - [ ] `.env.example` used as reference for required env vars.
 
 ### Functionality
-- [ ] UI loads on localhost and matches core MVP items.
+- [ ] Debug console UI loads on localhost and matches core MVP items.
+- [ ] Status query + pulse feed operate with local env values.
+- [ ] Transmission buttons reflect wallet connection/allowance state.
+- [ ] Reputation sync gating matches live behavior.
 - [ ] Pulse eligibility logic updates when test wallet is pulsed.
 - [ ] Inbox gate behaviors match live flow.
 - [ ] ERC-8004 badge renders without errors when envs set.
