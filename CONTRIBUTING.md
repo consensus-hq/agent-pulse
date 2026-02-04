@@ -17,7 +17,10 @@ npm run dev
 ## Pull Requests
 - Summarize changes and include screenshots for UI updates.
 - Ensure copy follows the pulse language rules:
+  - **Paid eligibility**: pulsing adds a small on‑chain cost to remain routable.
+  - **Pulse = eligibility refresh** (1 PULSE to the **burn sink**; pulses are consumed).
+  - **No pulse → no routing** (binary eligibility).
+  - **ERC‑8004 read‑only by default**; gate is optional via `REQUIRE_ERC8004`.
+  - **No investment or trading language.**
   - $PULSE is a utility token used to send pulse signals.
-  - Pulse = eligibility refresh. No pulse → no routing.
-  - Pulse affects routing eligibility only (not identity, reputation, or uptime monitoring).
-  - No investment or trading language.
+  - A pulse shows recent wallet activity. It does not prove identity, quality, or “AI.”
