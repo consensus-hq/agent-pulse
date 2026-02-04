@@ -11,8 +11,10 @@ const tokenAddress =
   process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS ||
   process.env.PULSE_TOKEN_ADDRESS ||
   "";
-const signalAddress =
-  process.env.NEXT_PUBLIC_SIGNAL_ADDRESS || process.env.SIGNAL_ADDRESS || "";
+const signalSinkAddress =
+  process.env.NEXT_PUBLIC_SIGNAL_SINK_ADDRESS ||
+  process.env.SIGNAL_SINK_ADDRESS ||
+  "";
 
 const aliveWindowSeconds = Number.parseInt(
   process.env.NEXT_PUBLIC_ALIVE_WINDOW_SECONDS ||
@@ -38,7 +40,7 @@ export type AliveStatus = {
 };
 
 export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
-  if (!rpcUrl || !tokenAddress || !signalAddress || !isAddress(wallet)) {
+  if (!rpcUrl || !tokenAddress || !signalSinkAddress || !isAddress(wallet)) {
     return {
       state: "unknown",
       alive: false,
@@ -70,7 +72,7 @@ export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
       event: transferEvent,
       args: {
         from: wallet as `0x${string}`,
-        to: signalAddress as `0x${string}`,
+        to: signalSinkAddress as `0x${string}`,
       },
       fromBlock,
       toBlock,
