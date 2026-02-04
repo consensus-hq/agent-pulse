@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { isAddress } from "viem";
 import { getErc8004Badges } from "./lib/erc8004";
 import { loadPulseFeed, type PulseFeedItem } from "./lib/pulseFeed";
@@ -70,7 +69,7 @@ export default async function Home() {
   const totalPulseLabel = formatCount(totalPulses || 0);
   const agentWallets = pulseFeed
     .map((item) => item.agent)
-    .filter((address): address is `0x${string}` => isAddress(address));
+    .filter((address) => isAddress(address));
   const erc8004Map = await getErc8004Badges(agentWallets);
   const registerUrl =
     process.env.NEXT_PUBLIC_ERC8004_REGISTER_URL ?? "https://www.8004.org";
@@ -83,17 +82,18 @@ export default async function Home() {
             <p className={styles.kicker}>Clawd Kitchen • Agent Pulse</p>
             <h1>Public routing gate for agents on Base chain</h1>
             <p className={styles.tagline}>
-              Pulse = paid eligibility refresh (1 PULSE consumed at the signal
-              sink). No pulse → no routing. $PULSE is a utility token used to
-              send pulse signals; the UI reads transfers and shows last-seen
-              and streaks (TTL-based windows).
+              Pulse = paid eligibility refresh (1 PULSE burned). No pulse → no
+              routing.
             </p>
           </div>
           <div className={styles.walletCard}>
             <div>
               <p className={styles.label}>Routing eligibility</p>
-              <p className={styles.value}>Read-only demo</p>
-              <p className={styles.subtle}>Wallet connect coming next.</p>
+              <p className={styles.value}>Alive (paid eligibility)</p>
+              <p className={styles.subtle}>
+                ERC-8004 badge is read-only by default.
+              </p>
+              <p className={styles.subtle}>Pulse is consumed (burned).</p>
             </div>
             <button className={styles.primaryButton} type="button">
               Refresh eligibility (1 PULSE)
@@ -101,11 +101,7 @@ export default async function Home() {
             <p className={styles.subtle}>Eligibility window defaults to 24h.</p>
             <p className={styles.subtle}>Paid eligibility adds spam friction.</p>
             <p className={styles.subtle}>
-              Transfers 1 PULSE to the signal sink. Refreshes paid eligibility
-              and activity signal.
-            </p>
-            <p className={styles.subtle}>
-              Pulse shows activity. Not identity or AI proof.
+              Public, periodic checkpoint (not constant txs).
             </p>
           </div>
         </header>
@@ -122,9 +118,9 @@ export default async function Home() {
             <p className={styles.subtle}>{lastRun.timestamp}</p>
           </div>
           <div className={styles.card}>
-            <p className={styles.label}>Routing-eligible agents</p>
+            <p className={styles.label}>Eligible agents</p>
             <p className={styles.value}>{activeAgents}</p>
-            <p className={styles.subtle}>Paid eligibility in last 24h</p>
+            <p className={styles.subtle}>Alive in last 24h</p>
           </div>
           <div className={styles.card}>
             <p className={styles.label}>Eligibility refreshes</p>
@@ -175,12 +171,12 @@ export default async function Home() {
             <div>
               <h2>Routing feed (pulse transfers)</h2>
               <p className={styles.subtle}>
-                Paid pulse transfers routed to the signal sink for eligibility.
+                Paid pulses are burned at the sink to refresh eligibility.
               </p>
             </div>
-            <Link className={styles.secondaryButton} href="/" role="button">
+            <a className={styles.secondaryButton} href="/" role="button">
               Refresh feed
-            </Link>
+            </a>
           </div>
           <div className={styles.feedHeader}>
             <span>Agent</span>
@@ -203,7 +199,7 @@ export default async function Home() {
 
               return (
                 <div className={styles.feedRow} key={item.agent}>
-                  <span>{formatAgentLabel(item.agent)}</span>
+                  <span>{item.agent}</span>
                   <span>
                     {agentAddress ? (
                       hasBadge ? (
@@ -252,8 +248,8 @@ export default async function Home() {
           <div className={styles.card}>
             <h2>ERC-8004 status</h2>
             <p className={styles.subtle}>
-              Read-only identity check for registered agents. Badge lookup uses
-              the ERC-721 balance on the Identity Registry.
+              Read-only badge by default. Badge lookup uses the ERC-721 balance
+              on the Identity Registry.
             </p>
             <button className={styles.secondaryButton} type="button">
               Check registration
@@ -262,18 +258,18 @@ export default async function Home() {
           <div className={styles.card}>
             <h2>Signal sink</h2>
             <p className={styles.subtle}>
-              Pulses are consumed at the signal sink. Treasury Safe receives the
+              Pulses are consumed at the burn sink. Treasury Safe receives the
               Clanker fee share. No DEX links at launch.
             </p>
-            <p className={styles.value}>Signal sink</p>
+            <p className={styles.value}>Burn sink</p>
           </div>
         </section>
 
         <footer className={styles.footer}>
           <p>
-            $PULSE is a utility token used to send pulse signals. A pulse shows
-            recent wallet activity. It does not prove identity, quality, or
-            “AI.”
+            $PULSE is a utility token used to send pulse signals. Pulses are
+            consumed (burned) to refresh eligibility. A pulse shows recent
+            wallet activity. It does not prove identity, quality, or “AI.”
           </p>
         </footer>
       </main>
