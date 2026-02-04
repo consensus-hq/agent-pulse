@@ -36,6 +36,7 @@ export NEXT_PUBLIC_EXPLORER_TX_BASE_URL="https://basescan.org/tx/"
 # Client (browser) addresses (from LINKS.md only)
 export NEXT_PUBLIC_PULSE_TOKEN_ADDRESS="<from LINKS.md>"
 export NEXT_PUBLIC_SIGNAL_ADDRESS="<from LINKS.md>"
+export NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS="<from LINKS.md>"
 
 # Client (browser) RPC for ALIVE checks + ERC-8004 badge
 export NEXT_PUBLIC_BASE_RPC_URL="https://mainnet.base.org"
@@ -54,7 +55,7 @@ export INBOX_KEY_TTL_SECONDS="3600"
 export BLOCK_CONFIRMATIONS="2"
 
 # ERC-8004 badge (read-only by default)
-export NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS="<from LINKS.md>"
+export NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS="<from LINKS.md>"
 export NEXT_PUBLIC_ERC8004_REGISTER_URL="https://www.8004.org"
 export REQUIRE_ERC8004="false" # set true/1 to require registration
 ```
