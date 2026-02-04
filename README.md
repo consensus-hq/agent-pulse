@@ -21,10 +21,15 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a **p
 - `scripts` — fork + Tenderly harnesses
 - `REPORTS` — internal notes + fork artifacts
 
+## Current status (2026-02-04)
+- P0 order: env lock → token deploy → PulseRegistry/tests → deploy/verify/owner → API → UI → smoke/determinism.
+- Signal sink is fixed in `LINKS.md`; token + Vercel URL still TBD.
+- Live Vercel QA is blocked by missing registry/RPC envs.
+
 ## Remaining launch work (explicit)
-- Push current changes to GitHub (Vercel deploys what is pushed).
-- Vercel import/config + env vars (use `.env.example`).
-- Real Base mainnet config (RPC + token + sink).
+- T‑1.1/1.2 env lock (align `.env.example` + code + docs).
+- T0.1 token deploy (post env‑lock; follow `docs/DEPLOYMENT_RUNBOOK.md`).
+- Update Vercel envs (registry/RPC + token/sink) and re‑run live QA.
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
 

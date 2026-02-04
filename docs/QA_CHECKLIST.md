@@ -9,6 +9,7 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 - [ ] Build command is `npm run build`.
 - [ ] Env vars match `.env.example` (client + server).
 - [ ] `PULSE_TOKEN_ADDRESS` and `SIGNAL_ADDRESS` set from `LINKS.md` only.
+- [ ] `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS` + `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS` set from `LINKS.md` only.
 - [ ] `NEXT_PUBLIC_LAST_RUN_*` values render if provided.
 
 ### Core MVP (What ships)
@@ -46,7 +47,7 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 ### Setup
 - [ ] `npm install` completes in `apps/web`. (Next dev warned lockfile patched; rerun install.)
 - [x] `npm run dev` starts (warning: lockfile patched; dev server ready).
-- [x] `.env.example` used as reference for required env vars. (Missing NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS + NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS entries.)
+- [x] `.env.example` used as reference for required env vars. (Registry keys now present; set local envs to test status/pulse feed.)
 
 ### Functionality
 - [x] Debug console UI loads on localhost and matches core MVP items.
@@ -59,8 +60,8 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 
 #### Local dev notes (2026-02-04)
 - Dev server warns lockfile patched; run `npm install` in apps/web to fetch SWC deps.
-- Localhost shows “Missing registry address or RPC URL”.
-- `.env.example` lacks NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS + NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS (code expects both).
+- Localhost shows “Missing registry address or RPC URL” until envs are set.
+- `.env.example` now includes registry keys; set local envs to validate status/pulse feed.
 
 ### Build
 - [ ] `npm run build` succeeds locally.

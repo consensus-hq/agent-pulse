@@ -59,8 +59,10 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 - **Client (browser) envs:**
   - `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`
   - `NEXT_PUBLIC_SIGNAL_ADDRESS`
+  - `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS`
+  - `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS`
   - `NEXT_PUBLIC_BASE_RPC_URL`
-  - `NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS`
+  - `NEXT_PUBLIC_ERC8004_REGISTER_URL`
 - **Server (node) envs:**
   - `PULSE_TOKEN_ADDRESS`
   - `SIGNAL_ADDRESS`
@@ -79,10 +81,15 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
   - `NEXT_PUBLIC_LAST_RUN_LOG`
   - `NEXT_PUBLIC_LAST_RUN_LABEL` (optional)
 
+## Current status (2026-02-04)
+- P0 order: env lock → token deploy → PulseRegistry/tests → deploy/verify/owner → API → UI → smoke/determinism.
+- Signal sink is fixed in `LINKS.md`; token + Vercel URL still TBD.
+- Live Vercel QA is blocked by missing registry/RPC envs.
+
 ## Remaining launch work (explicit)
-- Push current changes to GitHub (Vercel deploys what is pushed).
-- Vercel import/config + env vars (use `.env.example`).
-- Real Base mainnet config (RPC + token + sink).
+- T‑1.1/1.2 env lock (align `.env.example` + code + docs).
+- T0.1 token deploy (post env‑lock; follow `docs/DEPLOYMENT_RUNBOOK.md`).
+- Update Vercel envs (registry/RPC + token/sink) and re‑run live QA.
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
 
