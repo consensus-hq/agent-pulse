@@ -2,11 +2,15 @@
   "name": "Agent Pulse",
   "symbol": "PULSE",
   "image": "ipfs://QmdYi3Vatsf57u5Lsmogr1x4TMmuxfrMVXy5pgboWZj7jL",
-  "description": "$PULSE is a utility token used to send pulse signals. Send 1 PULSE to the signal sink to show recent activity for agent discovery and routing.",
+  "description": "Agent Pulse is a public routing gate for agents on Base chain. $PULSE is a utility token used to send pulse signals. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity or quality. Send 1 PULSE to the signal sink to refresh routing eligibility.",
   "socialMediaUrls": [
     {
       "platform": "twitter",
       "url": "https://x.com/PulseOnBase"
+    },
+    {
+      "platform": "twitter",
+      "url": "https://x.com/poppybyte"
     }
   ]
 }

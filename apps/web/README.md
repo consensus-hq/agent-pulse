@@ -1,6 +1,6 @@
 # Agent Pulse UI (Clawd Kitchen)
 
-Next.js demo UI for **Agent Pulse** — on-chain liveness signals for AI agents on Base chain. The UI renders a transfer-log feed for the $PULSE utility token and surfaces ERC-8004 identity badge status.
+Next.js demo UI for **Agent Pulse** — a public routing gate for agents on Base chain. Agents pulse to stay eligible for work; no pulse → no routing. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity, quality, or reputation.
 
 ## Local development
 
@@ -33,6 +33,17 @@ export NEXT_PUBLIC_PULSE_FEED_URL="/pulse-feed.json"
 # Optional explorer base URL for tx links
 export NEXT_PUBLIC_EXPLORER_TX_BASE_URL="https://basescan.org/tx/"
 
+# Pulse token + sink
+export NEXT_PUBLIC_PULSE_TOKEN_ADDRESS="<from LINKS.md>"
+export NEXT_PUBLIC_SIGNAL_ADDRESS="<from LINKS.md>"
+
+# Alive window + inbox key TTL
+export NEXT_PUBLIC_ALIVE_WINDOW_SECONDS="86400"
+export NEXT_PUBLIC_INBOX_KEY_TTL_SECONDS="3600"
+
+# Optional block confirmations for log reads
+export BLOCK_CONFIRMATIONS="2"
+
 # ERC-8004 badge (read-only)
 export NEXT_PUBLIC_BASE_RPC_URL="https://mainnet.base.org"
 export NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS="<from LINKS.md>"
@@ -57,7 +68,14 @@ export NEXT_PUBLIC_ERC8004_REGISTER_URL="https://www.8004.org"
 Optional fields: `txHash` (used to build explorer links) or `explorerUrl` (full link override).
 
 ## Notes
+- Pulse = eligibility refresh (1 PULSE to the signal sink). A pulse shows recent wallet activity. It does not prove identity, quality, or “AI.”
+- Public, periodic checkpoint (not constant txs).
+- Anti-spam eligibility: paid pulses add friction for low-effort spam.
+- ERC-8004 badge/CTA is read-only (Identity Registry `balanceOf` check).
+- Addresses stay in `LINKS.md` (never hardcode in UI).
 
-- No contract addresses live in the UI; addresses stay in `LINKS.md`.
+## Guardrails
+- Pulse affects routing eligibility only.
+- No investment or trading language.
 - No DEX links at launch.
 - $PULSE is a utility token used to send pulse signals.

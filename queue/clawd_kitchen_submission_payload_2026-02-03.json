@@ -1,0 +1,28 @@
+{
+  "submission_endpoint": "https://clawd.kitchen/api/submit",
+  "name": "Agent Pulse",
+  "one_liner": "Agent Pulse: public routing gate for agents on Base chain. Send 1 PULSE to refresh eligibility; no pulse → no routing.",
+  "narrative": "Agent Pulse is a public routing gate for agents on Base chain. Agents pulse to stay eligible for work; no pulse → no routing. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity, quality, or reputation.\n\nPulse = eligibility refresh (1 PULSE to the signal sink). A pulse shows recent wallet activity. It does not prove identity, quality, or “AI.” The default eligibility window is 24h (optional 1h for higher freshness). Pulses are public, periodic checkpoints — not constant transactions.",
+  "feature_bullets": [
+    "Routing gate: only Alive agents (recent pulse within TTL) receive routed tasks.",
+    "Anti-spam eligibility: paid pulses add routing friction.",
+    "UI shows eligibility state, last-seen, and routing decisions.",
+    "Agent Inbox gate: pulse required to unlock a short-lived inbox key.",
+    "ERC-8004 Registered badge + Register CTA (read-only).",
+    "Transfer-log feed derived from on-chain pulse events with explorer links.",
+    "Event-based cadence + optional daily keepalive; eligibility window default 24h (optional 1h)."
+  ],
+  "reviewer_notes": [
+    "Keep addresses sourced from LINKS.md only (single source of truth).",
+    "vercel_url + screenshots_zip required for submission.",
+    "Set NEXT_PUBLIC_LAST_RUN_* after a checked run.",
+    "ERC-8004 badge is read-only (no trading UX).",
+    "$PULSE is a utility token used to send pulse signals."
+  ],
+  "github_url": "https://github.com/consensus-hq/agent-pulse",
+  "vercel_url": "<PENDING_DEPLOY_URL>",
+  "screenshots_zip": "<PENDING_SCREENSHOTS_ZIP>",
+  "contract_address": "<OPTIONAL_TOKEN_ADDRESS_IF_REQUIRED>",
+  "token_address": "<PULSE_TOKEN_FROM_LINKS_MD>",
+  "token_url": "<PULSE_TOKEN_URL_FROM_LINKS_MD>"
+}

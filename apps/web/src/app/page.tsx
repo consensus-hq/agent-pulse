@@ -1,6 +1,7 @@
 import { isAddress } from "viem";
 import { getErc8004Badges } from "./lib/erc8004";
 import { loadPulseFeed, type PulseFeedItem } from "./lib/pulseFeed";
+import InboxGate from "./components/InboxGate";
 import styles from "./page.module.css";
 
 const networkLabel =
@@ -66,7 +67,9 @@ export default async function Home() {
     return sum + (amountCount || streakCount);
   }, 0);
   const totalPulseLabel = formatCount(totalPulses || 0);
-  const agentWallets = pulseFeed.map((item) => item.agent).filter(isAddress);
+  const agentWallets = pulseFeed
+    .map((item) => item.agent)
+    .filter((address) => isAddress(address));
   const erc8004Map = await getErc8004Badges(agentWallets);
   const registerUrl =
     process.env.NEXT_PUBLIC_ERC8004_REGISTER_URL ?? "https://www.8004.org";
@@ -77,27 +80,25 @@ export default async function Home() {
         <header className={styles.header}>
           <div>
             <p className={styles.kicker}>Clawd Kitchen • Agent Pulse</p>
-            <h1>On-chain liveness signal for AI agents</h1>
+            <h1>Public routing gate for agents on Base chain</h1>
             <p className={styles.tagline}>
-              $PULSE is a utility token used to send pulse signals. A pulse is
-              a 1 PULSE transfer to the signal sink. The UI reads transfers and
-              shows last-seen and streaks.
+              Pulse = eligibility refresh. No pulse → no routing. Paid eligibility
+              adds anti-spam friction.
             </p>
           </div>
           <div className={styles.walletCard}>
             <div>
-              <p className={styles.label}>Wallet</p>
+              <p className={styles.label}>Routing eligibility</p>
               <p className={styles.value}>Read-only demo</p>
               <p className={styles.subtle}>Wallet connect coming next.</p>
             </div>
             <button className={styles.primaryButton} type="button">
-              Send pulse (1 PULSE)
+              Refresh eligibility (1 PULSE)
             </button>
+            <p className={styles.subtle}>Eligibility window defaults to 24h.</p>
+            <p className={styles.subtle}>Paid eligibility adds spam friction.</p>
             <p className={styles.subtle}>
-              Transfers 1 PULSE to the signal sink. Shows recent activity.
-            </p>
-            <p className={styles.subtle}>
-              Pulse shows activity. Not identity or AI proof.
+              Public, periodic checkpoint (not constant txs).
             </p>
           </div>
         </header>
@@ -106,30 +107,34 @@ export default async function Home() {
           <div className={styles.card}>
             <p className={styles.label}>Network</p>
             <p className={styles.value}>{networkLabel}</p>
-            <p className={styles.subtle}>ERC-20 + transfer logs</p>
+            <p className={styles.subtle}>On-chain pulse events</p>
           </div>
           <div className={styles.card}>
-            <p className={styles.label}>Last run</p>
+            <p className={styles.label}>Last routing check</p>
             <p className={styles.value}>{runStatusLabel}</p>
             <p className={styles.subtle}>{lastRun.timestamp}</p>
           </div>
           <div className={styles.card}>
-            <p className={styles.label}>Active agents</p>
+            <p className={styles.label}>Routable agents</p>
             <p className={styles.value}>{activeAgents}</p>
-            <p className={styles.subtle}>Seen in the last 24h</p>
+            <p className={styles.subtle}>Paid eligibility in last 24h</p>
           </div>
           <div className={styles.card}>
-            <p className={styles.label}>Total pulses</p>
+            <p className={styles.label}>Eligibility refreshes</p>
             <p className={styles.value}>{totalPulseLabel}</p>
-            <p className={styles.subtle}>1 PULSE per signal</p>
+            <p className={styles.subtle}>1 PULSE per refresh</p>
           </div>
+        </section>
+
+        <section className={styles.card}>
+          <InboxGate />
         </section>
 
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Last checked run</h2>
-              <p className={styles.subtle}>Transfer log check output.</p>
+              <h2>Last routing check</h2>
+              <p className={styles.subtle}>Routing log check output.</p>
             </div>
             <span
               className={`${styles.statusPill} ${
@@ -161,9 +166,9 @@ export default async function Home() {
         <section className={styles.card}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2>Pulse transfer feed</h2>
+              <h2>Routing feed (pulse transfers)</h2>
               <p className={styles.subtle}>
-                ERC-20 transfer logs routed to the Treasury Safe signal sink.
+                Paid pulse transfers routed to the signal sink for eligibility.
               </p>
             </div>
             <a className={styles.secondaryButton} href="/" role="button">
@@ -173,9 +178,9 @@ export default async function Home() {
           <div className={styles.feedHeader}>
             <span>Agent</span>
             <span>Identity</span>
-            <span>Last seen</span>
-            <span>Pulse count (24h / 7d)</span>
-            <span>Pulse sent</span>
+            <span>Last pulse</span>
+            <span>Eligibility refreshes (24h / 7d)</span>
+            <span>Pulse action</span>
             <span>Tx</span>
             <span>Note</span>
           </div>
@@ -259,8 +264,9 @@ export default async function Home() {
 
         <footer className={styles.footer}>
           <p>
-            Compliance: $PULSE is a utility token used to send pulse signals.
-            Pulse shows activity. Not identity or AI proof.
+            $PULSE is a utility token used to send pulse signals. A pulse shows
+            recent wallet activity. It does not prove identity, quality, or
+            “AI.”
           </p>
         </footer>
       </main>
