@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPublicClient, http, parseAbi, parseAbiItem } from "viem";
+import type { PublicClient } from "viem";
 import { base } from "viem/chains";
 
 const registryAddress = process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS as
@@ -41,8 +42,6 @@ async function kvSet(value: string) {
     { headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` } }
   );
 }
-
-type PublicClient = ReturnType<typeof createPublicClient>;
 
 type PulseLogs = Awaited<ReturnType<PublicClient["getLogs"]>>;
 
@@ -87,7 +86,20 @@ export async function GET() {
   const fromBlock =
     latestBlock > BLOCK_WINDOW ? latestBlock - BLOCK_WINDOW : BigInt(0);
 
-  const logs = await getLogsWithChunking(client, fromBlock, latestBlock);
+  const logs = (await getLogsWithChunking(
+    client as unknown as PublicClient,
+    fromBlock,
+    latestBlock
+  )) as Array<{
+    args?: {
+      agent?: `0x${string}`;
+      amount?: bigint;
+      timestamp?: bigint;
+      streak?: bigint;
+    };
+    transactionHash?: `0x${string}` | null;
+    blockNumber?: bigint | null;
+  }>;
 
   const recentPulses = logs
     .map((log) => ({

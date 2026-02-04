@@ -75,9 +75,9 @@ export async function getErc8004Badges(
     contracts.map(async (contract) => {
       try {
         const result = await publicClient.readContract(contract);
-        return { status: "success", result } as const;
+        return { status: "success" as const, result };
       } catch (error) {
-        return { status: "failure", error } as const;
+        return { status: "failure" as const, error };
       }
     })
   );

@@ -69,7 +69,7 @@ export default async function Home() {
   const totalPulseLabel = formatCount(totalPulses || 0);
   const agentWallets = pulseFeed
     .map((item) => item.agent)
-    .filter((address) => isAddress(address));
+    .filter((agent) => isAddress(agent));
   const erc8004Map = await getErc8004Badges(agentWallets);
   const registerUrl =
     process.env.NEXT_PUBLIC_ERC8004_REGISTER_URL ?? "https://www.8004.org";
