@@ -1,0 +1,8 @@
+{
+  "name": "Agent Pulse Base Fork",
+  "chainId": 8453,
+  "rpcUrl": "https://virtual.base.eu.rpc.tenderly.co/78cc4099-dadf-4683-9ab6-da7020b38870",
+  "wssUrl": "wss://virtual.base.eu.rpc.tenderly.co/d4bd8e83-b130-45a9-b64f-9784330c1af3",
+  "currentBlock": 41678262,
+  "createdAt": "2026-02-03T19:10:00Z"
+}

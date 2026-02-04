@@ -1,0 +1,8 @@
+{
+  "rpcUrl": "https://virtual.base.eu.rpc.tenderly.co/78cc4099-dadf-4683-9ab6-da7020b38870",
+  "fundMethod": "tenderly_addBalance",
+  "tokenTxHash": "0x522b40dd7eb84095528364520c217041ee57090f03aec4d9dd1d488dc7364597",
+  "transferTxHash": "0x2482aca4174a7d45aed2a5004f584c52c43b7a4d75b843a08e3f2902b9abe921",
+  "transferEvents": 1,
+  "transferBlock": "41678276"
+}

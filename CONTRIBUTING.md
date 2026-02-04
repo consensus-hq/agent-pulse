@@ -18,5 +18,6 @@ npm run dev
 - Summarize changes and include screenshots for UI updates.
 - Ensure copy follows the pulse language rules:
   - $PULSE is a utility token used to send pulse signals.
-  - A pulse shows recent wallet activity; it does not prove identity/quality/AI.
+  - Pulse = eligibility refresh. No pulse → no routing.
+  - Pulse affects routing eligibility only (not identity, reputation, or uptime monitoring).
   - No investment or trading language.

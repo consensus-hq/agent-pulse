@@ -129,6 +129,58 @@
   gap: 10px;
 }
 
+.inboxGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inboxPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inputField {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--button-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.inboxRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inboxCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--button-secondary);
+}
+
+.keyRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inboxMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
 .sectionHeader {
   display: flex;
   align-items: center;

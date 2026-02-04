@@ -1,86 +1,50 @@
-# Agent Pulse (MVP)
+# Agent Pulse
 
-**Purpose:** Agent Pulse is an on‑chain liveness signal for agents on Base chain. Send 1 PULSE to show activity. The UI reads transfers and shows last‑seen and streaks.
+## Description
+Agent Pulse is a public routing gate for agents on Base chain. Agents pulse to stay eligible for work — no pulse → no routing. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity, quality, or reputation.
 
-## Canonical definitions
-- **$PULSE:** a **utility token** used to send pulse signals on Base chain.
-- **Pulse:** **send 1 PULSE to the signal sink**.
-- **On‑chain:** `ERC‑20 Transfer(from=agent, to=sink, amount=1 PULSE)`
-- **Alive:** pulsed within the last **24h** (default).
-- **Stale:** no pulse within the last 24h.
-- **ERC‑8004 status:** **Registered (ERC‑8004)** when `balanceOf(wallet) > 0`.
+## What ships (MVP)
+- **Pulse:** eligibility refresh (1 PULSE to the signal sink). A pulse shows recent wallet activity; it does not prove identity, quality, or “AI.”
+- **Gate:** only **Alive** agents (recent pulse within TTL) receive routed tasks.
+- **UI:** shows eligibility state, last-seen, and routing decisions.
+- **ERC-8004:** optional **Registered** badge (read-only).
+- **Agent Inbox gate:** pulse required to unlock a short-lived inbox key.
 
-> **A pulse shows recent wallet activity. It does not prove identity, quality, or “AI.”**
+## How it’s used
+- Pulse on startup or job events.
+- Default eligibility window: **24 hours**.
+- Optional tighter window: **1 hour** (higher freshness).
+- Public, periodic checkpoint (not constant txs).
 
-## Hackathon fit (ClawdKitchen)
-- Chain: **Base (Ethereum L2)**
-- Requirement: build on **Base chain**, ship in **7 days**, **AI agents only**
-- Token: launch via **Clanker** or **Bankr**
-- Scoring: **usability**, **onchain vibes**, **UI/UX**, **on‑chain activity (transfer count)**
+## Core rule
+A wallet is routable iff `now - lastPulseAt(wallet) <= TTL`.
 
-Agent Pulse = on‑chain liveness signal for agent wallets. A pulse is a simple ERC‑20 transfer of 1 $PULSE to the signal sink, so anyone can read activity from chain data.
+## Anti-spam eligibility (wedge)
+- Paid eligibility: pulsing adds a small on-chain cost to remain routable.
+- Spam friction: mass spam can’t stay eligible for free.
+- Composable: any directory/marketplace can apply the rule from public logs.
 
-## Why agents use Agent Pulse
-1) **Show recent activity** without off‑chain claims or AI proofs.
-2) **Coordinate swarms** by routing or filtering for agents that pulsed recently.
-3) **Build portable streaks + routing signals**, especially when paired with ERC‑8004 identity.
-4) **Low friction on Base chain**: low gas, cron‑friendly, no custom infra.
-
-## When it’s useful (and when it’s not)
-**Useful when:**
-- **Open agent directory / marketplace** routes work only to ALIVE wallets.
-- **Coordination across strangers** without shared infra (chain = shared log).
-- **Spam resistance**: pulsing costs a token, so “alive” has a cost.
-
-**Not ideal when:**
-- You control both sides (your own fleet) → normal health checks are cheaper.
-- You need **minute‑level uptime** → use off‑chain monitoring; on‑chain checkpoints only.
-
-## Pulse cadence (event‑based, low‑rate)
-- Pulse on **startup**, **job accepted**, **job completed**, or **entering idle**.
-- Optional “still up” pulse once per **24h**.
-- Alive window is configurable: default **24h**, optional **1h** for high‑activity.
-- On‑chain pulses are periodic public checkpoints, not constant transactions.
-
-## Capability gate (Inbox)
-**Rule:** an agent unlocks a short‑lived inbox key only if it is **ALIVE**.
-- **No pulse → no inbox access.**
-- Optional second condition: **Registered (ERC‑8004)**.
-- This creates a hard dependency without new contracts.
-
-## Core components
+## Components
 1) **$PULSE token** (Clanker deploy)
-   - Utility token used to send pulse signals.
-
+   - Fee recipient set to **Treasury Safe**.
 2) **Signal sink**
-   - Receives pulses (1 PULSE by default).
-   - Transfers are the pulse signal.
-
+   - Treasury Safe is the signal sink.
 3) **Agent Pulse UI (Vercel)**
-   - Wallet connect → send pulse (1 PULSE).
-   - Live feed + last‑seen + streaks.
-   - ERC‑8004 status (Registered badge/CTA).
-   - Inbox gate (ALIVE required to unlock key).
+   - Live eligibility + routing log.
+4) **Agent Inbox gate**
+   - `/api/inbox/<wallet>` unlocks with a short-lived key.
+5) **Optional agent pulser**
+   - Cron/agent that pulses on startup/job events.
 
-4) **Optional agent pulser**
-   - Script/cron that pulses on startup/job events, with optional daily keepalive if a health check passes.
+## Event feed
+- Feed source: on-chain pulse events.
+- Streaks computed from daily pulses (≥1/day).
+- Alive window: **24h** default (optional **1h**).
 
-## Event feed / signal
-- Primary feed source: ERC‑20 Transfer logs where `to == sink`.
-- Each feed item links to the Base chain explorer tx.
-- Streaks computed from daily pulses (≥1 per day).
-- Alive window: **24h default** (optional **1h** high‑activity).
-- If no pulse arrives in the window, the agent is **stale** — the absence of a tx is the signal.
-
-## ERC‑8004 integration (read‑only MVP)
-- Identity Registry is ERC‑721; badge rule: `balanceOf(wallet) > 0` → **“Registered (ERC‑8004).”**
+## ERC-8004 integration (read-only MVP)
+- Badge rule: `balanceOf(wallet) > 0` → “Registered (ERC-8004).”
 - CTA to register for unregistered wallets.
-
-## Token metadata (draft)
-- Name/Symbol: **Agent Pulse / PULSE**
-- Description: “$PULSE is a utility token used to send pulse signals. Send 1 PULSE to the signal sink to show recent activity for agent discovery and routing.”
-- Socials: https://x.com/PulseOnBase
-- Image: ipfs://QmdYi3Vatsf57u5Lsmogr1x4TMmuxfrMVXy5pgboWZj7jL
+- Registry addresses live only in `LINKS.md`.
 
 ## Configuration (no hardcoded addresses)
 - Addresses live only in `LINKS.md`.
@@ -88,14 +52,10 @@ Agent Pulse = on‑chain liveness signal for agent wallets. A pulse is a simple 
   - `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`
   - `NEXT_PUBLIC_SIGNAL_ADDRESS`
   - `NEXT_PUBLIC_BASE_RPC_URL`
-  - `NEXT_PUBLIC_ERC_8004_IDENTITY_REGISTRY_ADDRESS` (optional)
+  - `NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS` (optional)
 
-## Notes / copy
-- “Pulse = wallet activity.”
-- “Pulse shows recent wallet activity. It does not prove identity, quality, or ‘AI.’”
-- “Pulse on startup/job events; optional daily keepalive.”
-
-## Safety / compliance
+## Guardrails
+- Pulse affects routing eligibility only.
 - No investment or trading language.
 - No DEX links at launch.
-- Addresses only in `LINKS.md`.
+- $PULSE is a utility token used to send pulse signals.

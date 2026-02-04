@@ -65,21 +65,27 @@ export async function getErc8004Badges(
   });
 
   const contracts = toQuery.map((wallet) => ({
-    address: identityRegistry,
+    address: identityRegistry as `0x${string}`,
     abi: ERC721_ABI,
-    functionName: "balanceOf",
-    args: [wallet],
+    functionName: "balanceOf" as const,
+    args: [wallet as `0x${string}`] as const,
   }));
 
-  const results = await publicClient.readContracts({
-    contracts,
-    allowFailure: true,
-  });
+  const results = await Promise.all(
+    contracts.map(async (contract) => {
+      try {
+        const result = await publicClient.readContract(contract);
+        return { status: "success", result } as const;
+      } catch (error) {
+        return { status: "failure", error } as const;
+      }
+    })
+  );
 
   results.forEach((entry, index) => {
     const wallet = toQuery[index];
     if (entry.status === "success") {
-      const hasBadge = (entry.result ?? 0n) > 0n;
+      const hasBadge = (entry.result ?? BigInt(0)) > BigInt(0);
       resultMap[wallet] = hasBadge;
       writeCache(wallet, hasBadge);
     } else {
