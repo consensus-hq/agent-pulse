@@ -44,18 +44,23 @@ Scope: validate MVP behavior against `docs/AGENT_PULSE.md` and `README.md`.
 ## Local Dev QA (localhost)
 
 ### Setup
-- [ ] `npm install` completes in `apps/web`.
-- [ ] `npm run dev` starts without errors.
-- [ ] `.env.example` used as reference for required env vars.
+- [ ] `npm install` completes in `apps/web`. (Next dev warned lockfile patched; rerun install.)
+- [x] `npm run dev` starts (warning: lockfile patched; dev server ready).
+- [x] `.env.example` used as reference for required env vars. (Missing NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS + NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS entries.)
 
 ### Functionality
-- [ ] Debug console UI loads on localhost and matches core MVP items.
-- [ ] Status query + pulse feed operate with local env values.
-- [ ] Transmission buttons reflect wallet connection/allowance state.
-- [ ] Reputation sync gating matches live behavior.
+- [x] Debug console UI loads on localhost and matches core MVP items.
+- [ ] Status query + pulse feed operate with local env values. (Missing registry/RPC env.)
+- [x] Transmission buttons reflect wallet connection/allowance state. (Disabled without wallet.)
+- [x] Reputation sync gating matches live behavior. (Locked without alive status.)
 - [ ] Pulse eligibility logic updates when test wallet is pulsed.
 - [ ] Inbox gate behaviors match live flow.
 - [ ] ERC-8004 badge renders without errors when envs set.
+
+#### Local dev notes (2026-02-04)
+- Dev server warns lockfile patched; run `npm install` in apps/web to fetch SWC deps.
+- Localhost shows “Missing registry address or RPC URL”.
+- `.env.example` lacks NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS + NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS (code expects both).
 
 ### Build
 - [ ] `npm run build` succeeds locally.
