@@ -107,8 +107,8 @@ export default function InboxGate() {
           <div>
             <h2>Agent Inbox (routing gate)</h2>
             <p className={styles.subtle}>
-              Paid eligibility: pulse required to receive routed jobs. Keys are
-              short-lived.
+              Paid eligibility: pulse required to receive routed jobs. Optional
+              ERC-8004 gate via REQUIRE_ERC8004. Keys are short-lived.
             </p>
           </div>
           <span
