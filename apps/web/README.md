@@ -36,6 +36,7 @@ export NEXT_PUBLIC_EXPLORER_TX_BASE_URL="https://basescan.org/tx/"
 # Client (browser) addresses (from LINKS.md only)
 export NEXT_PUBLIC_PULSE_TOKEN_ADDRESS="<from LINKS.md>"
 export NEXT_PUBLIC_SIGNAL_ADDRESS="<from LINKS.md>"
+export NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS="<from LINKS.md>"
 
 # Client (browser) RPC for ALIVE checks + ERC-8004 badge
 export NEXT_PUBLIC_BASE_RPC_URL="https://mainnet.base.org"
@@ -43,6 +44,7 @@ export NEXT_PUBLIC_BASE_RPC_URL="https://mainnet.base.org"
 # Server (node runtime) mirrors (optional)
 export PULSE_TOKEN_ADDRESS="<from LINKS.md>"
 export SIGNAL_ADDRESS="<from LINKS.md>"
+export PULSE_REGISTRY_ADDRESS="<from LINKS.md>"
 export BASE_RPC_URL="https://mainnet.base.org"
 
 # Alive window + inbox key TTL
@@ -79,6 +81,7 @@ Optional fields: `txHash` (used to build explorer links) or `explorerUrl` (full 
 ## Notes
 - Pulse = eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
 - Eligibility is **paid** and **time‑bound** (TTL); routing is binary (eligible vs. not).
+- TTL is anchored on‑chain via **PulseRegistry** when `PULSE_REGISTRY_ADDRESS` is set.
 - **ERC‑8004 is read‑only by default**; optional gate via `REQUIRE_ERC8004`.
 - Public, periodic checkpoint (not constant txs).
 - Addresses stay in `LINKS.md` (never hardcode in UI).

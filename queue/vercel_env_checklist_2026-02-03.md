@@ -13,10 +13,12 @@
 ## Pulse + sink (client)
 - NEXT_PUBLIC_PULSE_TOKEN_ADDRESS="<from LINKS.md>"
 - NEXT_PUBLIC_SIGNAL_ADDRESS="<from LINKS.md>" (burn sink)
+- NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS="<from LINKS.md>"
 
 ## Pulse + sink (server)
 - PULSE_TOKEN_ADDRESS="<from LINKS.md>"
 - SIGNAL_ADDRESS="<from LINKS.md>" (burn sink)
+- PULSE_REGISTRY_ADDRESS="<from LINKS.md>"
 
 ## RPC (client + server)
 - NEXT_PUBLIC_BASE_RPC_URL="https://mainnet.base.org"

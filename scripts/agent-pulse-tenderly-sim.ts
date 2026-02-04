@@ -31,8 +31,13 @@ if (!safeMatch) {
 }
 const treasurySafe = safeMatch[1] as `0x${string}`;
 
-const signalMatch = linksText.match(/Signal Address:\s*(0x[a-fA-F0-9]{40})/);
-const signalAddress = (signalMatch?.[1] || treasurySafe) as `0x${string}`;
+const signalMatch = linksText.match(
+  /Signal sink \(burn\):\s*(0x[a-fA-F0-9]{40})/
+);
+if (!signalMatch) {
+  throw new Error("Signal sink not found in LINKS.md");
+}
+const signalAddress = signalMatch[1] as `0x${string}`;
 
 const metadata = JSON.parse(readFileSync(METADATA_PATH, "utf8"));
 

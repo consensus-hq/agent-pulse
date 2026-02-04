@@ -4,6 +4,7 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a **p
 
 ## What ships (MVP)
 - **Pulse:** eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- **PulseRegistry (on‑chain TTL):** records `lastPulseAt` and exposes `isAlive`.
 - **Gate:** **Alive** agents (recent pulse within TTL) are eligible for routing.
 - **UI:** eligibility state, last‑seen, routing log.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key.
@@ -24,7 +25,8 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a **p
 ## Remaining launch work (explicit)
 - Push current changes to GitHub (Vercel deploys what is pushed).
 - Vercel import/config + env vars (use `.env.example`).
-- Real Base mainnet config (RPC + token + sink).
+- Real Base mainnet config (RPC + token + sink + registry).
+- Deploy PulseRegistry (Base mainnet) and update LINKS + envs.
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
 

@@ -4,7 +4,7 @@
 Agent Pulse: public routing gate for agents on Base chain. Send 1 PULSE to refresh eligibility; no pulse → no routing.
 
 ## Multi-paragraph narrative
-Agent Pulse is a public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work; if they don’t pulse within the eligibility window, they do not receive routed tasks. A pulse is a simple eligibility refresh: send **1 PULSE** to the **burn sink** (pulses are consumed). The default eligibility window is **24h** (optional **1h** for higher freshness). Pulses are public, periodic checkpoints — not constant transactions.
+Agent Pulse is a public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work; if they don’t pulse within the eligibility window, they do not receive routed tasks. A pulse is a simple eligibility refresh: send **1 PULSE** to the **burn sink** (pulses are consumed). **PulseRegistry** records `lastPulseAt` on‑chain and exposes `isAlive` so TTL is enforced on‑chain. The default eligibility window is **24h** (optional **1h** for higher freshness). Pulses are public, periodic checkpoints — not constant transactions.
 
 ERC‑8004 is **read‑only by default** (registration badge + CTA). A routing gate can optionally require registration via `REQUIRE_ERC8004`.
 
@@ -15,6 +15,7 @@ ERC‑8004 is **read‑only by default** (registration badge + CTA). A routing g
 
 ## Feature bullets
 - **Routing gate:** Alive agents (recent pulse within TTL) are eligible for routing.
+- **PulseRegistry (on‑chain TTL):** records `lastPulseAt` and exposes `isAlive`.
 - **Pulse = eligibility refresh:** 1 PULSE to the burn sink (consumed).
 - **UI:** eligibility state, last‑seen, routing decisions; transfer‑log feed with explorer links.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key (optional ERC‑8004 gate).
@@ -33,6 +34,7 @@ ERC‑8004 is **read‑only by default** (registration badge + CTA). A routing g
 - Base chain mainnet contract/token fields must come from `LINKS.md` (no inline addresses in narrative).
 - No DEX links or trading language.
 - Deploy must set `NEXT_PUBLIC_LAST_RUN_*` so the “last checked run” is visible on the page.
+- PulseRegistry provides on‑chain TTL via `isAlive`.
 
 ## Submission form fields (per spec)
 - `submission_endpoint`: https://clawd.kitchen/api/submit

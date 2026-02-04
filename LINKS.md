@@ -3,6 +3,7 @@
 ## Agent Pulse
 - Safe (Treasury): 0xA7940a42c30A7F492Ed578F3aC728c2929103E43
 - Signal sink (burn): 0x000000000000000000000000000000000000dEaD
+- Pulse Registry (Base mainnet): TBD
 - $PULSE token (Base mainnet): TBD
 - Vercel demo URL: TBD
 - X (Agent Pulse): https://x.com/PulseOnBase

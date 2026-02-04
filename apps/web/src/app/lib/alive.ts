@@ -1,5 +1,6 @@
 import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
 import { base } from "viem/chains";
+import { pulseRegistryAbi } from "./pulseRegistry";
 
 const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -13,6 +14,10 @@ const tokenAddress =
   "";
 const signalAddress =
   process.env.NEXT_PUBLIC_SIGNAL_ADDRESS || process.env.SIGNAL_ADDRESS || "";
+const registryAddress =
+  process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS ||
+  process.env.PULSE_REGISTRY_ADDRESS ||
+  "";
 
 const aliveWindowSeconds = Number.parseInt(
   process.env.NEXT_PUBLIC_ALIVE_WINDOW_SECONDS ||
@@ -38,7 +43,20 @@ export type AliveStatus = {
 };
 
 export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
-  if (!rpcUrl || !tokenAddress || !signalAddress || !isAddress(wallet)) {
+  if (!rpcUrl || !isAddress(wallet)) {
+    return {
+      state: "unknown",
+      alive: false,
+      lastPulseAt: null,
+      lastPulseBlock: null,
+      windowSeconds: aliveWindowSeconds,
+    };
+  }
+
+  const hasRegistry = registryAddress && isAddress(registryAddress);
+  const hasTransferSource = tokenAddress && signalAddress;
+
+  if (!hasRegistry && !hasTransferSource) {
     return {
       state: "unknown",
       alive: false,
@@ -54,6 +72,41 @@ export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
   });
 
   try {
+    if (registryAddress && isAddress(registryAddress)) {
+      const [lastPulseAtRaw, lastPulseBlockRaw, isAlive] = await Promise.all([
+        publicClient.readContract({
+          address: registryAddress as `0x${string}`,
+          abi: pulseRegistryAbi,
+          functionName: "lastPulseAt",
+          args: [wallet as `0x${string}`],
+        }),
+        publicClient.readContract({
+          address: registryAddress as `0x${string}`,
+          abi: pulseRegistryAbi,
+          functionName: "lastPulseBlock",
+          args: [wallet as `0x${string}`],
+        }),
+        publicClient.readContract({
+          address: registryAddress as `0x${string}`,
+          abi: pulseRegistryAbi,
+          functionName: "isAlive",
+          args: [wallet as `0x${string}`, BigInt(aliveWindowSeconds)],
+        }),
+      ]);
+
+      const lastPulseAt = Number(lastPulseAtRaw);
+      const lastPulseBlock = Number(lastPulseBlockRaw);
+      const alive = Boolean(isAlive);
+
+      return {
+        state: alive ? "alive" : "stale",
+        alive,
+        lastPulseAt: lastPulseAt > 0 ? lastPulseAt : null,
+        lastPulseBlock: lastPulseBlock > 0 ? lastPulseBlock.toString() : null,
+        windowSeconds: aliveWindowSeconds,
+      };
+    }
+
     const latestBlock = await publicClient.getBlockNumber();
     const toBlock =
       confirmations > 0 && latestBlock > BigInt(confirmations)

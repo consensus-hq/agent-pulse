@@ -6,6 +6,7 @@ Source: https://clawd.kitchen/registration.md
 
 ## MVP scope
 - **Pulse:** eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- **PulseRegistry (on‑chain TTL):** records `lastPulseAt` and exposes `isAlive`.
 - **Gate:** **Alive** agents (recent pulse within TTL) are eligible for routing.
 - **UI:** eligibility state, last‑seen, routing log.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key.
@@ -75,15 +76,18 @@ We should submit:
 
 ## Implementation notes
 - Use env/config for addresses; never hardcode.
-- Feed reads on‑chain pulse events for eligibility.
+- **PulseRegistry** is the primary on‑chain source for `lastPulseAt` + TTL (`isAlive`).
+- Feed reads PulseRegistry events; ERC‑20 `Transfer` to sink is a fallback.
 - Alive window default **24h** (optional **1h**); stale if no pulse in window.
 - ERC‑8004 status uses Identity Registry (address stored in `LINKS.md`).
 - Fork rehearsal is optional for debug; mainnet deploy is required for submission.
+- The Graph integration planned for indexing (post‑MVP).
 
 ## Remaining launch work (explicit)
 - Push current changes to GitHub (Vercel deploys what is pushed).
 - Vercel import/config + env vars (use `.env.example`).
-- Real Base mainnet config (RPC + token + sink).
+- Real Base mainnet config (RPC + token + sink + registry).
+- Deploy PulseRegistry (Base mainnet) and update LINKS + envs.
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
 
@@ -115,13 +119,13 @@ We should submit:
    - [ ] Use `.env.example` as canonical env var list
    - [ ] Push current changes to GitHub (Vercel deploys what is pushed)
 3) **Env vars (use `.env.example`)**
-   - [ ] Required (server): `BASE_RPC_URL`, `PULSE_TOKEN_ADDRESS`, `SIGNAL_ADDRESS`
-   - [ ] Required (client): `NEXT_PUBLIC_BASE_RPC_URL`, `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`, `NEXT_PUBLIC_SIGNAL_ADDRESS`
+   - [ ] Required (server): `BASE_RPC_URL`, `PULSE_TOKEN_ADDRESS`, `SIGNAL_ADDRESS`, `PULSE_REGISTRY_ADDRESS`
+   - [ ] Required (client): `NEXT_PUBLIC_BASE_RPC_URL`, `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`, `NEXT_PUBLIC_SIGNAL_ADDRESS`, `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS`
    - [ ] Recommended: `NEXT_PUBLIC_ALIVE_WINDOW_SECONDS=86400`, `BLOCK_TIME_SECONDS=2`, `BLOCK_CONFIRMATIONS=2`, `INBOX_KEY_TTL_SECONDS=3600`, `NEXT_PUBLIC_INBOX_KEY_TTL_SECONDS`
    - [ ] Optional: `REQUIRE_ERC8004` (default OFF), `NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS`, `NEXT_PUBLIC_ERC8004_REGISTER_URL`, `NEXT_PUBLIC_PULSE_FEED_URL`, `NEXT_PUBLIC_LAST_RUN_STATUS`, `NEXT_PUBLIC_LAST_RUN_TS`, `NEXT_PUBLIC_LAST_RUN_NETWORK`, `NEXT_PUBLIC_LAST_RUN_LOG`
    - [x] Canonical LAST_RUN env names match `.env.example` (use `NEXT_PUBLIC_LAST_RUN_TS`, not TIMESTAMP)
 4) **Base mainnet config**
-   - [ ] Real Base mainnet config (RPC + token + sink)
+   - [ ] Real Base mainnet config (RPC + token + sink + registry)
 5) **Smoke test**
    - [ ] Production smoke test (pulse → key → send task)
    - [ ] Smoke test sequence (demo → inbox gate → fail pre‑pulse → send 1 PULSE → key success → send test task → GET inbox list)
@@ -142,9 +146,10 @@ We should submit:
    - [x] Sink address is a burn sink (set in `agent-pulse/LINKS.md`)
    - [x] Revenue path: Clanker fee share (~80%) to Treasury Safe (separate from sink)
    - [x] Treasury Safe set as fee recipient (in `agent-pulse/LINKS.md`)
-   - [x] Indexing: ALIVE checks remain `Transfer(to == SIGNAL_ADDRESS)`; only sink address changes
+   - [x] Indexing: TTL anchored on‑chain via PulseRegistry; Transfer logs are fallback
    - [x] `agent-pulse/LINKS.md`: Treasury Safe set to fee recipient
    - [x] `agent-pulse/LINKS.md`: signal sink burn address set
+   - [ ] `agent-pulse/LINKS.md`: PulseRegistry address set (Base mainnet)
    - [x] Root LINKS aligned to `agent-pulse/LINKS.md` (no inline addresses)
    - [x] Update docs to reference LINKS.md for sink/treasury (no inline addresses)
    - [x] Contract/token addresses only in `agent-pulse/LINKS.md` + env vars

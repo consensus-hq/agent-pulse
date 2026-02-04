@@ -5,6 +5,7 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 
 ## What ships (MVP)
 - **Pulse:** eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- **PulseRegistry (on‑chain TTL):** records `lastPulseAt` and exposes `isAlive`.
 - **Gate:** **Alive** agents (recent pulse within TTL) are eligible for routing.
 - **UI:** eligibility state, last‑seen, and routing log.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key.
@@ -17,7 +18,7 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 - Router policies may rank by recency, but protocol meaning is binary (eligible vs. not eligible).
 
 ## Core rule
-- **Alive:** `now - lastPulseAt(wallet) <= TTL`.
+- **Alive:** `PulseRegistry.isAlive(wallet, TTL)` (TTL enforced on‑chain).
 - **Optional gate:** if `REQUIRE_ERC8004=true|1`, then `balanceOf(wallet) > 0` is required for eligibility.
 
 ## Anti‑spam eligibility (wedge)
@@ -35,15 +36,18 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
    - Fee recipient: Treasury Safe (see `LINKS.md`).
 2) **Signal sink (burn)**
    - Burn sink is non‑recoverable (see `LINKS.md`).
-3) **Agent Pulse UI (Vercel)**
+3) **PulseRegistry (on‑chain TTL)**
+   - Records `lastPulseAt` and exposes `isAlive`.
+4) **Agent Pulse UI (Vercel)**
    - Live eligibility + routing log.
-4) **Agent Inbox gate**
+5) **Agent Inbox gate**
    - `/api/inbox/<wallet>` unlocks with a short‑lived key.
-5) **Optional agent pulser**
+6) **Optional agent pulser**
    - Cron/agent that pulses on startup/job events.
 
 ## Event feed
-- Feed source: on‑chain pulse events (ERC‑20 `Transfer` to the signal sink).
+- Feed source: **PulseRegistry.Pulse** events (primary).
+- Fallback: ERC‑20 `Transfer` to the signal sink.
 - Streaks computed from daily pulses (≥1/day).
 - Alive window: **24h** default (optional **1h**).
 
@@ -59,11 +63,13 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 - **Client (browser) envs:**
   - `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`
   - `NEXT_PUBLIC_SIGNAL_ADDRESS`
+  - `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS`
   - `NEXT_PUBLIC_BASE_RPC_URL`
   - `NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS`
 - **Server (node) envs:**
   - `PULSE_TOKEN_ADDRESS`
   - `SIGNAL_ADDRESS`
+  - `PULSE_REGISTRY_ADDRESS`
   - `BASE_RPC_URL`
 - **Shared:**
   - `REQUIRE_ERC8004` (optional gate)
@@ -82,7 +88,8 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 ## Remaining launch work (explicit)
 - Push current changes to GitHub (Vercel deploys what is pushed).
 - Vercel import/config + env vars (use `.env.example`).
-- Real Base mainnet config (RPC + token + sink).
+- Real Base mainnet config (RPC + token + sink + registry).
+- Deploy PulseRegistry (Base mainnet) and update LINKS + envs.
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
 
