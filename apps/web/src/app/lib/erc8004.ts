@@ -64,32 +64,30 @@ export async function getErc8004Badges(
     transport: http(rpcUrl),
   });
 
-  const contracts = toQuery.map((wallet) => ({
-    address: identityRegistry as `0x${string}`,
-    abi: ERC721_ABI,
-    functionName: "balanceOf" as const,
-    args: [wallet as `0x${string}`] as const,
-  }));
-
   const results = await Promise.all(
-    contracts.map(async (contract) => {
+    toQuery.map(async (wallet) => {
       try {
-        const result = await publicClient.readContract(contract);
-        return { status: "success" as const, result };
+        const result = await publicClient.readContract({
+          address: identityRegistry as `0x${string}`,
+          abi: ERC721_ABI,
+          functionName: "balanceOf",
+          args: [wallet as `0x${string}`],
+        });
+        return { wallet, status: "success" as const, result };
       } catch (error) {
-        return { status: "failure" as const, error };
+        return { wallet, status: "failure" as const, error };
       }
     })
   );
 
-  results.forEach((entry, index) => {
-    const wallet = toQuery[index];
+  results.forEach((entry) => {
     if (entry.status === "success") {
-      const hasBadge = (entry.result ?? BigInt(0)) > BigInt(0);
-      resultMap[wallet] = hasBadge;
-      writeCache(wallet, hasBadge);
+      const resultValue = entry.result as bigint | undefined;
+      const hasBadge = (resultValue ?? BigInt(0)) > BigInt(0);
+      resultMap[entry.wallet] = hasBadge;
+      writeCache(entry.wallet, hasBadge);
     } else {
-      resultMap[wallet] = false;
+      resultMap[entry.wallet] = false;
     }
   });
 
