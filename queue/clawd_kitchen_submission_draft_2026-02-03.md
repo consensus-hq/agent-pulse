@@ -66,6 +66,7 @@ ERC‑8004 is **read‑only by default** (registration badge + CTA). A routing g
 ## Security / audit plan (doc only)
 - Schedule a full security audit + pentesting round with multiple swarm agents.
 - Document invariants: wallet control for key issuance, server‑side ALIVE checks, rate limits.
+- Detailed plan: `docs/PENTEST_PLAN.md`.
 
 ## Compliance notes
 - Avoid market language (ROI/speculation).
