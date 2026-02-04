@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
+import { publicEnv } from "./lib/env.public";
 
 type StatusResponse = {
   address: string;
@@ -48,6 +49,19 @@ const formatMs = (ms?: number) => {
   return Number.isNaN(date.getTime()) ? "—" : date.toISOString();
 };
 
+const formatMaybeEpoch = (value?: string) => {
+  if (!value) return "—";
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return value;
+  return formatUnix(parsed);
+};
+
+const shortenHash = (hash?: string) => {
+  if (!hash) return "—";
+  if (hash.length <= 12) return hash;
+  return `${hash.slice(0, 6)}…${hash.slice(-4)}`;
+};
+
 export default function Home() {
   const [address, setAddress] = useState("");
   const [statusData, setStatusData] = useState<StatusResponse | null>(null);
@@ -61,6 +75,34 @@ export default function Home() {
   const [feedCacheHeader, setFeedCacheHeader] = useState("");
 
   const [now, setNow] = useState(Date.now());
+
+  const networkLabel = publicEnv.networkLabel || "Base chain";
+  const chainIdLabel = publicEnv.chainId || "—";
+  const walletConnectStatus = publicEnv.walletConnectProjectId
+    ? "configured"
+    : "unset";
+  const explorerTxBaseUrl = publicEnv.explorerTxBaseUrl || "";
+  const feedUrl = publicEnv.pulseFeedUrl || "/api/pulse-feed";
+  const lastRunStatus = publicEnv.lastRunStatus || "—";
+  const lastRunTime = formatMaybeEpoch(publicEnv.lastRunTs);
+
+  const configSnapshot = useMemo(
+    () => ({
+      network: networkLabel,
+      chainId: chainIdLabel,
+      walletConnect: walletConnectStatus,
+      treasurySafe: publicEnv.treasurySafeAddress || "—",
+      signalSink: publicEnv.signalSinkAddress || "—",
+      pulseToken: publicEnv.pulseTokenAddress || "—",
+      pulseRegistry: publicEnv.pulseRegistryAddress || "—",
+      identityRegistry: publicEnv.identityRegistryAddress || "—",
+      reputationRegistry: publicEnv.reputationRegistryAddress || "—",
+      explorerTxBaseUrl: publicEnv.explorerTxBaseUrl || "—",
+      erc8004RegisterUrl: publicEnv.erc8004RegisterUrl || "—",
+      lastRunLabel: publicEnv.lastRunLabel || "—",
+    }),
+    [chainIdLabel, networkLabel, walletConnectStatus]
+  );
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
@@ -106,7 +148,7 @@ export default function Home() {
     setFeedLoading(true);
     setFeedError("");
     try {
-      const response = await fetch("/api/pulse-feed", { cache: "no-store" });
+      const response = await fetch(feedUrl, { cache: "no-store" });
       const payload = (await response.json()) as PulseFeedResponse;
       setFeedCacheHeader(response.headers.get("x-cache") ?? "");
       if (!response.ok) {
@@ -143,6 +185,7 @@ export default function Home() {
 
   const isAlive = Boolean(statusData?.isAlive);
   const feedRows = feedData?.recentPulses?.slice(0, 8) ?? [];
+  const reputationCooldown = isAlive ? "Cooldown: 10m (placeholder)" : "";
 
   return (
     <div className={styles.page}>
@@ -159,13 +202,29 @@ export default function Home() {
           <div className={styles.statusBar}>
             <span className={styles.tag}>Live feed</span>
             <span className={styles.muted}>
+              Network: {networkLabel} (chain {chainIdLabel || "—"})
+            </span>
+            <span className={styles.muted}>
               Cache: {feedCacheHeader || "—"}
             </span>
             <span className={styles.muted}>
               Feed age: {feedCacheAge !== null ? `${feedCacheAge}s` : "—"}
             </span>
+            <span className={styles.muted}>
+              Last run: {lastRunStatus} @ {lastRunTime}
+            </span>
           </div>
         </header>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Runtime config</h2>
+            <span className={styles.muted}>Env snapshot (public)</span>
+          </div>
+          <pre className={styles.output}>
+            {JSON.stringify(configSnapshot, null, 2)}
+          </pre>
+        </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -209,8 +268,7 @@ export default function Home() {
             {statusPayload || "// Status payload will appear here."}
           </pre>
           <p className={styles.muted}>
-            Updated at: {formatMs(statusData?.updatedAt)} | Last pulse: {" "}
-            {formatUnix(statusData?.lastPulseAt)}
+            Updated at: {formatMs(statusData?.updatedAt)} | Last pulse: {formatUnix(statusData?.lastPulseAt)}
           </p>
         </section>
 
@@ -224,6 +282,15 @@ curl -s https://<host>/api/status/0xYourAgent
 
 # live pulse feed
 curl -s https://<host>/api/pulse-feed
+
+# viem example
+const client = createPublicClient({ chain: base, transport: http(process.env.NEXT_PUBLIC_BASE_RPC_URL) })
+const status = await client.readContract({
+  address: process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS,
+  abi: [{ name: "getAgentStatus", type: "function", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }] }],
+  functionName: "getAgentStatus",
+  args: ["0xYourAgent"],
+})
 
 # cast examples
 cast call 0xRegistry "getAgentStatus(address)(bool,uint256,uint256,uint256)" 0xYourAgent --rpc-url $BASE_RPC_URL
@@ -273,6 +340,9 @@ cast call 0xRegistry "ttlSeconds()(uint256)" --rpc-url $BASE_RPC_URL
                 ? "Sync enabled for alive wallets."
                 : "Run status query to unlock."}
             </span>
+            {isAlive ? (
+              <span className={styles.muted}>{reputationCooldown}</span>
+            ) : null}
           </div>
           <p className={styles.muted}>
             Router-only signal. This does not claim identity, quality, or AI.
@@ -297,6 +367,7 @@ cast call 0xRegistry "ttlSeconds()(uint256)" --rpc-url $BASE_RPC_URL
               <span>Amount</span>
               <span>Streak</span>
               <span>Timestamp</span>
+              <span>Tx</span>
             </div>
             {feedRows.length === 0 ? (
               <div className={styles.feedRow}>
@@ -304,16 +375,30 @@ cast call 0xRegistry "ttlSeconds()(uint256)" --rpc-url $BASE_RPC_URL
                 <span className={styles.muted}>—</span>
                 <span className={styles.muted}>—</span>
                 <span className={styles.muted}>—</span>
+                <span className={styles.muted}>—</span>
               </div>
             ) : (
-              feedRows.map((pulse, index) => (
-                <div className={styles.feedRow} key={`${pulse.agent}-${index}`}>
-                  <span className={styles.mono}>{pulse.agent}</span>
-                  <span>{pulse.amount}</span>
-                  <span>{pulse.streak}</span>
-                  <span>{formatUnix(pulse.timestamp)}</span>
-                </div>
-              ))
+              feedRows.map((pulse, index) => {
+                const txHash = pulse.txHash ?? "";
+                const txUrl = explorerTxBaseUrl && txHash
+                  ? `${explorerTxBaseUrl}${txHash}`
+                  : "";
+                return (
+                  <div className={styles.feedRow} key={`${pulse.agent}-${index}`}>
+                    <span className={styles.mono}>{pulse.agent}</span>
+                    <span>{pulse.amount}</span>
+                    <span>{pulse.streak}</span>
+                    <span>{formatUnix(pulse.timestamp)}</span>
+                    {txUrl ? (
+                      <a className={styles.link} href={txUrl} target="_blank" rel="noreferrer">
+                        {shortenHash(txHash)}
+                      </a>
+                    ) : (
+                      <span className={styles.muted}>—</span>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
