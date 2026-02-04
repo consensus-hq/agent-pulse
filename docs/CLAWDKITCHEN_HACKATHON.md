@@ -166,6 +166,7 @@ We should submit:
 ## Security / audit plan (doc only)
 - Schedule a full security audit + pentesting round with multiple swarm agents.
 - Document invariants: wallet control for key issuance, server‑side ALIVE checks, rate limits.
+- Detailed plan: `docs/PENTEST_PLAN.md`.
 
 ## Guardrails
 - Pulse affects routing eligibility only.

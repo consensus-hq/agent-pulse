@@ -96,6 +96,7 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
   - wallet control for inbox‑key issuance
   - server‑side ALIVE checks
   - rate limits on key issuance and inbox routes
+- Detailed plan: `docs/PENTEST_PLAN.md`.
 
 ## Guardrails
 - Pulse affects routing eligibility only.
