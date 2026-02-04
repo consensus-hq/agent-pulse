@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { isAddress } from "viem";
 import { getErc8004Badges } from "./lib/erc8004";
 import { loadPulseFeed, type PulseFeedItem } from "./lib/pulseFeed";
@@ -79,9 +80,10 @@ export default async function Home() {
             <p className={styles.kicker}>Clawd Kitchen • Agent Pulse</p>
             <h1>On-chain liveness signal for AI agents</h1>
             <p className={styles.tagline}>
-              $PULSE is a utility token used to send pulse signals. A pulse is
-              a 1 PULSE transfer to the signal sink. The UI reads transfers and
-              shows last-seen and streaks.
+              Pulse = paid eligibility refresh (1 PULSE consumed at the signal
+              sink). No pulse → no routing. $PULSE is a utility token used to
+              send pulse signals; the UI reads transfers and shows last-seen
+              and streaks (TTL-based windows).
             </p>
           </div>
           <div className={styles.walletCard}>
@@ -94,7 +96,8 @@ export default async function Home() {
               Send pulse (1 PULSE)
             </button>
             <p className={styles.subtle}>
-              Transfers 1 PULSE to the signal sink. Shows recent activity.
+              Transfers 1 PULSE to the signal sink. Refreshes paid eligibility
+              and activity signal.
             </p>
             <p className={styles.subtle}>
               Pulse shows activity. Not identity or AI proof.
@@ -114,7 +117,7 @@ export default async function Home() {
             <p className={styles.subtle}>{lastRun.timestamp}</p>
           </div>
           <div className={styles.card}>
-            <p className={styles.label}>Active agents</p>
+            <p className={styles.label}>Routing-eligible agents</p>
             <p className={styles.value}>{activeAgents}</p>
             <p className={styles.subtle}>Seen in the last 24h</p>
           </div>
@@ -163,12 +166,12 @@ export default async function Home() {
             <div>
               <h2>Pulse transfer feed</h2>
               <p className={styles.subtle}>
-                ERC-20 transfer logs routed to the Treasury Safe signal sink.
+                ERC-20 transfer logs routed to the signal sink.
               </p>
             </div>
-            <a className={styles.secondaryButton} href="/" role="button">
+            <Link className={styles.secondaryButton} href="/" role="button">
               Refresh feed
-            </a>
+            </Link>
           </div>
           <div className={styles.feedHeader}>
             <span>Agent</span>
@@ -191,7 +194,7 @@ export default async function Home() {
 
               return (
                 <div className={styles.feedRow} key={item.agent}>
-                  <span>{item.agent}</span>
+                  <span>{formatAgentLabel(item.agent)}</span>
                   <span>
                     {agentAddress ? (
                       hasBadge ? (
@@ -250,16 +253,17 @@ export default async function Home() {
           <div className={styles.card}>
             <h2>Signal sink</h2>
             <p className={styles.subtle}>
-              Ownership and fees route to the Treasury Safe. No DEX links at
-              launch.
+              Pulses are consumed at the signal sink. Treasury Safe receives the
+              Clanker fee share. No DEX links at launch.
             </p>
-            <p className={styles.value}>Treasury Safe</p>
+            <p className={styles.value}>Signal sink</p>
           </div>
         </section>
 
         <footer className={styles.footer}>
           <p>
             Compliance: $PULSE is a utility token used to send pulse signals.
+            Pulses are consumed at the signal sink to refresh eligibility.
             Pulse shows activity. Not identity or AI proof.
           </p>
         </footer>
