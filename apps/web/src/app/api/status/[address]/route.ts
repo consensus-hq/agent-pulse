@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http, isAddress, parseAbi } from "viem";
 import { base } from "viem/chains";
 
@@ -13,10 +13,10 @@ const REGISTRY_ABI = parseAbi([
 ]);
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { address: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ address: string }> }
 ) {
-  const { address } = params;
+  const { address } = await params;
   if (!isAddress(address)) {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }
