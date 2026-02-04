@@ -86,6 +86,7 @@ We should submit:
 - Real Base mainnet config (RPC + token + sink).
 - Production smoke test (pulse → key → send task).
 - Screenshots + fill submission payload (`vercel_url` + token fields).
+- Deployment runbook: `docs/DEPLOYMENT_RUNBOOK.md`.
 
 ## Launch checklist (reorganized)
 1) **Launch blockers**
