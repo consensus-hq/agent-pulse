@@ -12,7 +12,7 @@ const ERC721_ABI = [
 ] as const;
 
 const identityRegistry =
-  process.env.NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS as
+  process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS as
     | `0x${string}`
     | undefined;
 const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC_URL;
@@ -75,9 +75,9 @@ export async function getErc8004Badges(
     contracts.map(async (contract) => {
       try {
         const result = await publicClient.readContract(contract);
-        return { status: "success", result } as const;
+        return { status: "success" as const, result };
       } catch (error) {
-        return { status: "failure", error } as const;
+        return { status: "failure" as const, error };
       }
     })
   );

@@ -8,41 +8,36 @@ export type PulseFeedItem = {
   explorerUrl?: string;
 };
 
-const fallbackFeed: PulseFeedItem[] = [
-  {
-    agent: "agent-001",
-    lastSeen: "2m ago",
-    streak: "5 pulses",
-    amount: "1 PULSE",
-    note: "heartbeat",
-    txHash:
-      "0x3f8b1c2d3e4f5a6b7c8d9e0f1234567890abcdef1234567890abcdef123456",
-  },
-  {
-    agent: "agent-014",
-    lastSeen: "11m ago",
-    streak: "18 pulses",
-    amount: "1 PULSE",
-    note: "schedule",
-    txHash:
-      "0x7c1e2f3a4b5d6e7f8091a2b3c4d5e6f7a8b9c0d1e2f3a4b5d6e7f8091a2b3c4",
-  },
-  {
-    agent: "agent-072",
-    lastSeen: "42m ago",
-    streak: "3 pulses",
-    amount: "1 PULSE",
-    note: "manual pulse",
-    txHash:
-      "0x9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8",
-  },
-];
+type PulseFeedResponse = {
+  updatedAt: number;
+  cache?: { hit: boolean; ttlSeconds: number };
+  window?: { fromBlock: string; toBlock: string };
+  agents?: Array<{
+    address: string;
+    isAlive: boolean;
+    lastPulseAt: number;
+    streak: number;
+    hazardScore: number;
+  }>;
+  recentPulses?: Array<{
+    agent: string;
+    amount: string;
+    timestamp: number;
+    streak: number;
+    txHash: string;
+    blockNumber: string;
+  }>;
+};
+
+const fallbackFeed: PulseFeedItem[] = [];
+
+const toIso = (timestamp?: number) => {
+  if (!timestamp) return "—";
+  return new Date(timestamp * 1000).toISOString();
+};
 
 export async function loadPulseFeed(): Promise<PulseFeedItem[]> {
-  const url = process.env.NEXT_PUBLIC_PULSE_FEED_URL;
-  if (!url) {
-    return fallbackFeed;
-  }
+  const url = process.env.NEXT_PUBLIC_PULSE_FEED_URL ?? "/api/pulse-feed";
 
   try {
     const response = await fetch(url, {
@@ -53,12 +48,27 @@ export async function loadPulseFeed(): Promise<PulseFeedItem[]> {
       return fallbackFeed;
     }
 
-    const data = (await response.json()) as PulseFeedItem[];
-    if (!Array.isArray(data) || data.length === 0) {
+    const data = (await response.json()) as PulseFeedResponse;
+    const pulses = data.recentPulses ?? [];
+    const agents = data.agents ?? [];
+
+    if (pulses.length === 0) {
       return fallbackFeed;
     }
 
-    return data;
+    const agentMap = new Map(agents.map((agent) => [agent.address, agent]));
+
+    return pulses.map((pulse) => {
+      const agent = agentMap.get(pulse.agent);
+      return {
+        agent: pulse.agent,
+        lastSeen: toIso(agent?.lastPulseAt ?? pulse.timestamp),
+        streak: agent ? `${agent.streak} day streak` : `${pulse.streak} day streak`,
+        amount: pulse.amount,
+        note: agent?.isAlive ? "alive" : "stale",
+        txHash: pulse.txHash,
+      };
+    });
   } catch {
     return fallbackFeed;
   }
