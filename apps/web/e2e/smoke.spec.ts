@@ -18,9 +18,10 @@ test.describe("Agent Pulse Smoke Tests", () => {
     await page.waitForTimeout(2000);
   });
 
-  test("wallet connect button is present", async ({ page }) => {
+  test("wallet authenticate button is present", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("button:has-text('Connect Wallet')")).toBeVisible();
+    // LR-008: Button text is "Authenticate" (not "Connect Wallet")
+    await expect(page.locator("button:has-text('Authenticate')")).toBeVisible();
   });
 
   test("status query with valid address", async ({ page }) => {
