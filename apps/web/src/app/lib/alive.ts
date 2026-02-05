@@ -1,5 +1,5 @@
-import { http, isAddress, parseAbiItem, createPublicClient } from "viem";
-import { base, baseSepolia } from "viem/chains";
+import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
+import { base } from "viem/chains";
 
 const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -31,126 +31,137 @@ const confirmations = Number.parseInt(
   10
 );
 
+const CACHE_TTL_MS = 30_000;
+const RPC_TIMEOUT_MS = 5_000;
+
 export type AliveStatus = {
   state: "alive" | "stale" | "unknown";
-  reason?: string;
   alive: boolean;
   lastPulseAt: number | null;
   lastPulseBlock: string | null;
   windowSeconds: number;
 };
 
-export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
-  // Check for missing configuration
-  if (!rpcUrl) {
-    return {
-      state: "unknown",
-      reason: "no_rpc",
-      alive: false,
-      lastPulseAt: null,
-      lastPulseBlock: null,
-      windowSeconds: aliveWindowSeconds,
-    };
+const globalAliveCache = globalThis as typeof globalThis & {
+  __agentPulseAliveCache?: Map<
+    string,
+    { value: AliveStatus; expiresAt: number }
+  >;
+};
+
+function getCache() {
+  if (!globalAliveCache.__agentPulseAliveCache) {
+    globalAliveCache.__agentPulseAliveCache = new Map();
   }
+  return globalAliveCache.__agentPulseAliveCache;
+}
 
-  if (!tokenAddress) {
-    return {
-      state: "unknown",
-      reason: "no_token",
-      alive: false,
-      lastPulseAt: null,
-      lastPulseBlock: null,
-      windowSeconds: aliveWindowSeconds,
-    };
-  }
+function unknownStatus(): AliveStatus {
+  return {
+    state: "unknown",
+    alive: false,
+    lastPulseAt: null,
+    lastPulseBlock: null,
+    windowSeconds: aliveWindowSeconds,
+  };
+}
 
-  if (!signalSinkAddress) {
-    return {
-      state: "unknown",
-      reason: "no_sink",
-      alive: false,
-      lastPulseAt: null,
-      lastPulseBlock: null,
-      windowSeconds: aliveWindowSeconds,
-    };
-  }
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
 
-  if (!isAddress(wallet)) {
-    return {
-      state: "unknown",
-      reason: "invalid_wallet",
-      alive: false,
-      lastPulseAt: null,
-      lastPulseBlock: null,
-      windowSeconds: aliveWindowSeconds,
-    };
-  }
-
-  const chainId = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID;
-  const chain = chainId === "84532" ? baseSepolia : base;
-
+async function fetchAliveStatus(wallet: string): Promise<AliveStatus> {
   const publicClient = createPublicClient({
-    chain,
-    transport: http(rpcUrl, { timeout: 5_000, retryCount: 1 }),
+    chain: base,
+    transport: http(rpcUrl),
   });
 
-  try {
-    const latestBlock = await publicClient.getBlockNumber();
-    const toBlock =
-      confirmations > 0 && latestBlock > BigInt(confirmations)
-        ? latestBlock - BigInt(confirmations)
-        : latestBlock;
+  const latestBlock = await publicClient.getBlockNumber();
+  const toBlock =
+    confirmations > 0 && latestBlock > BigInt(confirmations)
+      ? latestBlock - BigInt(confirmations)
+      : latestBlock;
 
-    const blocksBack = BigInt(
-      Math.max(1, Math.ceil(aliveWindowSeconds / blockTimeSeconds) + 10)
-    );
-    const fromBlock = toBlock > blocksBack ? toBlock - blocksBack : BigInt(0);
+  const blocksBack = BigInt(
+    Math.max(1, Math.ceil(aliveWindowSeconds / blockTimeSeconds) + 10)
+  );
+  const fromBlock = toBlock > blocksBack ? toBlock - blocksBack : BigInt(0);
 
-    const logs = await publicClient.getLogs({
-      address: tokenAddress as `0x${string}`,
-      event: transferEvent,
-      args: {
-        from: wallet as `0x${string}`,
-        to: signalSinkAddress as `0x${string}`,
-      },
-      fromBlock,
-      toBlock,
-    });
+  const logs = await publicClient.getLogs({
+    address: tokenAddress as `0x${string}`,
+    event: transferEvent,
+    args: {
+      from: wallet as `0x${string}`,
+      to: signalSinkAddress as `0x${string}`,
+    },
+    fromBlock,
+    toBlock,
+  });
 
-    if (logs.length === 0) {
-      return {
-        state: "stale",
-        alive: false,
-        lastPulseAt: null,
-        lastPulseBlock: null,
-        windowSeconds: aliveWindowSeconds,
-      };
-    }
-
-    const lastLog = logs[logs.length - 1];
-    const block = await publicClient.getBlock({
-      blockNumber: lastLog.blockNumber,
-    });
-
-    const lastPulseAt = Number(block.timestamp);
-    const now = Math.floor(Date.now() / 1000);
-    const alive = now - lastPulseAt <= aliveWindowSeconds;
-
+  if (logs.length === 0) {
     return {
-      state: alive ? "alive" : "stale",
-      alive,
-      lastPulseAt,
-      lastPulseBlock: lastLog.blockNumber?.toString() ?? null,
-      windowSeconds: aliveWindowSeconds,
-    };
-  } catch (error) {
-    return {
-      state: "unknown",
-      reason: error instanceof Error ? error.message : "rpc_error",
+      state: "stale",
       alive: false,
       lastPulseAt: null,
       lastPulseBlock: null,
       windowSeconds: aliveWindowSeconds,
     };
+  }
+
+  const lastLog = logs[logs.length - 1];
+  const block = await publicClient.getBlock({
+    blockNumber: lastLog.blockNumber,
+  });
+
+  const lastPulseAt = Number(block.timestamp);
+  const now = Math.floor(Date.now() / 1000);
+  const alive = now - lastPulseAt <= aliveWindowSeconds;
+
+  return {
+    state: alive ? "alive" : "stale",
+    alive,
+    lastPulseAt,
+    lastPulseBlock: lastLog.blockNumber?.toString() ?? null,
+    windowSeconds: aliveWindowSeconds,
+  };
+}
+
+export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
+  if (!rpcUrl || !tokenAddress || !signalSinkAddress || !isAddress(wallet)) {
+    return unknownStatus();
+  }
+
+  const normalized = wallet.toLowerCase();
+  const cache = getCache();
+  const cached = cache.get(normalized);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  try {
+    const result = await withTimeout(
+      fetchAliveStatus(normalized),
+      RPC_TIMEOUT_MS
+    );
+    cache.set(normalized, { value: result, expiresAt: now + CACHE_TTL_MS });
+    return result;
+  } catch {
+    const fallback = unknownStatus();
+    cache.set(normalized, { value: fallback, expiresAt: now + CACHE_TTL_MS });
+    return fallback;
   }
 }

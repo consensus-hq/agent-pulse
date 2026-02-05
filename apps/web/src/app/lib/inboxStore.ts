@@ -1,69 +1,207 @@
 import crypto from "node:crypto";
+import { getInboxPersistence, type InboxState } from "./inboxPersist";
+import type { InboxKey, InboxTask } from "./inboxTypes";
 
-export type InboxKey = {
-  key: string;
-  expiresAt: number;
+export type { InboxKey, InboxTask } from "./inboxTypes";
+
+const MAX_TASKS_PER_WALLET = 100;
+const MAX_TOTAL_ENTRIES = 10_000;
+const CLEANUP_INTERVAL = 10;
+
+const globalInboxRuntime = globalThis as typeof globalThis & {
+  __agentPulseInboxRuntime?: { requestCount: number };
 };
 
-export type InboxTask = {
-  id: string;
-  receivedAt: number;
-  payload: unknown;
-};
-
-type InboxStore = {
-  keys: Map<string, InboxKey>;
-  tasks: Map<string, InboxTask[]>;
-};
-
-const globalStore = globalThis as typeof globalThis & {
-  __agentPulseInboxStore?: InboxStore;
-};
-
-function getStore(): InboxStore {
-  if (!globalStore.__agentPulseInboxStore) {
-    globalStore.__agentPulseInboxStore = {
-      keys: new Map(),
-      tasks: new Map(),
-    };
+function getRuntime() {
+  if (!globalInboxRuntime.__agentPulseInboxRuntime) {
+    globalInboxRuntime.__agentPulseInboxRuntime = { requestCount: 0 };
   }
-  return globalStore.__agentPulseInboxStore;
+  return globalInboxRuntime.__agentPulseInboxRuntime;
 }
 
-export function issueKey(wallet: string, ttlSeconds: number): InboxKey {
-  const store = getStore();
+function normalizeWallet(wallet: string) {
+  return wallet.toLowerCase();
+}
+
+function sweepExpiredKeys(state: InboxState): number {
+  const now = Date.now();
+  let removed = 0;
+  for (const [wallet, record] of Object.entries(state.keys)) {
+    if (record.expiresAt <= now) {
+      delete state.keys[wallet];
+      removed += 1;
+    }
+  }
+  return removed;
+}
+
+function trimWalletTasks(state: InboxState): number {
+  let trimmed = 0;
+  for (const [wallet, tasks] of Object.entries(state.tasks)) {
+    if (tasks.length <= MAX_TASKS_PER_WALLET) continue;
+    const dropCount = tasks.length - MAX_TASKS_PER_WALLET;
+    state.tasks[wallet] = tasks.slice(-MAX_TASKS_PER_WALLET);
+    trimmed += dropCount;
+  }
+  return trimmed;
+}
+
+function totalEntries(state: InboxState): number {
+  let total = Object.keys(state.keys).length;
+  for (const tasks of Object.values(state.tasks)) {
+    total += tasks.length;
+  }
+  return total;
+}
+
+function trimTotalEntries(state: InboxState): number {
+  const total = totalEntries(state);
+  if (total <= MAX_TOTAL_ENTRIES) return 0;
+  let overage = total - MAX_TOTAL_ENTRIES;
+  const allTasks: Array<{ wallet: string; id: string; receivedAt: number }> = [];
+  for (const [wallet, tasks] of Object.entries(state.tasks)) {
+    for (const task of tasks) {
+      allTasks.push({ wallet, id: task.id, receivedAt: task.receivedAt });
+    }
+  }
+
+  let removedTasks = 0;
+  if (allTasks.length > 0 && overage > 0) {
+    allTasks.sort((a, b) => a.receivedAt - b.receivedAt);
+    const removalKeys = new Set<string>();
+    for (let i = 0; i < Math.min(overage, allTasks.length); i += 1) {
+      const task = allTasks[i];
+      removalKeys.add(`${task.wallet}:${task.id}`);
+    }
+    for (const [wallet, tasks] of Object.entries(state.tasks)) {
+      const filtered = tasks.filter(
+        (task) => !removalKeys.has(`${wallet}:${task.id}`)
+      );
+      removedTasks += tasks.length - filtered.length;
+      state.tasks[wallet] = filtered;
+    }
+    overage -= removedTasks;
+  }
+
+  if (overage > 0) {
+    const keyEntries = Object.entries(state.keys).sort(
+      (a, b) => a[1].expiresAt - b[1].expiresAt
+    );
+    for (let i = 0; i < Math.min(overage, keyEntries.length); i += 1) {
+      const [wallet] = keyEntries[i];
+      delete state.keys[wallet];
+    }
+  }
+
+  return removedTasks;
+}
+
+function pruneEmptyTasks(state: InboxState) {
+  for (const [wallet, tasks] of Object.entries(state.tasks)) {
+    if (tasks.length === 0) {
+      delete state.tasks[wallet];
+    }
+  }
+}
+
+function maybeCleanup(state: InboxState): number {
+  const runtime = getRuntime();
+  runtime.requestCount += 1;
+  if (runtime.requestCount % CLEANUP_INTERVAL !== 0) return 0;
+  return sweepExpiredKeys(state);
+}
+
+export async function issueKey(
+  wallet: string,
+  ttlSeconds: number
+): Promise<InboxKey> {
+  const persistence = getInboxPersistence();
+  const normalized = normalizeWallet(wallet);
   const key = crypto.randomBytes(24).toString("hex");
   const expiresAt = Date.now() + ttlSeconds * 1000;
   const record = { key, expiresAt };
-  store.keys.set(wallet.toLowerCase(), record);
+
+  const state = await persistence.getState();
+  maybeCleanup(state);
+  state.keys[normalized] = record;
+  trimWalletTasks(state);
+  trimTotalEntries(state);
+  pruneEmptyTasks(state);
+  await persistence.setState(state);
   return record;
 }
 
-export function verifyKey(wallet: string, key: string): boolean {
-  const store = getStore();
-  const record = store.keys.get(wallet.toLowerCase());
-  if (!record) return false;
-  if (Date.now() > record.expiresAt) {
-    store.keys.delete(wallet.toLowerCase());
+export async function verifyKey(wallet: string, key: string): Promise<boolean> {
+  const persistence = getInboxPersistence();
+  const normalized = normalizeWallet(wallet);
+  const state = await persistence.getState();
+  const removedByCleanup = maybeCleanup(state);
+  const record = state.keys[normalized];
+  if (!record) {
+    if (removedByCleanup > 0) {
+      await persistence.setState(state);
+    }
     return false;
+  }
+  if (Date.now() > record.expiresAt) {
+    delete state.keys[normalized];
+    await persistence.setState(state);
+    return false;
+  }
+  if (removedByCleanup > 0) {
+    await persistence.setState(state);
   }
   return record.key === key;
 }
 
-export function addTask(wallet: string, payload: unknown): InboxTask {
-  const store = getStore();
+export async function addTask(
+  wallet: string,
+  payload: unknown
+): Promise<InboxTask> {
+  const persistence = getInboxPersistence();
+  const normalized = normalizeWallet(wallet);
   const task: InboxTask = {
     id: crypto.randomUUID(),
     receivedAt: Date.now(),
     payload,
   };
-  const existing = store.tasks.get(wallet.toLowerCase()) ?? [];
+
+  const state = await persistence.getState();
+  maybeCleanup(state);
+  const existing = state.tasks[normalized] ?? [];
   existing.push(task);
-  store.tasks.set(wallet.toLowerCase(), existing);
+  state.tasks[normalized] = existing;
+  trimWalletTasks(state);
+  trimTotalEntries(state);
+  pruneEmptyTasks(state);
+  await persistence.setState(state);
   return task;
 }
 
-export function listTasks(wallet: string): InboxTask[] {
-  const store = getStore();
-  return store.tasks.get(wallet.toLowerCase()) ?? [];
+export async function listTasks(wallet: string): Promise<InboxTask[]> {
+  const persistence = getInboxPersistence();
+  const normalized = normalizeWallet(wallet);
+  const state = await persistence.getState();
+  const removed = maybeCleanup(state);
+  if (removed > 0) {
+    await persistence.setState(state);
+  }
+  return state.tasks[normalized] ?? [];
+}
+
+export async function cleanupInboxStore(): Promise<{
+  expiredKeys: number;
+  trimmedTasks: number;
+}> {
+  const persistence = getInboxPersistence();
+  const state = await persistence.getState();
+  const expiredKeys = sweepExpiredKeys(state);
+  const trimmedWallet = trimWalletTasks(state);
+  const trimmedTotal = trimTotalEntries(state);
+  pruneEmptyTasks(state);
+  const trimmedTasks = trimmedWallet + trimmedTotal;
+  if (expiredKeys > 0 || trimmedTasks > 0) {
+    await persistence.setState(state);
+  }
+  return { expiredKeys, trimmedTasks };
 }
