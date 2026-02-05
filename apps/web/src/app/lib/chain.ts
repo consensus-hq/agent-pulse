@@ -4,7 +4,7 @@ import { baseSepolia, base } from "thirdweb/chains";
 // Environment configuration
 const THIRDWEB_CLIENT_ID = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY;
-const PULSE_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS as `0x${string}` | undefined;
+const PULSE_REGISTRY_ADDRESS = (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS?.toLowerCase()) as `0x${string}` | undefined;
 const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID;
 
 // Single client instance for edge runtime
