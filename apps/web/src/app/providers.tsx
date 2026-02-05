@@ -9,12 +9,12 @@ import {
 import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { base } from "wagmi/chains";
+import { baseSepolia } from "wagmi/chains";
 import { publicEnv } from "./lib/env.public";
 
 const baseRpcUrl = publicEnv.baseRpcUrl || undefined;
 const transports = {
-  [base.id]: http(baseRpcUrl),
+  [baseSepolia.id]: http(baseRpcUrl),
 };
 
 // Warn in development if WalletConnect Project ID is missing
@@ -30,12 +30,12 @@ const wagmiConfig = publicEnv.walletConnectProjectId
   ? getDefaultConfig({
       appName: "Agent Pulse",
       projectId: publicEnv.walletConnectProjectId,
-      chains: [base],
+      chains: [baseSepolia],
       transports,
       ssr: true,
     })
   : createConfig({
-      chains: [base],
+      chains: [baseSepolia],
       transports,
       connectors: [injected()],
       ssr: true,
