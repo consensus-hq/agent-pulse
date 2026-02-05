@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { PulseFeedResponse } from "../lib/types";
 import { formatMs, formatUnix, shortenHash } from "../lib/format";
 import styles from "../page.module.css";
@@ -43,9 +43,13 @@ export function PulseFeed({
             : "—"}
         </span>
       </div>
-      {feedLoading ? <p className={styles.muted}>Loading…</p> : null}
       {feedError ? <p className={styles.error}>{feedError}</p> : null}
       <div className={styles.feedList}>
+        {feedLoading ? (
+          <div className={styles.feedLoadingOverlay}>
+            <p className={styles.muted}>Loading…</p>
+          </div>
+        ) : null}
         <div className={styles.feedHeader}>
           <span>Agent</span>
           <span>Amount</span>
@@ -53,7 +57,7 @@ export function PulseFeed({
           <span>Timestamp</span>
           <span>Tx</span>
         </div>
-        {feedRows.length === 0 ? (
+        {!feedLoading && feedRows.length === 0 ? (
           <div className={styles.feedRow}>
             <span className={styles.muted}>No pulses yet.</span>
             <span className={styles.muted}>—</span>
