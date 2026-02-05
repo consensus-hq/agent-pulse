@@ -5,8 +5,10 @@ const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 );
 
+// Use server-only BASE_RPC_URL for server-side API routes (H-4 security fix)
+// Falls back to NEXT_PUBLIC_BASE_RPC_URL only for backward compatibility during migration
 const rpcUrl =
-  process.env.NEXT_PUBLIC_BASE_RPC_URL || process.env.BASE_RPC_URL || "";
+  process.env.BASE_RPC_URL || process.env.NEXT_PUBLIC_BASE_RPC_URL || "";
 const tokenAddress =
   process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS ||
   process.env.PULSE_TOKEN_ADDRESS ||

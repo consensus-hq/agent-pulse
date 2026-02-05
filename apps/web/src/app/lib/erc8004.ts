@@ -31,7 +31,8 @@ import { base } from "viem/chains";
 // Contract addresses
 export const IDENTITY_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS as Address | undefined;
 export const REPUTATION_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS as Address | undefined;
-const RPC_URL = process.env.NEXT_PUBLIC_BASE_RPC_URL;
+// Use server-only BASE_RPC_URL for server-side API routes (H-4 security fix)
+const RPC_URL = process.env.BASE_RPC_URL;
 
 // ERC-8004 Identity Registry ABI (ERC721 + custom functions)
 export const IDENTITY_REGISTRY_ABI = [
