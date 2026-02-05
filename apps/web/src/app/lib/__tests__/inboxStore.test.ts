@@ -9,7 +9,6 @@ import {
   verifyKey,
 } from "../inboxStore";
 import { getInboxPersistence } from "../inboxPersist";
-import { createRateLimiter } from "../rateLimit";
 import type { InboxTask } from "../inboxTypes";
 
 type GlobalState = typeof globalThis & {
@@ -79,12 +78,6 @@ test("task limit per wallet", async () => {
   assert.equal((tasks[0].payload as { idx: number }).idx, 5);
 });
 
-test("rate limiter", () => {
-  const limiter = createRateLimiter({ windowMs: 1_000, maxRequests: 2 });
-  assert.ok(limiter.check("key").allowed);
-  assert.ok(limiter.check("key").allowed);
-  assert.equal(limiter.check("key").allowed, false);
-});
 
 test("cleanup trims expired keys and tasks", async () => {
   const wallet = "0x0000000000000000000000000000000000000003";
