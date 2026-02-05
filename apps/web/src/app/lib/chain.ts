@@ -56,7 +56,8 @@ const ABI_GET_AGENT_STATUS = "function getAgentStatus(address agent) view return
 const ABI_TTL_SECONDS = "function ttlSeconds() view returns (uint256)";
 const ABI_PAUSED = "function paused() view returns (bool)";
 const ABI_MIN_PULSE_AMOUNT = "function minPulseAmount() view returns (uint256)";
-const ABI_TOTAL_AGENTS = "function totalAgents() view returns (uint256)";
+// Note: totalAgents() does not exist on the deployed PulseRegistry contract.
+// Agent count is derived from Insight API events instead.
 const ABI_LAST_PULSE_AT = "function lastPulseAt(address agent) view returns (uint256)";
 
 export interface AgentStatus {
@@ -199,26 +200,8 @@ export async function readMinPulseAmount(): Promise<bigint | null> {
   }
 }
 
-/**
- * Read total agents count
- */
-export async function readTotalAgents(): Promise<bigint | null> {
-  const contract = getRegistryContract();
-  if (!contract) {
-    return null;
-  }
-
-  try {
-    return await readContract({
-      contract,
-      method: ABI_TOTAL_AGENTS,
-      params: [],
-    });
-  } catch (error) {
-    console.error("Failed to read total agents:", error);
-    return null;
-  }
-}
+// readTotalAgents removed — totalAgents() does not exist on deployed PulseRegistry.
+// Agent count is derived from Insight API pulse events in protocol-health route.
 
 /**
  * Reset the client (useful for testing)

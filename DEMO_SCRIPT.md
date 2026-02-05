@@ -68,12 +68,12 @@ const result = await sendPulse(agentAddress, privateKey, baseUrl);
 
 ```
 73/73 Foundry tests passing
-5/5 HTTP integration tests
+55/55 Vitest integration tests
 2 pentest rounds + 5 red-team agents
 0 critical/high findings remaining
 ```
 
-> 54 PRs merged. Production architecture: thirdweb SDK, Vercel KV, no mocks.
+> 68 PRs merged. Production architecture: thirdweb SDK, Vercel KV, no mocks.
 
 ## Scene 7: Closing (15s)
 **[Terminal]**

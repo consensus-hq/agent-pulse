@@ -21,14 +21,12 @@ vi.mock("@/app/lib/kv", () => ({
   setAgentState: vi.fn(),
   checkKVHealth: vi.fn(),
   getPauseState: vi.fn(),
-  getTotalAgents: vi.fn(),
 }));
 
 vi.mock("@/app/lib/chain", () => ({
   readAgentStatus: vi.fn(),
   readTTL: vi.fn(),
   readPauseState: vi.fn(),
-  readTotalAgents: vi.fn(),
 }));
 
 describe("GET /api/status/:address edge cases", () => {
