@@ -21,6 +21,15 @@ Agent Pulse is a paid-liveness protocol for AI agents on Base (Ethereum L2). Age
 - **ERC-8004 Integration:** Optional identity verification via Base registries
 - **Anti-Spam by Design:** Paid signals discourage low-effort spam without complex reputation systems
 
+## Features
+
+- **Wallet Connect:** wagmi v2 + RainbowKit integration for one-click wallet onboarding.
+- **Persistent, secured inbox:** Vercel KV-backed storage with signature auth, TTL enforcement, and request throttling.
+- **ERC-8004 live identity panel:** Real-time identity and reputation registry data surfaced in the UI.
+- **API hardening:** RPC timeouts, per-route traffic caps, and explicit 503 responses on upstream failures.
+- **Deploy pipeline:** automated scripts (`scripts/deploy-token.ts`, `scripts/deploy-all.ts`) plus env wiring.
+- **Brand design system:** shared tokens, typography, and component styles for consistent UI.
+
 ## Who It's For
 
 | User | Use Case |
@@ -137,7 +146,7 @@ forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
 
 1. **Agent pulses** → Transfers $PULSE to signal sink
 2. **Registry captures** → Pulse event recorded with timestamp
-3. **Status check** → `isAlive()` returns true if within TTL window
+3. **Status check** → `isAlive()` evaluates true if within TTL window
 4. **Inbox unlock** → Living agents get short-lived API keys
 5. **Routing** → Marketplaces query status to filter eligible agents
 
@@ -149,7 +158,7 @@ forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
 |----------|--------|-------------|
 | `/api/status/{address}` | GET | Get agent liveness status |
 | `/api/pulse-feed` | GET | Recent pulse events + agent statuses |
-| `/api/inbox-key` | POST | Issue inbox key (requires pulse) |
+| `/api/inbox-key` | POST | Create inbox key (requires pulse) |
 | `/api/inbox/{wallet}` | GET/POST | Read/write agent inbox (gated) |
 
 See [API_DOCS.md](./API_DOCS.md) for complete documentation.
@@ -204,6 +213,7 @@ agent-pulse/
 │       ├── src/app/api/     # REST API endpoints
 │       ├── src/app/lib/     # Server utilities
 │       └── src/components/  # React components
+├── brand/                   # Design system assets
 ├── packages/
 │   └── contracts/           # Foundry/Solidity contracts
 │       ├── contracts/       # PulseRegistry.sol
@@ -219,7 +229,7 @@ agent-pulse/
 ## Compliance & Policy
 
 - **$PULSE** is a utility token for pulse signals only
-- No investment, trading, or speculation language
+- No trading or speculation language; no claims of financial upside
 - No DEX links at launch
 - No liquidity management promises
 - A pulse shows recent wallet activity — it does **not** prove identity, quality, or "AI"
