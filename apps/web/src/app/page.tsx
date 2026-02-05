@@ -185,7 +185,7 @@ export default function Home() {
 
   const isAlive = Boolean(statusData?.isAlive);
   const feedRows = feedData?.recentPulses?.slice(0, 8) ?? [];
-  const reputationCooldown = isAlive ? "Cooldown: 10m (placeholder)" : "";
+  const reputationCooldown = isAlive ? "Rate limit: 10m (placeholder)" : "";
 
   return (
     <div className={styles.page}>
@@ -195,8 +195,8 @@ export default function Home() {
             <p className={styles.kicker}>Agent Pulse debug console</p>
             <h1 className={styles.title}>Routing eligibility console</h1>
             <p className={styles.subtitle}>
-              Base chain routing gate. Pulse = paid eligibility refresh (1 PULSE
-              burned). No pulse → no routing.
+              Base chain routing gate. Pulse = paid eligibility refresh.
+              No pulse → no routing.
             </p>
           </div>
           <div className={styles.statusBar}>
@@ -308,21 +308,21 @@ cast call 0xRegistry "ttlSeconds()(uint256)" --rpc-url $BASE_RPC_URL
               Connect wallet
             </button>
             <button className={styles.buttonGhost} type="button" disabled>
-              Approve PULSE
+              Approve
             </button>
             <button className={styles.buttonGhost} type="button" disabled>
-              Send pulse (1 PULSE)
+              Send pulse
             </button>
           </div>
           <p className={styles.muted}>
-            Approve → pulse flow placeholder. Pulses are consumed at the signal
+            Approve → pulse flow placeholder. Pulses are sent to the signal
             sink.
           </p>
         </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Reputation sync</h2>
+            <h2 className={styles.sectionTitle}>Routing sync</h2>
             <span className={styles.muted}>
               {isAlive ? "Eligible" : "Locked (requires alive status)"}
             </span>
