@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import { PulseRegistry } from "../contracts/PulseRegistry.sol";
-import { MockERC20 } from "./mocks/MockERC20.sol";
+import { RealPulseToken } from "./helpers/RealPulseToken.sol";
 
 /**
  * @title PulseRegistryOwnerAbuseTest
@@ -13,7 +13,7 @@ import { MockERC20 } from "./mocks/MockERC20.sol";
  */
 contract PulseRegistryOwnerAbuseTest is Test {
     PulseRegistry registry;
-    MockERC20 token;
+    RealPulseToken token;
 
     address alice = address(0xA11CE);
     address sink = address(0x000000000000000000000000000000000000dEaD);
@@ -22,10 +22,11 @@ contract PulseRegistryOwnerAbuseTest is Test {
     uint256 minPulse = 1e18;
 
     function setUp() public {
-        token = new MockERC20("Pulse", "PULSE");
+        uint256 initialSupply = 1_000_000e18;
+        token = new RealPulseToken("Pulse", "PULSE", initialSupply, address(this));
         registry = new PulseRegistry(address(token), sink, ttl, minPulse);
 
-        token.mint(alice, 100e18);
+        token.transfer(alice, 100e18);
         vm.prank(alice);
         token.approve(address(registry), type(uint256).max);
     }
