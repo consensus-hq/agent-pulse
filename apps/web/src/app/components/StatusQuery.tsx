@@ -110,6 +110,8 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
         <p className={styles.muted}>
           Pulse signal (connected): {connectedStatus.loading
             ? "loading…"
+            : connectedStatus.isAlive === null
+            ? "unknown"
             : connectedStatus.isAlive
             ? "alive"
             : "stale"} | Streak: {connectedStatus.streak ?? "—"} | Hazard: {connectedStatus.hazardScore ?? "—"} | Last pulse: {formatUnix(connectedStatus.lastPulseAt ?? undefined)}

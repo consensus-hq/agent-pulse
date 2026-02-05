@@ -122,13 +122,31 @@ export async function GET(
   let dataSource: "kv" | "chain" = "kv";
 
   // Get pause state: KV first, then chain fallback
+  // CRITICAL: Never default paused to false — it's a safety-critical field.
+  // If we can't determine pause state, return 503.
   if (kvHealth.healthy) {
     const kvPaused = await getPauseState();
     if (kvPaused !== null) {
       paused = kvPaused;
     } else {
       dataSource = "chain";
-      paused = (await readPauseState()) ?? false;
+      const chainPaused = await readPauseState();
+      if (chainPaused !== null) {
+        paused = chainPaused;
+      } else {
+        // KV has no pause data AND chain call failed — state is unknown
+        return NextResponse.json(
+          { error: "Service unavailable - unable to determine pause state" },
+          {
+            status: 503,
+            headers: {
+              "Cache-Control": "no-store",
+              "X-RateLimit-Remaining": String(rateLimit.remaining),
+              "Retry-After": "5",
+            },
+          }
+        );
+      }
     }
   } else {
     dataSource = "chain";
