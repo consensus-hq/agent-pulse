@@ -162,6 +162,15 @@ export async function POST(request: Request) {
   }
 
   const alive = await getAliveStatus(wallet);
+  
+  // Distinguish "unknown" (infrastructure failure) from "stale" (verified dead)
+  if (alive.state === "unknown") {
+    return NextResponse.json(
+      { ok: false, reason: "service_unavailable", ...alive },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
+  }
+  
   if (alive.state !== "alive") {
     return NextResponse.json(
       { ok: false, reason: "not_alive", ...alive },

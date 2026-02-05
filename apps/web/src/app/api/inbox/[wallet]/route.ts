@@ -118,7 +118,11 @@ export async function POST(
     }
     payload = bodyText ? JSON.parse(bodyText) : {};
   } catch {
-    payload = {};
+    // Malformed JSON — return 400 instead of silently accepting empty payload
+    return NextResponse.json(
+      { ok: false, reason: "invalid_json" },
+      { status: 400 }
+    );
   }
 
   const task = await addTask(normalized, payload);
