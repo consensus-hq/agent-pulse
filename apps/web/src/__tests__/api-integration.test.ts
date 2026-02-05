@@ -21,14 +21,12 @@ vi.mock("@/app/lib/kv", () => ({
   setAgentState: vi.fn(),
   checkKVHealth: vi.fn(),
   getPauseState: vi.fn(),
-  getTotalAgents: vi.fn(),
 }));
 
 vi.mock("@/app/lib/chain", () => ({
   readAgentStatus: vi.fn(),
   readTTL: vi.fn(),
   readPauseState: vi.fn(),
-  readTotalAgents: vi.fn(),
 }));
 
 vi.mock("@/app/lib/insight", () => {
@@ -94,8 +92,9 @@ describe("API integration (HTTP-level)", () => {
 
   it("GET /api/protocol-health returns degraded status when RPC unhealthy", async () => {
     const { kv } = await import("@vercel/kv");
-    const { checkKVHealth, getPauseState, getTotalAgents } = await import("@/app/lib/kv");
-    const { readPauseState, readTotalAgents } = await import("@/app/lib/chain");
+    const { checkKVHealth, getPauseState } = await import("@/app/lib/kv");
+    const { readPauseState } = await import("@/app/lib/chain");
+    const { getPulseEvents } = await import("@/app/lib/insight");
     const { GET } = await import("../app/api/protocol-health/route");
 
     vi.mocked(kv.incr).mockResolvedValue(1);
@@ -103,9 +102,8 @@ describe("API integration (HTTP-level)", () => {
 
     vi.mocked(checkKVHealth).mockResolvedValue({ healthy: true, latencyMs: 5 });
     vi.mocked(getPauseState).mockResolvedValue(false);
-    vi.mocked(getTotalAgents).mockResolvedValue(42);
     vi.mocked(readPauseState).mockResolvedValue(null);
-    vi.mocked(readTotalAgents).mockResolvedValue(42n);
+    vi.mocked(getPulseEvents).mockResolvedValue({ data: [], meta: { totalEvents: 0, page: 1, limit: 100, totalPages: 1, hasNextPage: false } });
 
     const request = new Request("https://example.com/api/protocol-health", {
       headers: { "x-forwarded-for": "127.0.0.1" },
@@ -126,8 +124,9 @@ describe("API integration (HTTP-level)", () => {
 
   it("GET /api/protocol-health returns healthy status when RPC + KV healthy", async () => {
     const { kv } = await import("@vercel/kv");
-    const { checkKVHealth, getPauseState, getTotalAgents } = await import("@/app/lib/kv");
-    const { readPauseState, readTotalAgents } = await import("@/app/lib/chain");
+    const { checkKVHealth, getPauseState } = await import("@/app/lib/kv");
+    const { readPauseState } = await import("@/app/lib/chain");
+    const { getPulseEvents } = await import("@/app/lib/insight");
     const { GET } = await import("../app/api/protocol-health/route");
 
     vi.mocked(kv.incr).mockResolvedValue(1);
@@ -135,9 +134,8 @@ describe("API integration (HTTP-level)", () => {
 
     vi.mocked(checkKVHealth).mockResolvedValue({ healthy: true, latencyMs: 5 });
     vi.mocked(getPauseState).mockResolvedValue(true);
-    vi.mocked(getTotalAgents).mockResolvedValue(7);
     vi.mocked(readPauseState).mockResolvedValue(true);
-    vi.mocked(readTotalAgents).mockResolvedValue(7n);
+    vi.mocked(getPulseEvents).mockResolvedValue({ data: [], meta: { totalEvents: 0, page: 1, limit: 100, totalPages: 1, hasNextPage: false } });
 
     const request = new Request("https://example.com/api/protocol-health", {
       headers: { "x-forwarded-for": "127.0.0.1" },

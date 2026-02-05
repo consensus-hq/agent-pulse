@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { checkKVHealth, getPauseState, getTotalAgents } from "@/app/lib/kv";
-import { readPauseState, readTotalAgents } from "@/app/lib/chain";
+import { checkKVHealth, getPauseState } from "@/app/lib/kv";
+import { readPauseState } from "@/app/lib/chain";
+import { getPulseEvents } from "@/app/lib/insight";
 
 export const runtime = "edge";
 
@@ -120,40 +121,21 @@ export async function GET(
   let totalAgents: number;
   let dataSource: "kv" | "chain" = "kv";
 
-  // Try KV first if healthy
+  // Get pause state: KV first, then chain fallback
   if (kvHealth.healthy) {
-    const [kvPaused, kvTotal] = await Promise.all([
-      getPauseState(),
-      getTotalAgents(),
-    ]);
-
-    if (kvPaused !== null && kvTotal !== null) {
+    const kvPaused = await getPauseState();
+    if (kvPaused !== null) {
       paused = kvPaused;
-      totalAgents = kvTotal;
     } else {
-      // KV healthy but data missing - try chain
       dataSource = "chain";
-      const [chainPaused, chainTotal] = await Promise.all([
-        readPauseState(),
-        readTotalAgents(),
-      ]);
-
-      paused = chainPaused ?? false;
-      totalAgents = chainTotal !== null ? Number(chainTotal) : 0;
+      paused = (await readPauseState()) ?? false;
     }
   } else {
-    // KV down - try chain
     dataSource = "chain";
-    const [chainPaused, chainTotal] = await Promise.all([
-      readPauseState(),
-      readTotalAgents(),
-    ]);
-
+    const chainPaused = await readPauseState();
     if (chainPaused !== null) {
       paused = chainPaused;
-      totalAgents = chainTotal !== null ? Number(chainTotal) : 0;
     } else {
-      // Both KV and chain failed - return error
       return NextResponse.json(
         { error: "Service unavailable - unable to fetch protocol data" },
         {
@@ -166,6 +148,17 @@ export async function GET(
         }
       );
     }
+  }
+
+  // Derive totalAgents from Insight API (count unique addresses that have pulsed)
+  // Note: totalAgents() does not exist on the deployed PulseRegistry contract.
+  // We derive this from historical Pulse events via thirdweb Insight API.
+  try {
+    const recentPulses = await getPulseEvents({ limit: 100, sortOrder: "desc" });
+    const uniqueAgents = new Set(recentPulses.data.map((e) => e.agent));
+    totalAgents = uniqueAgents.size;
+  } catch {
+    totalAgents = 0;
   }
 
   // Determine overall health status
