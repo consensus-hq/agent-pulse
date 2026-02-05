@@ -81,6 +81,7 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
               void handleStatusQuery();
             }
           }}
+          aria-label="Agent wallet address"
         />
         <button
           className={styles.button}
@@ -100,7 +101,7 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
       {statusError ? (
         <p className={styles.error}>{statusError}</p>
       ) : null}
-      <pre className={styles.output}>
+      <pre className={styles.output} aria-live="polite" role="status">
         {statusPayload || "// Status payload will appear here."}
       </pre>
       <p className={styles.muted}>

@@ -176,7 +176,8 @@
 }
 
 .input:focus {
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
   border-color: var(--accent-dim);
 }
 
@@ -202,6 +203,12 @@
 
 .button:hover {
   background: var(--accent-bright);
+}
+
+.button:focus,
+.buttonGhost:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .button:disabled,
@@ -518,5 +525,18 @@
   .feedHeader,
   .feedRow {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Accessibility: respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .tag::before,
+  .loadingDot,
+  .spinner {
+    animation: none;
+  }
+  
+  .spinner {
+    border-color: var(--accent);
   }
 }
