@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  other: {
+    "base:app_id": "69850398adce230590b45e16",
+  },
 };
 
 export default function RootLayout({
