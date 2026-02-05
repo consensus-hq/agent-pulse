@@ -393,22 +393,31 @@ export async function getErc8004Status(address: string): Promise<Erc8004Status> 
   };
 }
 
-// Legacy function for backward compatibility
-const CACHE_TTL_MS = 10 * 60 * 1000;
-const cache = new Map<string, { value: boolean; expiresAt: number }>();
+// KV-backed badge cache (replaces in-memory Map)
+import { kv } from "@vercel/kv";
 
-function readCache(wallet: string) {
-  const entry = cache.get(wallet);
-  if (!entry) return undefined;
-  if (Date.now() > entry.expiresAt) {
-    cache.delete(wallet);
-    return undefined;
-  }
-  return entry.value;
+const CACHE_TTL_SECONDS = 600; // 10 minutes
+
+function badgeKey(wallet: string): string {
+  return `erc8004:badge:${wallet.toLowerCase()}`;
 }
 
-function writeCache(wallet: string, value: boolean) {
-  cache.set(wallet, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+async function readCache(wallet: string): Promise<boolean | undefined> {
+  try {
+    const val = await kv.get<string>(badgeKey(wallet));
+    if (val === null) return undefined;
+    return val === "1";
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeCache(wallet: string, value: boolean): Promise<void> {
+  try {
+    await kv.set(badgeKey(wallet), value ? "1" : "0", { ex: CACHE_TTL_SECONDS });
+  } catch {
+    // Best-effort cache write
+  }
 }
 
 /**
@@ -431,7 +440,7 @@ export async function getErc8004Badges(
   const toQuery: string[] = [];
 
   for (const wallet of uniqueWallets) {
-    const cached = readCache(wallet);
+    const cached = await readCache(wallet);
     if (cached !== undefined) {
       resultMap[wallet] = cached;
     } else {
@@ -460,16 +469,18 @@ export async function getErc8004Badges(
     })
   );
 
-  results.forEach((entry) => {
-    if (entry.status === "success") {
-      const resultValue = entry.result as bigint | undefined;
-      const hasBadge = (resultValue ?? BigInt(0)) > BigInt(0);
-      resultMap[entry.wallet] = hasBadge;
-      writeCache(entry.wallet, hasBadge);
-    } else {
-      resultMap[entry.wallet] = false;
-    }
-  });
+  await Promise.all(
+    results.map(async (entry) => {
+      if (entry.status === "success") {
+        const resultValue = entry.result as bigint | undefined;
+        const hasBadge = (resultValue ?? BigInt(0)) > BigInt(0);
+        resultMap[entry.wallet] = hasBadge;
+        await writeCache(entry.wallet, hasBadge);
+      } else {
+        resultMap[entry.wallet] = false;
+      }
+    })
+  );
 
   return resultMap;
 }
