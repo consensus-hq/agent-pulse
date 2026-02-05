@@ -183,12 +183,7 @@ See [X402_API_GUIDE.md](./docs/X402_API_GUIDE.md) for complete documentation.
 
 > All addresses are also available in [LINKS.md](./LINKS.md)
 
-| Contract | Base Mainnet | Base Sepolia |
-|----------|--------------|--------------|
-| $PULSE Token | TBD | `0x7f24C286...1242a2` |
-| PulseRegistry | TBD | `0x2C802988...8612` |
-| Signal Sink | `0x0000...dEaD` | `0x0000...dEaD` |
-| Identity Registry (ERC-8004) | `0x8004...A432` | — |
+All contract addresses are maintained in [LINKS.md](./LINKS.md) (single source of truth).
 
 ---
 
