@@ -33,6 +33,11 @@ Source: https://clawd.kitchen/registration.md
 - Token: launch via Clanker or Bankr
 - Scoring: usability, onchain vibes, UI/UX, on‑chain activity (transfer count)
 
+## Current status (2026-02-04)
+- P0 order: env lock → token deploy → PulseRegistry/tests → deploy/verify/owner → API → UI → smoke/determinism.
+- Signal sink is fixed in `LINKS.md`; token + Vercel URL still TBD.
+- Live Vercel QA is blocked by missing registry/RPC envs.
+
 ## Constraints
 - Addresses only in `LINKS.md` (no reposting in docs/posts).
 - No DEX links at launch.
@@ -117,9 +122,9 @@ We should submit:
    - [ ] Push current changes to GitHub (Vercel deploys what is pushed)
 3) **Env vars (use `.env.example`)**
    - [ ] Required (server): `BASE_RPC_URL`, `PULSE_TOKEN_ADDRESS`, `SIGNAL_ADDRESS`
-   - [ ] Required (client): `NEXT_PUBLIC_BASE_RPC_URL`, `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`, `NEXT_PUBLIC_SIGNAL_ADDRESS`
+   - [ ] Required (client): `NEXT_PUBLIC_BASE_RPC_URL`, `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`, `NEXT_PUBLIC_SIGNAL_ADDRESS`, `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS`, `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS`
    - [ ] Recommended: `NEXT_PUBLIC_ALIVE_WINDOW_SECONDS=86400`, `BLOCK_TIME_SECONDS=2`, `BLOCK_CONFIRMATIONS=2`, `INBOX_KEY_TTL_SECONDS=3600`, `NEXT_PUBLIC_INBOX_KEY_TTL_SECONDS`
-   - [ ] Optional: `REQUIRE_ERC8004` (default OFF), `NEXT_PUBLIC_ERC8004_IDENTITY_REGISTRY_ADDRESS`, `NEXT_PUBLIC_ERC8004_REGISTER_URL`, `NEXT_PUBLIC_PULSE_FEED_URL`, `NEXT_PUBLIC_LAST_RUN_STATUS`, `NEXT_PUBLIC_LAST_RUN_TS`, `NEXT_PUBLIC_LAST_RUN_NETWORK`, `NEXT_PUBLIC_LAST_RUN_LOG`
+   - [ ] Optional: `REQUIRE_ERC8004` (default OFF), `NEXT_PUBLIC_ERC8004_REGISTER_URL`, `NEXT_PUBLIC_PULSE_FEED_URL`, `NEXT_PUBLIC_LAST_RUN_STATUS`, `NEXT_PUBLIC_LAST_RUN_TS`, `NEXT_PUBLIC_LAST_RUN_NETWORK`, `NEXT_PUBLIC_LAST_RUN_LOG`
    - [x] Canonical LAST_RUN env names match `.env.example` (use `NEXT_PUBLIC_LAST_RUN_TS`, not TIMESTAMP)
 4) **Base mainnet config**
    - [ ] Real Base mainnet config (RPC + token + sink)
