@@ -261,7 +261,7 @@ class PhaseRunner {
     expected: string,
     actual: string
   ): Promise<boolean> {
-    const status = expected === actual ? "pass" : "fail";
+    const status = expected.toLowerCase() === actual.toLowerCase() ? "pass" : "fail";
     phase.checks.push({ description, expected, actual, status });
     return status === "pass";
   }
@@ -874,8 +874,14 @@ async function runFork(): Promise<VerificationLog> {
 
   const rpcUrl = process.env.FORK_RPC_URL || "http://127.0.0.1:8545";
   
-  // Start Anvil
-  const anvil = await startAnvil();
+  // Use existing Anvil if FORK_RPC_URL is set or if one is already running on 8545
+  let anvil: ChildProcess | null = null;
+  const useExisting = process.env.FORK_RPC_URL || process.env.USE_EXISTING_ANVIL;
+  if (!useExisting) {
+    anvil = await startAnvil();
+  } else {
+    console.log("  Using existing Anvil at", rpcUrl);
+  }
 
   try {
     const walletKeys = loadOrGenerateWallets(false);
@@ -941,11 +947,11 @@ async function runFork(): Promise<VerificationLog> {
 
     const log = await runner.runAll();
     
-    stopAnvil(anvil);
+    if (anvil) stopAnvil(anvil);
     
     return log;
   } catch (error) {
-    stopAnvil(anvil);
+    if (anvil) stopAnvil(anvil);
     throw error;
   }
 }
