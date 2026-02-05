@@ -20,7 +20,7 @@ const requireErc8004 =
   process.env.REQUIRE_ERC8004 === "1";
 
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
-const RATE_LIMIT_MAX_REQUESTS = 10;
+const RATE_LIMIT_MAX_REQUESTS = 5;
 
 const SIGNATURE_WINDOW_MS = 10 * 60 * 1000;
 
