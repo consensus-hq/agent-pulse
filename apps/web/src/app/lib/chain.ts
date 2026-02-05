@@ -58,7 +58,8 @@ const ABI_PAUSED = "function paused() view returns (bool)";
 const ABI_MIN_PULSE_AMOUNT = "function minPulseAmount() view returns (uint256)";
 // Note: totalAgents() does not exist on the deployed PulseRegistry contract.
 // Agent count is derived from Insight API events instead.
-const ABI_LAST_PULSE_AT = "function lastPulseAt(address agent) view returns (uint256)";
+// Note: lastPulseAt(address) does not exist as a standalone function.
+// Use getAgentStatus(address) which returns lastPulseAt in its tuple.
 
 export interface AgentStatus {
   alive: boolean;
@@ -116,26 +117,8 @@ export async function readIsAlive(agentAddress: string): Promise<boolean | null>
   }
 }
 
-/**
- * Read lastPulseAt for a specific agent
- */
-export async function readLastPulseAt(agentAddress: string): Promise<bigint | null> {
-  const contract = getRegistryContract();
-  if (!contract) {
-    return null;
-  }
-
-  try {
-    return await readContract({
-      contract,
-      method: ABI_LAST_PULSE_AT,
-      params: [agentAddress],
-    });
-  } catch (error) {
-    console.error("Failed to read lastPulseAt:", error);
-    return null;
-  }
-}
+// readLastPulseAt removed — lastPulseAt(address) does not exist on deployed PulseRegistry.
+// Use readAgentStatus(address) which returns lastPulseAt in its tuple.
 
 /**
  * Read protocol TTL (time-to-live) in seconds
