@@ -93,7 +93,43 @@ export default function WalletPanel() {
     <div className={styles.walletPanel}>
       <div className={styles.walletHeader}>
         <span className={styles.tag}>Wallet link</span>
-        <ConnectButton chainStatus="icon" showBalance={false} />
+        <ConnectButton.Custom>
+          {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+            const ready = mounted;
+            const connected = ready && account && chain;
+
+            return (
+              <div
+                {...(!ready && {
+                  "aria-hidden": true,
+                  style: { opacity: 0, pointerEvents: "none", userSelect: "none" },
+                })}
+              >
+                {(() => {
+                  if (!connected) {
+                    return (
+                      <button onClick={openConnectModal} type="button" className={styles.button}>
+                        Authenticate
+                      </button>
+                    );
+                  }
+                  if (chain.unsupported) {
+                    return (
+                      <button onClick={openChainModal} type="button" className={styles.button}>
+                        Wrong network
+                      </button>
+                    );
+                  }
+                  return (
+                    <button onClick={openAccountModal} type="button" className={styles.buttonGhost}>
+                      {account.displayName}
+                    </button>
+                  );
+                })()}
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
       </div>
 
       {!walletConnectEnabled ? (
