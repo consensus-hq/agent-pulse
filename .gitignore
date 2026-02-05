@@ -11,3 +11,5 @@ apps/web/public/verification-log-fork.json
 
 # Shared workspace outputs (swarm agent work)
 shared/
+.vercel
+.env*.local
