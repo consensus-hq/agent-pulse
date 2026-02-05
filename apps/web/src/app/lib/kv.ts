@@ -11,7 +11,9 @@ export function getKVClient() {
 // TTL constants from KV_SCHEMA.md
 // CRITICAL: KV_TTL_ISALIVE must be < PROTOCOL_TTL (24h = 86400s)
 export const KV_TTL_ISALIVE_SECONDS = 3600; // 1 hour
-export const KV_TTL_STATUS_SECONDS = 300;   // 5 minutes
+// All agent state fields share the same TTL to prevent partial cache states
+// (previously streak/hazardScore expired at 300s while isAlive/lastPulse survived 3600s)
+export const KV_TTL_STATUS_SECONDS = 3600;  // 1 hour (unified with isAlive)
 export const KV_TTL_GLOBAL_SECONDS = 60;    // 1 minute
 
 // ============================================================================
@@ -31,18 +33,27 @@ function buildGlobalKey(metric: string): string {
 // Type Converters
 // ============================================================================
 
-function kvToBool(value: string | null): boolean | null {
-  if (value === null) return null;
-  return value === "1";
+/**
+ * Convert KV value to boolean.
+ * Upstash/Vercel KV may deserialize stored "1"/"0" as number 1/0,
+ * so we coerce to string first to avoid `1 === "1"` → false.
+ */
+function kvToBool(value: unknown): boolean | null {
+  if (value === null || value === undefined) return null;
+  return String(value) === "1";
 }
 
 function boolToKv(value: boolean): string {
   return value ? "1" : "0";
 }
 
-function kvToInt(value: string | null): number | null {
-  if (value === null) return null;
-  const parsed = parseInt(value, 10);
+/**
+ * Convert KV value to integer.
+ * Handles both string and number types from Upstash deserialization.
+ */
+function kvToInt(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === "number" ? value : parseInt(String(value), 10);
   return isNaN(parsed) ? null : parsed;
 }
 
@@ -95,11 +106,9 @@ export async function getAgentState(address: string): Promise<AgentState | null>
 }
 
 /**
- * Set agent state in KV cache with appropriate TTLs
- */
-/**
  * Set agent state in KV cache with monotonicity check.
  * Skips write if existing lastPulse is newer (prevents out-of-order overwrites).
+ * All fields share the same TTL to prevent partial cache states.
  */
 export async function setAgentState(address: string, state: AgentState): Promise<void> {
   try {
@@ -113,7 +122,7 @@ export async function setAgentState(address: string, state: AgentState): Promise
 
     const multi = kv.multi();
 
-    // Critical keys: longer TTL
+    // All agent state keys share the same TTL (unified to prevent partial cache states)
     multi.set(
       buildAgentKey(address, "lastPulse"),
       intToKv(state.lastPulse),
@@ -124,8 +133,6 @@ export async function setAgentState(address: string, state: AgentState): Promise
       boolToKv(state.isAlive),
       { ex: KV_TTL_ISALIVE_SECONDS }
     );
-
-    // Non-critical keys: shorter TTL
     multi.set(
       buildAgentKey(address, "streak"),
       intToKv(state.streak),
