@@ -54,6 +54,7 @@ contract PulseRegistry is Ownable2Step, Pausable, ReentrancyGuard {
 
     // ============ Constants ============
     uint256 private constant SECONDS_PER_DAY = 86400;
+    uint256 private constant MIN_STREAK_GAP = 20 hours; // RED-4: prevent day-boundary streak gaming
 
     // ============ Constructor ============
     constructor(
@@ -87,7 +88,12 @@ contract PulseRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         } else if (today == s.lastStreakDay) {
             // same day: streak unchanged
         } else if (today == s.lastStreakDay + 1) {
-            s.streak += 1; // Safe math — no unchecked (audit M-01)
+            // RED-4 fix: require MIN_STREAK_GAP between streak-advancing pulses
+            // Prevents gaming at day boundaries (pulse at 23:59 + 00:00 = 2 streak in 1s)
+            if (block.timestamp - uint256(s.lastPulseAt) >= MIN_STREAK_GAP) {
+                s.streak += 1; // Safe math — no unchecked (audit M-01)
+            }
+            // else: too soon after last pulse, streak unchanged (like same-day)
         } else {
             s.streak = 1;
         }

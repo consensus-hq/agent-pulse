@@ -1,0 +1,432 @@
+{
+  "network": "fork",
+  "startedAt": "2026-02-05T10:10:34.507Z",
+  "status": "passed",
+  "contracts": {
+    "pulseToken": "0x0af0ddfa5c5c1235dd95d156174faaa7f003a357",
+    "pulseRegistry": "0x2f18b1e755b87baf11eed3a3f158fe90582fe2ce"
+  },
+  "wallets": {
+    "owner": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+    "users": [
+      "0xF6c2ea891b7b0892be9f72f962725Daf81DcB99b",
+      "0xc0922bD0306477cCbbe663a778e084eCa210F11c",
+      "0xf43A2dae2F748754918C31eD7D2d0728bca7A43F",
+      "0x17Adbd37433329dd505D93E946233119cfaa300C"
+    ]
+  },
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Deploy",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.507Z",
+      "checks": [
+        {
+          "description": "PulseToken deployed",
+          "expected": "has bytecode",
+          "actual": "has bytecode",
+          "status": "pass"
+        },
+        {
+          "description": "PulseRegistry deployed",
+          "expected": "has bytecode",
+          "actual": "has bytecode",
+          "status": "pass"
+        },
+        {
+          "description": "Registry token address",
+          "expected": "0x0af0ddfa5c5c1235dd95d156174faaa7f003a357",
+          "actual": "0x0AF0dDFA5c5c1235DD95D156174faAa7f003A357",
+          "status": "pass"
+        },
+        {
+          "description": "Registry signal sink",
+          "expected": "0x000000000000000000000000000000000000dEaD",
+          "actual": "0x000000000000000000000000000000000000dEaD",
+          "status": "pass"
+        }
+      ],
+      "transactions": [],
+      "completedAt": "2026-02-05T10:10:34.512Z"
+    },
+    {
+      "phase": 2,
+      "name": "Ownership verification",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.512Z",
+      "checks": [
+        {
+          "description": "Registry owner",
+          "expected": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "actual": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "pass"
+        },
+        {
+          "description": "Non-owner setTTL reverts",
+          "expected": "reverted",
+          "actual": "reverted",
+          "status": "pass"
+        }
+      ],
+      "transactions": [],
+      "completedAt": "2026-02-05T10:10:34.520Z"
+    },
+    {
+      "phase": 3,
+      "name": "First pulse",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.520Z",
+      "checks": [
+        {
+          "description": "User isAlive",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "Streak",
+          "expected": "1",
+          "actual": "1",
+          "status": "pass"
+        }
+      ],
+      "transactions": [
+        {
+          "hash": "0x7a732dc214f56f5eae3cbec32982f5d0ca38a621b623b814719fd6d5dc9397c4",
+          "function": "mint",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "54163",
+          "blockNumber": "34"
+        },
+        {
+          "hash": "0x5c72a6ae9905aabf0963b7029c6491ea107214a44989406e060443e608777d47",
+          "function": "approve",
+          "from": "0xF6c2ea891b7b0892be9f72f962725Daf81DcB99b",
+          "status": "success",
+          "gasUsed": "46963",
+          "blockNumber": "35"
+        },
+        {
+          "hash": "0x836ebb9d5ec15b586ea7a351fd60788c410384c11fbe385ceb87f38080af47d4",
+          "function": "pulse",
+          "from": "0xF6c2ea891b7b0892be9f72f962725Daf81DcB99b",
+          "status": "success",
+          "gasUsed": "95200",
+          "blockNumber": "36"
+        }
+      ],
+      "completedAt": "2026-02-05T10:10:34.539Z"
+    },
+    {
+      "phase": 4,
+      "name": "Streak building",
+      "status": "skip",
+      "startedAt": "2026-02-05T10:10:34.539Z",
+      "checks": [],
+      "transactions": [],
+      "error": "Time manipulation not available on this network",
+      "completedAt": "2026-02-05T10:10:34.539Z"
+    },
+    {
+      "phase": 5,
+      "name": "Missed pulse (streak reset)",
+      "status": "skip",
+      "startedAt": "2026-02-05T10:10:34.539Z",
+      "checks": [],
+      "transactions": [],
+      "error": "Time manipulation not available on this network",
+      "completedAt": "2026-02-05T10:10:34.539Z"
+    },
+    {
+      "phase": 6,
+      "name": "Multi-user activity",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.539Z",
+      "checks": [
+        {
+          "description": "User 2 isAlive",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 3 isAlive",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 4 isAlive",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        }
+      ],
+      "transactions": [
+        {
+          "hash": "0xc17b804d43db3eacc1d1fe3354bf4d24d6a9dc4fd79747ac818a00bfbe8775d8",
+          "function": "mint",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "54163",
+          "blockNumber": "37"
+        },
+        {
+          "hash": "0xdfef033553fc81fb24aa9f4a94affa7fe349350b47c1779539b699abec937da1",
+          "function": "approve",
+          "from": "0xc0922bD0306477cCbbe663a778e084eCa210F11c",
+          "status": "success",
+          "gasUsed": "46963",
+          "blockNumber": "38"
+        },
+        {
+          "hash": "0xd06f7cede4d0dc0024c958524aa788f8f4c403c984a985c3ab367cbb2edc3521",
+          "function": "pulse",
+          "from": "0xc0922bD0306477cCbbe663a778e084eCa210F11c",
+          "status": "success",
+          "gasUsed": "78100",
+          "blockNumber": "39"
+        },
+        {
+          "hash": "0x4bd46318ac2289809faf7043e66e5c78cb1496bccf53758f1038c2faa5ff4a43",
+          "function": "mint",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "54163",
+          "blockNumber": "40"
+        },
+        {
+          "hash": "0x3bc624bf65779328a50ff69322fadae58f1b6e3b287207c8d5f942c8ace1145a",
+          "function": "approve",
+          "from": "0xf43A2dae2F748754918C31eD7D2d0728bca7A43F",
+          "status": "success",
+          "gasUsed": "46963",
+          "blockNumber": "41"
+        },
+        {
+          "hash": "0x35c77e184b46f078c360db6436b0936db4c2ddecaee97a2ff0fd83d52322df59",
+          "function": "pulse",
+          "from": "0xf43A2dae2F748754918C31eD7D2d0728bca7A43F",
+          "status": "success",
+          "gasUsed": "78100",
+          "blockNumber": "42"
+        },
+        {
+          "hash": "0x7cd74e998b80a4c85eb86c079e0ac5695d4954805e49be2fe97d92783a402b03",
+          "function": "mint",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "54163",
+          "blockNumber": "43"
+        },
+        {
+          "hash": "0x2ae4a059b6d63a1650192aa19a06508ff61add8966216ea07ca7545baf602035",
+          "function": "approve",
+          "from": "0x17Adbd37433329dd505D93E946233119cfaa300C",
+          "status": "success",
+          "gasUsed": "46963",
+          "blockNumber": "44"
+        },
+        {
+          "hash": "0x539e3dc83e100e186d203c16f950aa087fc23c22f384b30d02bc5f2b1f0b143f",
+          "function": "pulse",
+          "from": "0x17Adbd37433329dd505D93E946233119cfaa300C",
+          "status": "success",
+          "gasUsed": "78100",
+          "blockNumber": "45"
+        }
+      ],
+      "completedAt": "2026-02-05T10:10:34.593Z"
+    },
+    {
+      "phase": 7,
+      "name": "Hazard score",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.593Z",
+      "checks": [
+        {
+          "description": "Hazard score",
+          "expected": "75",
+          "actual": "75",
+          "status": "pass"
+        }
+      ],
+      "transactions": [
+        {
+          "hash": "0x0ae38f4918e02cf1e1cffcefaaa045b528345c1032d726cd7339d1128eff323b",
+          "function": "updateHazard",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "31366",
+          "blockNumber": "46"
+        }
+      ],
+      "completedAt": "2026-02-05T10:10:34.599Z"
+    },
+    {
+      "phase": 8,
+      "name": "Emergency pause/unpause",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.599Z",
+      "checks": [
+        {
+          "description": "Pulse reverts when paused",
+          "expected": "reverted",
+          "actual": "reverted",
+          "status": "pass"
+        }
+      ],
+      "transactions": [
+        {
+          "hash": "0xf04f81158c0f96e0ba0eab538c9d81f7c415569aac41926033ff95a8549dc072",
+          "function": "pause",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "47264",
+          "blockNumber": "47"
+        },
+        {
+          "hash": "0xd593c206af202a213cec37cf120a0229d93b7d99cdbc5267867d89bcff61260e",
+          "function": "unpause",
+          "from": "0x1A371D2e7532ad25B4a5eB4f212661755F931d5a",
+          "status": "success",
+          "gasUsed": "25405",
+          "blockNumber": "48"
+        }
+      ],
+      "completedAt": "2026-02-05T10:10:34.612Z"
+    },
+    {
+      "phase": 9,
+      "name": "Signal sink verification",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.612Z",
+      "checks": [
+        {
+          "description": "Signal sink received tokens",
+          "expected": ">= 4 PULSE",
+          "actual": "4 PULSE",
+          "status": "fail"
+        }
+      ],
+      "transactions": [],
+      "completedAt": "2026-02-05T10:10:34.613Z"
+    },
+    {
+      "phase": 10,
+      "name": "Stress test (rapid pulses)",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.613Z",
+      "checks": [
+        {
+          "description": "User 1 alive after stress",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 2 alive after stress",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 3 alive after stress",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 4 alive after stress",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        }
+      ],
+      "transactions": [
+        {
+          "hash": "0xf885c70c7af291981a5149bc4ffd807735ba3a4fdb1b9e19ff96c283ee57ee69",
+          "function": "pulse",
+          "from": "0xF6c2ea891b7b0892be9f72f962725Daf81DcB99b",
+          "status": "success",
+          "gasUsed": "58097",
+          "blockNumber": "49"
+        },
+        {
+          "hash": "0x26255c3dce52081b5fbbb545abcdb9123fe72491a67c4e8c139fe76e79a471ea",
+          "function": "pulse",
+          "from": "0xc0922bD0306477cCbbe663a778e084eCa210F11c",
+          "status": "success",
+          "gasUsed": "58097",
+          "blockNumber": "50"
+        },
+        {
+          "hash": "0x1892940a40f59c6f421194e9d95c097350c38e38ebd116a4ff6a09fe133bb54e",
+          "function": "pulse",
+          "from": "0xf43A2dae2F748754918C31eD7D2d0728bca7A43F",
+          "status": "success",
+          "gasUsed": "58097",
+          "blockNumber": "51"
+        },
+        {
+          "hash": "0x70bf338c602e5b7624cdf867dbf29ba1ed17d3fa86d2a8270524765c2c5842ef",
+          "function": "pulse",
+          "from": "0x17Adbd37433329dd505D93E946233119cfaa300C",
+          "status": "success",
+          "gasUsed": "58097",
+          "blockNumber": "52"
+        }
+      ],
+      "completedAt": "2026-02-05T10:10:34.635Z"
+    },
+    {
+      "phase": 11,
+      "name": "Final liveness check",
+      "status": "pass",
+      "startedAt": "2026-02-05T10:10:34.635Z",
+      "checks": [
+        {
+          "description": "User 1 final liveness",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 2 final liveness",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 3 final liveness",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "User 4 final liveness",
+          "expected": "true",
+          "actual": "true",
+          "status": "pass"
+        },
+        {
+          "description": "Contract not paused",
+          "expected": "false",
+          "actual": "false",
+          "status": "pass"
+        }
+      ],
+      "transactions": [],
+      "completedAt": "2026-02-05T10:10:34.639Z"
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 2
+  },
+  "completedAt": "2026-02-05T10:10:34.639Z"
+}

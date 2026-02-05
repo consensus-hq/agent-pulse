@@ -1,0 +1,27 @@
+{
+  "name": "agent-pulse",
+  "version": "1.0.0",
+  "description": "[![Tests](https://img.shields.io/badge/tests-65%2F65%20passing-success)](./packages/contracts/test) [![Audit](https://img.shields.io/badge/security-audited-blue)](./REPORTS) [![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE) [![Base](https://img.shields.io/badge/base-L2-blue)](https://base.org)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/consensus-hq/agent-pulse.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/consensus-hq/agent-pulse/issues"
+  },
+  "homepage": "https://github.com/consensus-hq/agent-pulse#readme",
+  "dependencies": {
+    "tsx": "^4.21.0",
+    "viem": "^2.45.1"
+  }
+}
