@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { formatUnits } from "viem";
 import styles from "../page.module.css";
 import { useWallet } from "../hooks/useWallet";
 
@@ -248,7 +247,7 @@ export default function DefiPanel() {
                 </div>
               </div>
             ) : (
-              <p className={styles.muted}>Click "Get PULSE" to fetch a swap quote.</p>
+              <p className={styles.muted}>Click &ldquo;Get PULSE&rdquo; to fetch a swap quote.</p>
             )}
             
             <div className={styles.row}>
