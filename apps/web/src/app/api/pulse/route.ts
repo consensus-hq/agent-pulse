@@ -18,16 +18,12 @@ const FACILITATOR_URL =
 const THIRDWEB_CLIENT_ID = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "";
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY || "";
 
-if (!FACILITATOR_URL) {
-  throw new Error("Missing x402 facilitator URL configuration.");
-}
+// Defer config validation to runtime — module-level throws break next build
+const X402_CONFIGURED =
+  !!FACILITATOR_URL && !!PULSE_TOKEN_ADDRESS && !!SIGNAL_SINK_ADDRESS && !!PULSE_TOKEN_NAME && !!PULSE_TOKEN_VERSION;
 
-if (!PULSE_TOKEN_ADDRESS || !SIGNAL_SINK_ADDRESS) {
-  throw new Error("Missing PULSE_TOKEN_ADDRESS or SIGNAL_SINK_ADDRESS configuration.");
-}
-
-if (!PULSE_TOKEN_NAME || !PULSE_TOKEN_VERSION) {
-  throw new Error("Missing PULSE_TOKEN_NAME or PULSE_TOKEN_VERSION (EIP-712 domain) configuration.");
+if (X402_CONFIGURED && !FACILITATOR_URL) {
+  // unreachable — guard for type narrowing only
 }
 
 const createAuthHeaders = async (): Promise<{
@@ -44,16 +40,14 @@ const createAuthHeaders = async (): Promise<{
   return { verify: headers, settle: headers, supported: headers };
 };
 
-const facilitatorClient = new HTTPFacilitatorClient({
-  url: FACILITATOR_URL,
-  createAuthHeaders,
-});
-
-const resourceServer = registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
-  networks: [NETWORK],
-});
-
 const handler = async (request: NextRequest): Promise<NextResponse> => {
+  if (!X402_CONFIGURED) {
+    return NextResponse.json(
+      { error: "x402 pulse endpoint not configured. Set X402_FACILITATOR_URL, PULSE_TOKEN_ADDRESS, SIGNAL_SINK_ADDRESS, PULSE_TOKEN_NAME, PULSE_TOKEN_VERSION." },
+      { status: 503 },
+    );
+  }
+
   const body = (await request.json().catch(() => ({}))) as { agent?: string };
   const agent = body.agent?.toLowerCase();
 
@@ -68,23 +62,41 @@ const handler = async (request: NextRequest): Promise<NextResponse> => {
   });
 };
 
-export const POST = paymentMiddleware(
-  handler,
-  {
-    accepts: {
-      scheme: "exact",
-      network: NETWORK,
-      payTo: SIGNAL_SINK_ADDRESS,
-      price: {
-        amount: PULSE_AMOUNT,
-        asset: PULSE_TOKEN_ADDRESS,
-        extra: {
-          name: PULSE_TOKEN_NAME,
-          version: PULSE_TOKEN_VERSION,
+// Only wire x402 middleware when fully configured; otherwise export plain handler
+let postHandler: (req: NextRequest) => Promise<NextResponse>;
+
+if (X402_CONFIGURED) {
+  const facilitatorClient = new HTTPFacilitatorClient({
+    url: FACILITATOR_URL,
+    createAuthHeaders,
+  });
+
+  const resourceServer = registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
+    networks: [NETWORK],
+  });
+
+  postHandler = paymentMiddleware(
+    handler,
+    {
+      accepts: {
+        scheme: "exact",
+        network: NETWORK,
+        payTo: SIGNAL_SINK_ADDRESS,
+        price: {
+          amount: PULSE_AMOUNT,
+          asset: PULSE_TOKEN_ADDRESS,
+          extra: {
+            name: PULSE_TOKEN_NAME,
+            version: PULSE_TOKEN_VERSION,
+          },
         },
       },
+      description: "Submit an Agent Pulse signal.",
     },
-    description: "Submit an Agent Pulse signal.",
-  },
-  resourceServer,
-);
+    resourceServer,
+  ) as unknown as (req: NextRequest) => Promise<NextResponse>;
+} else {
+  postHandler = handler;
+}
+
+export const POST = postHandler;
