@@ -4,11 +4,11 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import { PulseRegistry } from "../contracts/PulseRegistry.sol";
-import { MockERC20 } from "./mocks/MockERC20.sol";
+import { RealPulseToken } from "./helpers/RealPulseToken.sol";
 
 contract PulseRegistryTest is Test {
     PulseRegistry registry;
-    MockERC20 token;
+    RealPulseToken token;
 
     address alice = address(0xA11CE);
     address bob = address(0xB0B);
@@ -18,11 +18,12 @@ contract PulseRegistryTest is Test {
     uint256 minPulse = 1e18;
 
     function setUp() public {
-        token = new MockERC20("Pulse", "PULSE");
+        uint256 initialSupply = 1_000_000e18;
+        token = new RealPulseToken("Pulse", "PULSE", initialSupply, address(this));
         registry = new PulseRegistry(address(token), sink, ttl, minPulse);
 
-        token.mint(alice, 100e18);
-        token.mint(bob, 100e18);
+        token.transfer(alice, 100e18);
+        token.transfer(bob, 100e18);
 
         vm.startPrank(alice);
         token.approve(address(registry), type(uint256).max);
@@ -325,7 +326,7 @@ contract PulseRegistryTest is Test {
 
     function testPulseNoApproval() public {
         address unapproved = address(0xDEAD2);
-        token.mint(unapproved, 10e18);
+        token.transfer(unapproved, 10e18);
         vm.startPrank(unapproved);
         // No approval
         vm.expectRevert(); // SafeERC20 will revert
@@ -468,4 +469,88 @@ contract PulseRegistryTest is Test {
         assertEq(token.balanceOf(sink), sinkBefore + 2e18);
         assertEq(token.balanceOf(alice), aliceBefore - 2e18);
     }
+
+    // ============ Permit + SafeERC20 Tests ============
+
+    bytes32 internal constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    function _signPermit(
+        uint256 privateKey,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline
+    ) internal returns (uint8 v, bytes32 r, bytes32 s) {
+        uint256 nonce = token.nonces(owner);
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonce, deadline));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash));
+        return vm.sign(privateKey, digest);
+    }
+
+    function test_pulse_withPermitApproval() public {
+        uint256 permitKey = 0xBEEF;
+        address permitUser = vm.addr(permitKey);
+
+        token.transfer(permitUser, 10e18);
+
+        uint256 deadline = block.timestamp + 1 days;
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(
+            permitKey,
+            permitUser,
+            address(registry),
+            minPulse,
+            deadline
+        );
+
+        token.permit(permitUser, address(registry), minPulse, deadline, v, r, s);
+
+        vm.prank(permitUser);
+        registry.pulse(minPulse);
+
+        assertEq(token.balanceOf(sink), minPulse);
+    }
+
+    function test_pulse_burnVerification() public {
+        uint256 sinkBefore = token.balanceOf(sink);
+        uint256 supplyBefore = token.totalSupply();
+
+        vm.prank(alice);
+        registry.pulse(minPulse);
+
+        assertEq(token.balanceOf(sink), sinkBefore + minPulse);
+        assertEq(token.totalSupply(), supplyBefore);
+    }
+
+    function test_pulse_withInsufficientPermitAllowance() public {
+        uint256 permitKey = 0xCAFE;
+        address permitUser = vm.addr(permitKey);
+
+        token.transfer(permitUser, 10e18);
+
+        uint256 deadline = block.timestamp + 1 days;
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(
+            permitKey,
+            permitUser,
+            address(registry),
+            minPulse - 1,
+            deadline
+        );
+
+        token.permit(permitUser, address(registry), minPulse - 1, deadline, v, r, s);
+
+        vm.prank(permitUser);
+        vm.expectRevert();
+        registry.pulse(minPulse);
+    }
+
+    function test_safeTransferFrom_revertsOnFailure() public {
+        address noAllowance = address(0xD00D);
+        token.transfer(noAllowance, 5e18);
+
+        vm.prank(noAllowance);
+        vm.expectRevert();
+        registry.pulse(minPulse);
+    }
 }
+

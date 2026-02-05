@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { kv } from "@vercel/kv";
 import { isAddress, verifyMessage } from "viem";
-import { getAliveStatus } from "../../lib/alive";
 import { InboxKeyExistsError, issueKey } from "../../lib/inboxStore";
 import { getErc8004Badges } from "../../lib/erc8004";
-import { createRateLimiter } from "../../lib/rateLimit";
+import { getAgentState, setAgentState } from "@/app/lib/kv";
+import { readAgentStatus } from "@/app/lib/chain";
 
 export const runtime = "nodejs";
 
@@ -18,19 +19,66 @@ const requireErc8004 =
   (process.env.REQUIRE_ERC8004 || "").toLowerCase() === "true" ||
   process.env.REQUIRE_ERC8004 === "1";
 
-const rateLimiter = createRateLimiter({
-  windowMs: 60 * 60 * 1000,
-  maxRequests: 10,
-});
+const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
+const RATE_LIMIT_MAX_REQUESTS = 10;
 
 const SIGNATURE_WINDOW_MS = 10 * 60 * 1000;
 
-function rateLimitedResponse(resetMs: number) {
+
+async function checkRateLimit(identifier: string): Promise<{ allowed: boolean; resetAt: number }> {
+  const key = `ratelimit:inbox-key:${identifier}`;
+  const resetAt = Date.now() + RATE_LIMIT_WINDOW_SECONDS * 1000;
+
+  try {
+    const count = await kv.incr(key);
+    if (count === 1) {
+      await kv.expire(key, RATE_LIMIT_WINDOW_SECONDS);
+    }
+    return { allowed: count <= RATE_LIMIT_MAX_REQUESTS, resetAt };
+  } catch {
+    return { allowed: true, resetAt };
+  }
+}
+
+async function getAliveStatus(wallet: string): Promise<{ state: "alive" | "stale" | "unknown"; alive: boolean; lastPulseAt: number | null }> {
+  const normalized = wallet.toLowerCase();
+
+  const cached = await getAgentState(normalized);
+  if (cached) {
+    return {
+      state: cached.isAlive ? "alive" : "stale",
+      alive: cached.isAlive,
+      lastPulseAt: cached.lastPulse,
+    };
+  }
+
+  const chainStatus = await readAgentStatus(normalized);
+  if (!chainStatus) {
+    return { state: "unknown", alive: false, lastPulseAt: null };
+  }
+
+  const lastPulseAt = Number(chainStatus.lastPulseAt);
+  await setAgentState(normalized, {
+    isAlive: chainStatus.alive,
+    lastPulse: lastPulseAt,
+    streak: Number(chainStatus.streak),
+    hazardScore: Number(chainStatus.hazardScore),
+  });
+
+  return {
+    state: chainStatus.alive ? "alive" : "stale",
+    alive: chainStatus.alive,
+    lastPulseAt,
+  };
+}
+
+function rateLimitedResponse(resetAt: number) {
+  const retryAfterSeconds = Math.max(0, Math.ceil((resetAt - Date.now()) / 1000));
   return NextResponse.json(
     { ok: false, reason: "rate_limited" },
     {
       status: 429,
-      headers: { "Retry-After": Math.ceil(resetMs / 1000).toString() },
+      headers: { "Retry-After": retryAfterSeconds.toString() },
     }
   );
 }
@@ -108,9 +156,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const rate = rateLimiter.check(wallet.toLowerCase());
+  const rate = await checkRateLimit(wallet.toLowerCase());
   if (!rate.allowed) {
-    return rateLimitedResponse(rate.resetMs);
+    return rateLimitedResponse(rate.resetAt);
   }
 
   const alive = await getAliveStatus(wallet);
