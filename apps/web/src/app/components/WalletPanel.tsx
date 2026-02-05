@@ -66,6 +66,8 @@ export default function WalletPanel() {
 
   const pulseSignalLabel = agentStatus.loading
     ? "loading…"
+    : agentStatus.isAlive === null
+    ? "unknown"
     : agentStatus.isAlive
     ? "alive"
     : "stale";
