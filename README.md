@@ -260,7 +260,7 @@ cd apps/web && pnpm test
 
 ## Security
 
-Agent Pulse has undergone **2 pentest rounds** with **5 red team agents** operating adversarially against the contracts and API surface. **27 findings** identified and remediated, including:
+Agent Pulse has undergone **2 pentest rounds** with **4 red team agents** operating adversarially against the contracts and API surface. **26 findings** identified and remediated, including:
 
 - **CEI pattern enforcement** (I-01) — effects before interactions in `pulse()`
 - **Safe math for streak counters** (M-01) — no unchecked arithmetic
