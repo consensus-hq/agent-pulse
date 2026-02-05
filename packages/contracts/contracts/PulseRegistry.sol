@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,9 +11,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @title PulseRegistry
  * @notice On-chain activity signal registry for autonomous agents
  * @dev Agents pay 1 PULSE to signal liveness. Tokens are burned to signalSink.
- *      isAlive is strictly TTL-based. Reputation feedback is gated on isAlive.
+ *      isAlive is strictly TTL-based.
+ *      postReputationFeedback is out-of-scope for MVP (see audit L-02).
  */
-contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
+contract PulseRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ============ Immutable Configuration ============
@@ -23,6 +24,10 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
     // ============ Mutable Parameters ============
     uint256 public ttlSeconds;          // default 86400 (24h)
     uint256 public minPulseAmount;      // default 1e18 (1 PULSE)
+
+    // ============ Upper Bounds (audit M-02) ============
+    uint256 public constant MAX_TTL = 30 days;
+    uint256 public constant MAX_MIN_PULSE = 1000e18; // 1000 PULSE
 
     // ============ Agent State ============
     struct AgentStatus {
@@ -58,8 +63,8 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
         uint256 _minPulseAmount
     ) Ownable(msg.sender) {
         if (_pulseToken == address(0) || _signalSink == address(0)) revert ZeroAddress();
-        if (_ttlSeconds == 0) revert InvalidTTL();
-        if (_minPulseAmount == 0) revert InvalidMinPulseAmount();
+        if (_ttlSeconds == 0 || _ttlSeconds > MAX_TTL) revert InvalidTTL();
+        if (_minPulseAmount == 0 || _minPulseAmount > MAX_MIN_PULSE) revert InvalidMinPulseAmount();
 
         pulseToken = IERC20(_pulseToken);
         signalSink = _signalSink;
@@ -68,13 +73,12 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
     }
 
     // ============ Core Logic ============
+    /// @notice Send a pulse to signal agent liveness
+    /// @dev CEI pattern: checks → effects → interactions (audit I-01)
     function pulse(uint256 amount) external whenNotPaused nonReentrant {
         if (amount < minPulseAmount) revert BelowMinimumPulse(amount, minPulseAmount);
 
-        // Transfer to sink (burn)
-        pulseToken.safeTransferFrom(msg.sender, signalSink, amount);
-
-        // Streak calculation
+        // Effects first (CEI pattern — audit I-01)
         AgentStatus storage s = agents[msg.sender];
         uint32 today = uint32(block.timestamp / SECONDS_PER_DAY);
 
@@ -83,7 +87,7 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
         } else if (today == s.lastStreakDay) {
             // same day: streak unchanged
         } else if (today == s.lastStreakDay + 1) {
-            unchecked { s.streak += 1; }
+            s.streak += 1; // Safe math — no unchecked (audit M-01)
         } else {
             s.streak = 1;
         }
@@ -92,6 +96,9 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
         s.lastStreakDay = today;
 
         emit Pulse(msg.sender, amount, block.timestamp, s.streak);
+
+        // Interaction last (CEI pattern — audit I-01)
+        pulseToken.safeTransferFrom(msg.sender, signalSink, amount);
     }
 
     // ============ View Functions ============
@@ -120,13 +127,13 @@ contract PulseRegistry is Ownable, Pausable, ReentrancyGuard {
     }
 
     function setTTL(uint256 newTTL) external onlyOwner {
-        if (newTTL == 0) revert InvalidTTL();
+        if (newTTL == 0 || newTTL > MAX_TTL) revert InvalidTTL();
         ttlSeconds = newTTL;
         emit TTLUpdated(newTTL);
     }
 
     function setMinPulseAmount(uint256 newMin) external onlyOwner {
-        if (newMin == 0) revert InvalidMinPulseAmount();
+        if (newMin == 0 || newMin > MAX_MIN_PULSE) revert InvalidMinPulseAmount();
         minPulseAmount = newMin;
         emit MinPulseAmountUpdated(newMin);
     }
