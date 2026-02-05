@@ -17,6 +17,15 @@ const transports = {
   [base.id]: http(baseRpcUrl),
 };
 
+// Warn in development if WalletConnect Project ID is missing
+if (typeof window !== "undefined" && !publicEnv.walletConnectProjectId) {
+  console.warn(
+    "[Agent Pulse] WalletConnect Project ID not configured. " +
+    "Wallet connection will be limited to injected wallets only. " +
+    "Get a Project ID at https://cloud.walletconnect.com/"
+  );
+}
+
 const wagmiConfig = publicEnv.walletConnectProjectId
   ? getDefaultConfig({
       appName: "Agent Pulse",
