@@ -10,6 +10,7 @@ import { CommandReference } from "./components/CommandReference";
 import { RoutingSync } from "./components/RoutingSync";
 import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
+import DefiPanel from "./components/DefiPanel";
 import { PulseFeedResponse, StatusResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
 import styles from "./page.module.css";
@@ -131,6 +132,8 @@ export default function Home() {
         </section>
 
         <RoutingSync isAlive={isAlive} />
+
+        <DefiPanel />
 
         <PulseFeed
           feedData={feedData}
