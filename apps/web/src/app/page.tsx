@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import WalletPanel from "./components/WalletPanel";
+import { useAgentStatus } from "./hooks/useAgentStatus";
+import { useWallet } from "./hooks/useWallet";
 import styles from "./page.module.css";
 import { publicEnv } from "./lib/env.public";
 import { Erc8004Panel } from "./components/Erc8004Panel";
@@ -64,7 +67,7 @@ const shortenHash = (hash?: string) => {
 };
 
 export default function Home() {
-  const [address, setAddress] = useState("");
+  const [statusAddress, setStatusAddress] = useState("");
   const [statusData, setStatusData] = useState<StatusResponse | null>(null);
   const [statusPayload, setStatusPayload] = useState("");
   const [statusError, setStatusError] = useState("");
@@ -76,6 +79,12 @@ export default function Home() {
   const [feedCacheHeader, setFeedCacheHeader] = useState("");
 
   const [now, setNow] = useState(Date.now());
+
+  const { address: connectedAddress } = useWallet();
+  const connectedStatus = useAgentStatus(connectedAddress);
+  const normalizedConnected = connectedAddress?.toLowerCase() ?? "";
+  const isConnectedMatch = Boolean(connectedAddress)
+    && statusAddress.trim().toLowerCase() === normalizedConnected;
 
   const networkLabel = publicEnv.networkLabel || "Base chain";
   const chainIdLabel = publicEnv.chainId || "—";
@@ -111,7 +120,7 @@ export default function Home() {
   }, []);
 
   const handleStatusQuery = useCallback(async () => {
-    const trimmed = address.trim();
+    const trimmed = statusAddress.trim();
     setStatusError("");
     setStatusData(null);
     setStatusPayload("");
@@ -143,7 +152,7 @@ export default function Home() {
     } finally {
       setStatusLoading(false);
     }
-  }, [address]);
+  }, [statusAddress]);
 
   const fetchPulseFeed = useCallback(async () => {
     setFeedLoading(true);
@@ -232,7 +241,7 @@ export default function Home() {
             <h2 className={styles.sectionTitle}>Identity &amp; Reputation</h2>
             <span className={styles.muted}>ERC-8004 on-chain data</span>
           </div>
-          <Erc8004Panel address={address} showPulseEligibility={true} />
+          <Erc8004Panel address={statusAddress || connectedAddress || ""} showPulseEligibility={true} />
         </section>
 
         <section className={styles.section}>
@@ -246,8 +255,8 @@ export default function Home() {
             <input
               className={styles.input}
               placeholder="0x..."
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
+              value={statusAddress}
+              onChange={(event) => setStatusAddress(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -279,6 +288,15 @@ export default function Home() {
           <p className={styles.muted}>
             Updated at: {formatMs(statusData?.updatedAt)} | Last pulse: {formatUnix(statusData?.lastPulseAt)}
           </p>
+          {isConnectedMatch ? (
+            <p className={styles.muted}>
+              Pulse signal (connected): {connectedStatus.loading
+                ? "loading…"
+                : connectedStatus.isAlive
+                ? "alive"
+                : "stale"} | Streak: {connectedStatus.streak ?? "—"} | Hazard: {connectedStatus.hazardScore ?? "—"} | Last pulse: {formatUnix(connectedStatus.lastPulseAt ?? undefined)}
+            </p>
+          ) : null}
         </section>
 
         <section className={styles.section}>
@@ -310,22 +328,11 @@ cast call 0xRegistry "ttlSeconds()(uint256)" --rpc-url $BASE_RPC_URL
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Transmission</h2>
-            <span className={styles.muted}>Wallet connect placeholder</span>
+            <span className={styles.muted}>Wallet connect flow</span>
           </div>
-          <div className={styles.row}>
-            <button className={styles.buttonGhost} type="button" disabled>
-              Connect wallet
-            </button>
-            <button className={styles.buttonGhost} type="button" disabled>
-              Approve
-            </button>
-            <button className={styles.buttonGhost} type="button" disabled>
-              Send pulse
-            </button>
-          </div>
+          <WalletPanel />
           <p className={styles.muted}>
-            Approve → pulse flow placeholder. Pulses are sent to the signal
-            sink.
+            Approve → pulse flow. Pulses are sent to the signal sink.
           </p>
         </section>
 
