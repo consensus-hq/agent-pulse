@@ -3,3 +3,11 @@ node_modules/
 dist/
 .env*
 .DS_Store
+
+# Build artifacts / temp state
+fork-state.json
+shared/status.json
+apps/web/public/verification-log-fork.json
+
+# Shared workspace outputs (swarm agent work)
+shared/
