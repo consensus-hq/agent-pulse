@@ -3,9 +3,11 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createPublicClient, http, type Address, type PublicClient } from "viem";
 import styles from "./verify.module.css";
+import { useAnvilTimeControl } from "@/hooks/useAnvilTimeControl";
 
 // ============ Types ============
 type NetworkMode = "testnet" | "fork" | "mainnet";
+type TimeStep = 1 | 6 | 24; // hours
 
 interface VerificationLog {
   network: string;
@@ -62,6 +64,8 @@ interface AgentNode {
   isAlive: boolean;
   streak: number;
   hazard: number;
+  lastPulseAt: number;
+  ttlRemaining?: number; // in seconds
 }
 
 interface NetworkConfig {
@@ -71,6 +75,13 @@ interface NetworkConfig {
   explorerBase: string;
   label: string;
   logUrl: string | null;
+}
+
+interface AgentStatus {
+  alive: boolean;
+  lastPulseAt: bigint;
+  streak: bigint;
+  hazardScore: bigint;
 }
 
 // ============ Network Configurations ============
@@ -122,6 +133,13 @@ const REGISTRY_ABI = [
     ],
   },
   {
+    type: "function",
+    name: "isAlive",
+    stateMutability: "view",
+    inputs: [{ name: "agent", type: "address" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
     type: "event",
     name: "Pulse",
     inputs: [
@@ -145,17 +163,39 @@ const formatTime = (iso: string) => {
   return date.toLocaleTimeString();
 };
 
+const formatDuration = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
+};
+
+const formatTimestamp = (timestamp: number): string => {
+  return new Date(timestamp * 1000).toISOString().replace("T", " ").slice(0, 19);
+};
+
 // ============ Main Component ============
 export default function VerifyPage() {
   const [mode, setMode] = useState<NetworkMode>("fork");
   const [replayLog, setReplayLog] = useState<VerificationLog | null>(null);
   const [replayIndex, setReplayIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [liveNodes, setLiveNodes] = useState<AgentNode[]>([]);
   const [currentBlock, setCurrentBlock] = useState<bigint | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Time manipulation state
+  const [isTimeMode, setIsTimeMode] = useState(false);
+  const [timeStep, setTimeStep] = useState<TimeStep>(6); // hours
+  const [sliderPosition, setSliderPosition] = useState(0); // in time steps
+  const [baselineSnapshotId, setBaselineSnapshotId] = useState<string | null>(null);
+  const [baselineTimestamp, setBaselineTimestamp] = useState<number | null>(null);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
+  const [agentStatuses, setAgentStatuses] = useState<Map<string, AgentStatus>>(new Map());
+
   const config = useMemo(() => getNetworkConfig(mode), [mode]);
+
+  // Anvil time control hook
+  const anvil = useAnvilTimeControl();
 
   // ============ RPC Client ============
   const publicClient = useMemo<PublicClient | null>(() => {
@@ -208,26 +248,170 @@ export default function VerifyPage() {
     return () => clearInterval(interval);
   }, [publicClient, config.registryAddress, replayLog]);
 
+  // ============ Initialize Time Mode ============
+  useEffect(() => {
+    const initTimeMode = async () => {
+      // Only enable time mode in fork mode when Anvil is available
+      if (mode !== "fork" || !anvil.isAvailable || !replayLog) {
+        setIsTimeMode(false);
+        return;
+      }
+
+      // Check if registry address is configured
+      if (!config.registryAddress) {
+        setIsTimeMode(false);
+        return;
+      }
+
+      try {
+        // Take initial snapshot
+        const snapshotId = await anvil.snapshot();
+        setBaselineSnapshotId(snapshotId);
+
+        // Get current block timestamp
+        const block = await publicClient?.getBlock({ blockTag: "latest" });
+        if (block?.timestamp) {
+          const ts = Number(block.timestamp);
+          setBaselineTimestamp(ts);
+          setCurrentTimestamp(ts);
+        }
+
+        // Read initial agent statuses
+        await readAgentStatuses();
+
+        setIsTimeMode(true);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to initialize time mode:", err);
+        setIsTimeMode(false);
+        // Fall back to static replay mode
+      }
+    };
+
+    if (mode === "fork" && anvil.isAvailable && replayLog && !baselineSnapshotId) {
+      initTimeMode();
+    }
+  }, [mode, anvil.isAvailable, replayLog, config.registryAddress, baselineSnapshotId, publicClient]);
+
+  // ============ Read Agent Statuses ============
+  const readAgentStatuses = useCallback(async (): Promise<void> => {
+    if (!publicClient || !config.registryAddress || !replayLog) return;
+
+    const newStatuses = new Map<string, AgentStatus>();
+    const agentAddresses = replayLog.wallets.users;
+
+    for (const address of agentAddresses) {
+      try {
+        const status = await publicClient.readContract({
+          address: config.registryAddress!,
+          abi: REGISTRY_ABI,
+          functionName: "getAgentStatus",
+          args: [address],
+        }) as [boolean, bigint, bigint, bigint];
+
+        newStatuses.set(address.toLowerCase(), {
+          alive: status[0],
+          lastPulseAt: status[1],
+          streak: status[2],
+          hazardScore: status[3],
+        });
+      } catch (err) {
+        console.error(`Failed to read status for ${address}:`, err);
+      }
+    }
+
+    setAgentStatuses(newStatuses);
+  }, [publicClient, config.registryAddress, replayLog]);
+
+  // ============ Handle Slider Change ============
+  const handleSliderChange = useCallback(async (newPosition: number) => {
+    if (!isTimeMode || !baselineSnapshotId || baselineTimestamp === null) {
+      // Static replay mode
+      setReplayIndex(newPosition);
+      return;
+    }
+
+    const maxPosition = (7 * 24) / timeStep; // 7 days in time steps
+    const clampedPosition = Math.max(0, Math.min(newPosition, maxPosition));
+
+    setSliderPosition(clampedPosition);
+
+    try {
+      const targetTimestamp = baselineTimestamp + (clampedPosition * timeStep * 3600);
+
+      if (clampedPosition < sliderPosition) {
+        // Moving backward: revert then advance to new position
+        await anvil.revert(baselineSnapshotId);
+        // Need to re-take snapshot after revert (revert consumes the snapshot)
+        const newSnapshotId = await anvil.snapshot();
+        setBaselineSnapshotId(newSnapshotId);
+      }
+
+      // Calculate delta from baseline
+      const deltaSeconds = clampedPosition * timeStep * 3600;
+      await anvil.advanceTime(deltaSeconds);
+
+      setCurrentTimestamp(targetTimestamp);
+      await readAgentStatuses();
+      setError(null);
+    } catch (err) {
+      setError(`Time manipulation failed: ${err instanceof Error ? err.message : "Unknown"}`);
+      // Don't update position on error
+    }
+  }, [isTimeMode, baselineSnapshotId, baselineTimestamp, timeStep, sliderPosition, anvil, readAgentStatuses]);
+
   // ============ Replay Controls ============
   useEffect(() => {
     if (!isPlaying || !replayLog) return;
 
-    const totalEvents = replayLog.phases.reduce(
-      (sum, p) => sum + p.transactions.length,
-      0
-    );
+    if (isTimeMode) {
+      // In time mode, auto-advance slider
+      const maxPosition = (7 * 24) / timeStep;
+      if (sliderPosition >= maxPosition) {
+        setIsPlaying(false);
+        return;
+      }
 
-    if (replayIndex >= totalEvents) {
-      setIsPlaying(false);
-      return;
+      const timer = setTimeout(() => {
+        handleSliderChange(sliderPosition + 1);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    } else {
+      // Static replay mode
+      const totalEvents = replayLog.phases.reduce(
+        (sum, p) => sum + p.transactions.length,
+        0
+      );
+
+      if (replayIndex >= totalEvents) {
+        setIsPlaying(false);
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        setReplayIndex((i) => i + 1);
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
+  }, [isPlaying, replayLog, isTimeMode, sliderPosition, timeStep, replayIndex, handleSliderChange]);
 
-    const timer = setTimeout(() => {
-      setReplayIndex((i) => i + 1);
-    }, 500);
+  // ============ Reset Time Mode ============
+  const resetTimeMode = useCallback(async () => {
+    if (!isTimeMode || !baselineSnapshotId) return;
 
-    return () => clearTimeout(timer);
-  }, [isPlaying, replayIndex, replayLog]);
+    try {
+      await anvil.revert(baselineSnapshotId);
+      const newSnapshotId = await anvil.snapshot();
+      setBaselineSnapshotId(newSnapshotId);
+      setSliderPosition(0);
+      setCurrentTimestamp(baselineTimestamp);
+      await readAgentStatuses();
+    } catch (err) {
+      setError(`Reset failed: ${err instanceof Error ? err.message : "Unknown"}`);
+    }
+  }, [isTimeMode, baselineSnapshotId, baselineTimestamp, anvil, readAgentStatuses]);
 
   // ============ Derived Data ============
   const replayTransactions = useMemo(() => {
@@ -244,6 +428,27 @@ export default function VerifyPage() {
     return replayTransactions.slice(0, replayIndex).reverse().slice(0, 12);
   }, [replayTransactions, replayIndex]);
 
+  // Get agent nodes with live status
+  const agentNodes = useMemo((): AgentNode[] => {
+    if (!replayLog) return [];
+
+    return replayLog.wallets.users.map((address, i) => {
+      const status = agentStatuses.get(address.toLowerCase());
+      const now = currentTimestamp || Math.floor(Date.now() / 1000);
+      const ttl = status ? Number(status.lastPulseAt) + 86400 - now : undefined; // Assuming 24h TTL
+
+      return {
+        address,
+        label: `User ${i + 1}`,
+        isAlive: status?.alive ?? false,
+        streak: status ? Number(status.streak) : 0,
+        hazard: status ? Number(status.hazardScore) : 0,
+        lastPulseAt: status ? Number(status.lastPulseAt) : 0,
+        ttlRemaining: ttl && ttl > 0 ? ttl : 0,
+      };
+    });
+  }, [replayLog, agentStatuses, currentTimestamp]);
+
   const metrics = useMemo(() => {
     if (!replayLog) {
       return {
@@ -251,6 +456,7 @@ export default function VerifyPage() {
         activeWallets: 0,
         avgGas: "—",
         streakLeader: null as AgentNode | null,
+        aliveCount: 0,
       };
     }
 
@@ -270,27 +476,29 @@ export default function VerifyPage() {
         ? (gasValues.reduce((a, b) => a + b, 0n) / BigInt(gasValues.length)).toString()
         : "—";
 
-    // Find streak leader from latest phase data
+    // Find streak leader from live data
     let streakLeader: AgentNode | null = null;
-    for (let i = replayPhases.length - 1; i >= 0; i--) {
-      const phase = replayPhases[i];
-      const streakCheck = phase.checks.find((c) => c.description.includes("Streak"));
-      if (streakCheck) {
-        const streakValue = parseInt(streakCheck.actual);
-        if (!isNaN(streakValue) && (!streakLeader || streakValue > streakLeader.streak)) {
-          streakLeader = {
-            address: "0x0000000000000000000000000000000000000000" as Address,
-            label: "Agent",
-            isAlive: true,
-            streak: streakValue,
-            hazard: 0,
-          };
-        }
+    for (const node of agentNodes) {
+      if (!streakLeader || node.streak > streakLeader.streak) {
+        streakLeader = node;
       }
     }
 
-    return { totalPulses, activeWallets, avgGas, streakLeader };
-  }, [replayLog, replayTransactions, replayIndex, replayPhases]);
+    const aliveCount = agentNodes.filter(n => n.isAlive).length;
+
+    return { totalPulses, activeWallets, avgGas, streakLeader, aliveCount };
+  }, [replayLog, replayTransactions, replayIndex, agentNodes]);
+
+  // Calculate time display
+  const timeDisplay = useMemo(() => {
+    if (!isTimeMode || baselineTimestamp === null) return null;
+
+    const hoursElapsed = sliderPosition * timeStep;
+    const relativeTime = hoursElapsed === 0 ? "T+0h" : `T+${hoursElapsed}h`;
+    const absoluteTime = formatTimestamp(currentTimestamp || baselineTimestamp);
+
+    return { relativeTime, absoluteTime, hoursElapsed };
+  }, [isTimeMode, baselineTimestamp, sliderPosition, timeStep, currentTimestamp]);
 
   // ============ Network Topology ============
   const renderTopology = () => {
@@ -309,12 +517,13 @@ export default function VerifyPage() {
     const radius = 100;
 
     const nodes = [
-      { label: "Registry", address: contracts.pulseRegistry, type: "contract" },
-      { label: "Token", address: contracts.pulseToken, type: "contract" },
+      { label: "Registry", address: contracts.pulseRegistry, type: "contract" as const },
+      { label: "Token", address: contracts.pulseToken, type: "contract" as const },
       ...wallets.users.map((addr, i) => ({
         label: `User ${i + 1}`,
         address: addr,
-        type: "agent",
+        type: "agent" as const,
+        index: i,
       })),
     ];
 
@@ -335,6 +544,27 @@ export default function VerifyPage() {
           const y = centerY + radius * Math.sin(angle);
           const isContract = node.type === "contract";
 
+          // Get agent status for agent nodes
+          let nodeClassName = isContract ? styles.nodeContract : styles.nodeAgent;
+          let ttlText = "";
+
+          if (!isContract && "index" in node) {
+            const agentNode = agentNodes[node.index];
+            if (agentNode) {
+              if (!agentNode.isAlive) {
+                nodeClassName = styles.nodeAgentDead;
+              } else if (agentNode.ttlRemaining && agentNode.ttlRemaining < 7200) {
+                // Less than 2 hours remaining
+                nodeClassName = styles.nodeAgentExpiring;
+              } else {
+                nodeClassName = styles.nodeAgentAlive;
+              }
+              if (agentNode.ttlRemaining !== undefined) {
+                ttlText = agentNode.isAlive ? `TTL: ${formatDuration(agentNode.ttlRemaining)}` : "DEAD";
+              }
+            }
+          }
+
           return (
             <g key={i}>
               {/* Connection line */}
@@ -350,7 +580,7 @@ export default function VerifyPage() {
                 cx={x}
                 cy={y}
                 r="15"
-                className={isContract ? styles.nodeContract : styles.nodeAgent}
+                className={nodeClassName}
               />
               <text
                 x={x}
@@ -368,6 +598,18 @@ export default function VerifyPage() {
               >
                 {shortenAddress(node.address || "")}
               </text>
+              {/* TTL indicator for agents */}
+              {!isContract && ttlText && (
+                <text
+                  x={x}
+                  y={y + 38}
+                  className={styles.nodeAddress}
+                  textAnchor="middle"
+                  style={{ fontSize: "8px", fill: ttlText === "DEAD" ? "#f87171" : "#6b8f6b" }}
+                >
+                  {ttlText}
+                </text>
+              )}
             </g>
           );
         })}
@@ -413,6 +655,11 @@ export default function VerifyPage() {
               <span className={styles.muted}>
                 Block: {currentBlock ? currentBlock.toString() : "—"}
               </span>
+              {isTimeMode && (
+                <span className={`${styles.timeModeBadge} ${!anvil.isAvailable ? styles.timeModeDisabled : ""}`}>
+                  Time Control Active
+                </span>
+              )}
             </div>
           </div>
         </header>
@@ -427,11 +674,41 @@ export default function VerifyPage() {
         {replayLog && (
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Replay Mode</h2>
+              <h2 className={styles.sectionTitle}>
+                {isTimeMode ? "Time Manipulation Mode" : "Replay Mode"}
+              </h2>
               <span className={styles.muted}>
-                Event {replayIndex} / {replayTransactions.length}
+                {isTimeMode
+                  ? `Step: ${sliderPosition} / ${(7 * 24) / timeStep} (${timeStep}h increments)`
+                  : `Event ${replayIndex} / ${replayTransactions.length}`}
               </span>
             </div>
+
+            {/* Time Display */}
+            {isTimeMode && timeDisplay && (
+              <div className={styles.timeDisplay}>
+                <span className={styles.timeDisplayLabel}>Simulated Time</span>
+                <span className={styles.timeDisplayValue}>{timeDisplay.absoluteTime}</span>
+                <span className={styles.timeDisplayRelative}>{timeDisplay.relativeTime}</span>
+              </div>
+            )}
+
+            {/* Time Step Controls (only in time mode) */}
+            {isTimeMode && (
+              <div className={styles.timeStepControls}>
+                <span className={styles.timeStepLabel}>Time Step:</span>
+                {[1, 6, 24].map((step) => (
+                  <button
+                    key={step}
+                    className={`${styles.timeStepButton} ${timeStep === step ? styles.timeStepActive : ""}`}
+                    onClick={() => setTimeStep(step as TimeStep)}
+                  >
+                    {step}h
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className={styles.replayControls}>
               <button
                 className={styles.button}
@@ -442,7 +719,11 @@ export default function VerifyPage() {
               <button
                 className={styles.button}
                 onClick={() => {
-                  setReplayIndex(0);
+                  if (isTimeMode) {
+                    resetTimeMode();
+                  } else {
+                    setReplayIndex(0);
+                  }
                   setIsPlaying(false);
                 }}
               >
@@ -451,9 +732,16 @@ export default function VerifyPage() {
               <input
                 type="range"
                 min="0"
-                max={replayTransactions.length}
-                value={replayIndex}
-                onChange={(e) => setReplayIndex(parseInt(e.target.value))}
+                max={isTimeMode ? (7 * 24) / timeStep : replayTransactions.length}
+                value={isTimeMode ? sliderPosition : replayIndex}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (isTimeMode) {
+                    handleSliderChange(value);
+                  } else {
+                    setReplayIndex(value);
+                  }
+                }}
                 className={styles.slider}
               />
             </div>
@@ -465,7 +753,7 @@ export default function VerifyPage() {
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Network Topology</h2>
             <span className={styles.muted}>
-              {replayLog ? "Replay data" : "Live state"}
+              {replayLog ? (isTimeMode ? "Live state" : "Replay data") : "Live state"}
             </span>
           </div>
           {renderTopology()}
@@ -495,8 +783,54 @@ export default function VerifyPage() {
               </div>
               <div className={styles.metricLabel}>Top Streak</div>
             </div>
+            {isTimeMode && (
+              <div className={styles.metricCard}>
+                <div className={styles.metricValue} style={{ color: "var(--accent)" }}>
+                  {metrics.aliveCount}
+                </div>
+                <div className={styles.metricLabel}>Alive Agents</div>
+              </div>
+            )}
           </div>
         </section>
+
+        {/* Agent Status List (only in time mode) */}
+        {isTimeMode && agentNodes.length > 0 && (
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Agent Status</h2>
+              <span className={styles.muted}>Live from contract</span>
+            </div>
+            <div className={styles.feedList}>
+              <div className={styles.feedHeader}>
+                <span>Agent</span>
+                <span>Status</span>
+                <span>Streak</span>
+                <span>Hazard</span>
+                <span>TTL Remaining</span>
+              </div>
+              {agentNodes.map((node, i) => (
+                <div className={styles.feedRow} key={node.address}>
+                  <span className={styles.mono}>{shortenAddress(node.address)}</span>
+                  <span className={node.isAlive ? styles.statusSuccess : styles.statusFailed}>
+                    {node.isAlive ? "Alive" : "Expired"}
+                  </span>
+                  <span>{node.streak}</span>
+                  <span>{node.hazard}</span>
+                  <span className={
+                    node.ttlRemaining && node.ttlRemaining < 7200 && node.isAlive
+                      ? styles.statusFailed
+                      : styles.muted
+                  }>
+                    {node.isAlive && node.ttlRemaining !== undefined
+                      ? formatDuration(node.ttlRemaining)
+                      : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Transaction Feed */}
         <section className={styles.section}>

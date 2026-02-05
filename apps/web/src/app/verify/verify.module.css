@@ -183,6 +183,136 @@
   flex-wrap: wrap;
 }
 
+.timeDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 4px;
+  min-width: 180px;
+}
+
+.timeDisplayLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+
+.timeDisplayValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: inherit;
+}
+
+.timeDisplayRelative {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.timeStepControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeStepLabel {
+  font-size: 11px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.timeStepButton {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.timeStepButton:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+.timeStepActive {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.agentStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.agentStatusAlive {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.agentStatusExpiring {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.agentStatusDead {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.ttlIndicator {
+  font-size: 9px;
+  color: var(--dim);
+}
+
+.timeModeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-radius: 2px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.timeModeBadge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.timeModeDisabled {
+  background: var(--panel-elevated);
+  color: var(--dim);
+}
+
+.timeModeDisabled::before {
+  background: var(--dim);
+  animation: none;
+}
+
 .button {
   border: 1px solid var(--accent-dim);
   background: var(--accent);
@@ -264,6 +394,35 @@
   fill: var(--accent-muted);
   stroke: var(--accent);
   stroke-width: 2;
+}
+
+.nodeAgentAlive {
+  fill: var(--accent);
+  stroke: var(--accent-bright);
+  stroke-width: 3;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.nodeAgentExpiring {
+  fill: var(--warning);
+  stroke: #ffb347;
+  stroke-width: 2;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.nodeAgentDead {
+  fill: var(--error);
+  stroke: #ff9999;
+  stroke-width: 2;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .connection {
