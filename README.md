@@ -1,269 +1,278 @@
 # Agent Pulse 🫀
 
-[![Tests](https://img.shields.io/badge/tests-65%2F65%20passing-success)](./packages/contracts/test)
-[![Audit](https://img.shields.io/badge/security-audited-blue)](./REPORTS)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE)
-[![Base](https://img.shields.io/badge/base-L2-blue)](https://base.org)
+On-chain liveness signaling for autonomous AI agents on Base. Agents send a paid pulse to prove they're active — no pulse, no routing. Agent Pulse adds a small economic cost to remain eligible for work, discouraging low-effort spam without claiming identity, quality, or reputation.
 
-> **Pulse a token, stay routable** — the simplest honest signal an AI agent can send.
+> **$PULSE is a utility token used to send pulse signals.** A pulse shows recent wallet activity. It does not prove identity, quality, or "AI."
 
-Agent Pulse is a paid-liveness protocol for AI agents on Base (Ethereum L2). Agents send $PULSE utility tokens to the signal sink to signal "I'm here, route work to me." No pulse within the TTL window → agent drops off the routing table.
-
-**Live Demo:** [https://agent-pulse-nine.vercel.app](https://agent-pulse-nine.vercel.app)
+[![Tests](https://img.shields.io/badge/tests-73%2F73%20passing-success)](./packages/contracts/test)
+[![Security](https://img.shields.io/badge/security-audited-blue)](./REPORTS)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![Base](https://img.shields.io/badge/chain-Base-blue)](https://base.org)
 
 ---
 
-## What It Does
+## Architecture
 
-- **Pulse Registry:** On-chain activity signal that proves agent liveness
-- **Routing Gate:** Binary eligibility check (`isAlive`) that any marketplace can query
-- **Agent Inbox:** Short-lived inbox keys gated by pulse status
-- **ERC-8004 Integration:** Optional identity verification via Base registries
-- **Anti-Spam by Design:** Paid signals discourage low-effort spam without complex reputation systems
+Agent Pulse is a monorepo with two packages:
 
-## Features
+```
+agent-pulse/
+├── apps/web/             # Next.js 16 frontend + Edge Function API
+│   ├── src/app/api/      # Edge Function endpoints
+│   ├── src/app/          # React UI (eligibility dashboard, pulse feed)
+│   └── src/lib/          # Agent SDK, chain reads, KV helpers
+├── packages/contracts/   # Foundry smart contracts (Solidity 0.8.20)
+│   ├── contracts/        # PulseToken.sol, PulseRegistry.sol
+│   └── test/             # Foundry test suite (73 tests)
+└── docs/                 # Specs, runbooks, security reports
+```
 
-- **Wallet Connect:** wagmi v2 + RainbowKit integration for one-click wallet onboarding.
-- **Persistent, secured inbox:** Vercel KV-backed storage with signature auth, TTL enforcement, and request throttling.
-- **ERC-8004 live identity panel:** Real-time identity and reputation registry data surfaced in the UI.
-- **API hardening:** RPC timeouts, per-route traffic caps, and explicit 503 responses on upstream failures.
-- **Deploy pipeline:** automated scripts (`scripts/deploy-token.ts`, `scripts/deploy-all.ts`) plus env wiring.
-- **Brand design system:** shared tokens, typography, and component styles for consistent UI.
-
-## Who It's For
-
-| User | Use Case |
-|------|----------|
-| **AI Agents** | Autonomous wallets that need to signal availability for tasks |
-| **Agent Marketplaces** | Filter routable agents by on-chain liveness |
-| **Developers** | Add liveness gating to any agent directory or task router |
-| **Researchers** | Study agent activity patterns via public on-chain signals |
+**Tech stack:** Next.js 16 · Foundry · Vercel Edge Functions · Vercel KV · thirdweb SDK · viem · wagmi · RainbowKit · x402 protocol
 
 ---
 
-## Quick Start
+## Contracts
 
-### Prerequisites
-- Node.js 20+
-- Foundry (for contract development)
-- Base Sepolia ETH (for testnet)
+### PulseToken
 
-### Clone & Install
+Standard ERC-20 with burn capability. Initial supply is minted to a configurable recipient. Owner can mint additional tokens.
 
-```bash
-git clone https://github.com/consensus-hq/agent-pulse.git
-cd agent-pulse
+- **Inherits:** `ERC20`, `ERC20Burnable`, `Ownable` (OpenZeppelin)
+- **Functions:** `mint(address to, uint256 amount)` (owner only)
 
-# Install web dependencies
-cd apps/web
-npm install
+### PulseRegistry
 
-# Start dev server
-npm run dev
-```
+On-chain activity signal registry. Agents call `pulse(amount)` to transfer tokens to the signal sink (burn address), which updates their liveness status and streak counter.
 
-### Environment Setup
+- **Inherits:** `Ownable2Step`, `Pausable`, `ReentrancyGuard` (OpenZeppelin)
+- **Core logic:** `pulse(uint256 amount)` — transfers PULSE to signal sink, updates streak
+- **Views:** `isAlive(address)` — true if agent pulsed within TTL; `getAgentStatus(address)` — returns `(alive, lastPulseAt, streak, hazardScore)`
+- **Admin:** `setTTL`, `setMinPulseAmount`, `updateHazard`, `pause`/`unpause`
+- **Defaults:** TTL = 86400s (24h), min pulse = 1 PULSE (1e18)
+- **Streak rules:** consecutive daily pulses increment streak; 20h minimum gap prevents day-boundary gaming (RED-4 fix)
 
-```bash
-cp .env.example .env.local
-# Fill in your RPC URL and contract addresses
-```
+### Deployed (Base Sepolia)
 
-Required environment variables:
-```env
-# Client-side (browser)
-NEXT_PUBLIC_PULSE_TOKEN_ADDRESS=0x...
-NEXT_PUBLIC_SIGNAL_ADDRESS=0x000000000000000000000000000000000000dEaD
-NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS=0x...
-NEXT_PUBLIC_BASE_RPC_URL=https://...
+| Contract | Address | Explorer |
+|---|---|---|
+| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` | [Verified](https://sepolia.basescan.org/address/0x7f24c286872c9594499cd634c7cc7735551242a2#code) |
+| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | [Verified](https://sepolia.basescan.org/address/0x2c802988c16fae08bf04656fe93adfa9a5ba8612#code) |
+| Signal Sink | `0x000000000000000000000000000000000000dEaD` | — |
 
-# Server-side
-PULSE_TOKEN_ADDRESS=0x...
-SIGNAL_ADDRESS=0x...
-BASE_RPC_URL=https://...
-```
-
-### Contract Development
-
-```bash
-cd packages/contracts
-
-# Install dependencies
-forge install
-
-# Run tests
-forge test
-
-# Run tests with gas report
-forge test --gas-report
-
-# Deploy to testnet
-forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
-```
-
----
-
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         AGENT PULSE SYSTEM                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐  │
-│  │   Agent     │────▶│   $PULSE     │────▶│   Signal Sink   │  │
-│  │   Wallet    │     │   Token      │     │   (0x...dEaD)   │  │
-│  └─────────────┘     └──────────────┘     └─────────────────┘  │
-│         │                                                   │    │
-│         │         Pulse Event (Transfer)                    │    │
-│         ▼                                                   ▼    │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │              PulseRegistry Contract                         │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │ │
-│  │  │  isAlive()  │  │   Streak    │  │  Hazard Score   │    │ │
-│  │  │  (TTL check)│  │   Counter   │  │  (0-100)        │    │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘    │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│         │                                                       │
-│         ▼                                                       │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    API Layer (Next.js)                      │ │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │ │
-│  │  │/status/* │  │/pulse-feed│  │/inbox-key│  │/inbox/*  │   │ │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│         │                                                       │
-│         ▼                                                       │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │                    Frontend (React)                         │ │
-│  │         Eligibility Dashboard + Pulse Feed                  │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Data Flow
-
-1. **Agent pulses** → Transfers $PULSE to signal sink
-2. **Registry captures** → Pulse event recorded with timestamp
-3. **Status check** → `isAlive()` evaluates true if within TTL window
-4. **Inbox unlock** → Living agents get short-lived API keys
-5. **Routing** → Marketplaces query status to filter eligible agents
+> Addresses are maintained in [`LINKS.md`](./LINKS.md). Do not hardcode addresses in application code — use environment variables.
 
 ---
 
 ## API Reference
 
+All endpoints run as Vercel Edge Functions with KV-backed rate limiting.
+
+### `GET /api/status/:address`
+
+Check an agent's liveness status. Returns cached (KV) or on-chain data.
+
+```bash
+curl https://agent-pulse-nine.vercel.app/api/status/0xYourAgentAddress
+# → { "isAlive": true, "streak": 5, "lastPulse": 1738713600, "hazardScore": 12, ... }
+```
+
+### `GET /api/pulse-feed`
+
+Paginated Pulse events via thirdweb Insight API. Params: `agent`, `limit` (1–100, default 50), `page` (0-indexed), `sort` (`asc`/`desc`).
+
+```bash
+curl "https://agent-pulse-nine.vercel.app/api/pulse-feed?agent=0x...&limit=20&page=0&sort=desc"
+```
+
+### `POST /api/pulse` (x402-protected)
+
+Submit a pulse signal. Returns `402 Payment Required` on first call; agent retries with signed payment header. See [Agent SDK](#agent-sdk) for automatic handling.
+
+```bash
+curl -X POST https://agent-pulse-nine.vercel.app/api/pulse \
+  -H "Content-Type: application/json" \
+  -d '{"agent": "0xYourAgentAddress"}'
+# → 402 with PAYMENT-REQUIRED header (or 200 after paid retry)
+```
+
+### `GET /api/protocol-health`
+
+Protocol health check — reports KV, RPC, and pause state.
+
+```bash
+curl https://agent-pulse-nine.vercel.app/api/protocol-health
+# → { "paused": false, "totalAgents": 42, "kvHealthy": true, "rpcHealthy": true, "status": "healthy" }
+```
+
+### `GET /api/defi`
+
+Proxy to HeyElsa DeFi API. Params: `action` (`price`/`portfolio`), plus action-specific query params.
+
+```bash
+curl "https://agent-pulse-nine.vercel.app/api/defi?action=price&token=PULSE"
+```
+
+### Other Endpoints
+
 | Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/pulse` | POST | Submit a pulse signal (x402-protected) |
-| `/api/status/{address}` | GET | Get agent liveness status |
-| `/api/pulse-feed` | GET | Recent pulse events (Insight API) |
-| `/api/protocol-health` | GET | Protocol health + KV/RPC status |
-| `/api/pulse-webhook` | POST | Insight webhook receiver |
-| `/api/defi` | GET | HeyElsa DeFi proxy (token data, portfolio) |
-| `/api/inbox-key` | POST | Create inbox key (requires pulse) |
-| `/api/inbox/{wallet}` | GET/POST | Read/write agent inbox (gated) |
-
-### x402 Micropayment Flow
-
-The `/api/pulse` endpoint uses the [x402 protocol](https://www.x402.org/) for HTTP-native micropayments:
-
-1. Agent calls `POST /api/pulse` → receives `402 Payment Required`
-2. Agent signs EIP-712 permit authorizing PULSE token transfer
-3. Agent retries with `PAYMENT-SIGNATURE` header
-4. Facilitator settles on-chain → PULSE burns to signal sink
-5. Streak updated, agent stays routable
-
-See [X402_API_GUIDE.md](./docs/X402_API_GUIDE.md) for complete documentation.
+|---|---|---|
+| `/api/inbox-key` | `POST` | Issue short-lived inbox key (requires alive status) |
+| `/api/inbox/:wallet` | `GET/POST` | Agent inbox read/write |
+| `/api/inbox/cleanup` | `POST` | Expire stale inbox keys |
+| `/api/pulse-webhook` | `POST` | Webhook for external pulse event notifications |
+| `/api/anvil` | `GET` | Local Anvil fork health check (dev only) |
 
 ---
 
-## Contract Addresses
+## Agent SDK
 
-> All addresses are also available in [LINKS.md](./LINKS.md)
+Use `pulse-client.ts` to send pulses programmatically. The SDK handles the full x402 payment flow (402 → sign → retry) automatically.
 
-All contract addresses are maintained in [LINKS.md](./LINKS.md) (single source of truth).
+The SDK lives at `apps/web/src/lib/pulse-client.ts`. Copy it into your agent project or import from the monorepo.
 
----
+**Dependencies:**
 
-## Key Features
-
-### 📡 Pulse-to-Signal
-- **1 PULSE** minimum to pulse
-- Tokens are **consumed** (sent to signal sink)
-- No recoverable treasury from pulse signals
-
-### ⏱️ TTL-Based Liveness
-- Default: **24 hours** (`86400` seconds)
-- Configurable by contract owner (max 30 days)
-- Binary check: `now - lastPulseAt <= TTL`
-
-### 🔥 Streak System
-- Daily pulses increment streak counter
-- Miss a day → streak resets to 1
-- Visible on dashboard and API
-
-### 🛡️ Security
-- 65/65 tests passing
-- ReentrancyGuard on all state-changing functions
-- CEI pattern (Checks-Effects-Interactions)
-- Pausable by owner
-- Security audit completed
-
----
-
-## Repository Structure
-
-```
-agent-pulse/
-├── apps/
-│   └── web/                 # Next.js frontend + API routes
-│       ├── src/app/api/     # REST API endpoints
-│       ├── src/app/lib/     # Server utilities
-│       └── src/components/  # React components
-├── brand/                   # Design system assets
-├── packages/
-│   └── contracts/           # Foundry/Solidity contracts
-│       ├── contracts/       # PulseRegistry.sol
-│       ├── test/            # Test suite (65 tests)
-│       └── script/          # Deployment scripts
-├── docs/                    # Documentation
-├── scripts/                 # Fork + Tenderly harnesses
-└── REPORTS/                 # Security audit + notes
+```bash
+pnpm add @x402/core @x402/evm viem
 ```
 
+**Usage:**
+
+```typescript
+import { sendPulse } from "./pulse-client";
+
+const response = await sendPulse(
+  "0xYourAgentAddress",                     // agent wallet address
+  "0xYourPrivateKey",                        // agent private key (for EIP-712 signing)
+  "https://agent-pulse-nine.vercel.app"      // Agent Pulse API base URL
+);
+
+console.log(response);
+// { success: true, agent: "0x...", paidAmount: "1000000000000000000" }
+```
+
+**How it works:** calls `POST /api/pulse` → receives 402 with `PAYMENT-REQUIRED` header → parses payment requirement → signs EIP-712 permit payload → retries with `PAYMENT-SIGNATURE` header → facilitator calls `permit()` + `transferFrom()` on-chain → PULSE moves to burn address → returns success.
+
 ---
 
-## Compliance & Policy
+## x402 Micropayments
 
-- **$PULSE** is a utility token for pulse signals only
-- No trading or speculation language; no claims of financial upside
-- No DEX links at launch
-- No liquidity management promises
-- A pulse shows recent wallet activity — it does **not** prove identity, quality, or "AI"
+Agent Pulse uses the [x402 protocol](https://www.x402.org/) to gate pulse submissions behind a micropayment. Every pulse costs real economic value, making Sybil attacks and fake streaks significantly more expensive.
+
+```
+Agent                    Agent Pulse API           Facilitator (thirdweb)
+  │  POST /api/pulse          │                           │
+  │──────────────────────────►│                           │
+  │  402 + PAYMENT-REQUIRED   │                           │
+  │◄──────────────────────────│                           │
+  │                           │                           │
+  │  (sign EIP-712 permit)    │                           │
+  │                           │                           │
+  │  POST /api/pulse          │                           │
+  │  + PAYMENT-SIGNATURE      │                           │
+  │──────────────────────────►│  verify + settle          │
+  │                           │──────────────────────────►│
+  │                           │  permit() + transferFrom()│
+  │                           │  PULSE → 0x...dEaD        │
+  │                           │◄──────────────────────────│
+  │  { success: true }        │                           │
+  │◄──────────────────────────│                           │
+```
+
+- **Payment token:** PULSE (ERC-20 with ERC-2612 `permit()`)
+- **Facilitator:** thirdweb x402 facilitator (handles gas, settlement, verification)
+- **Burn strategy:** `payTo` = `0x...dEaD` — tokens permanently removed on settlement
+- **Middleware:** `@x402/next` wraps the `/api/pulse` route handler
+- **No extra contracts required** — facilitator handles all on-chain interactions
 
 ---
 
-## Contributing
+## Local Development
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+### Prerequisites
+
+- Node.js ≥ 18, [pnpm](https://pnpm.io/) ≥ 8, [Foundry](https://book.getfoundry.sh/getting-started/installation)
+
+### Setup
+
+```bash
+git clone https://github.com/consensus-hq/agent-pulse.git
+cd agent-pulse
+pnpm install
+
+# Configure environment
+cp apps/web/.env.example apps/web/.env.local
+# Edit .env.local — set at minimum:
+#   NEXT_PUBLIC_PULSE_TOKEN_ADDRESS, NEXT_PUBLIC_SIGNAL_SINK_ADDRESS
+#   NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS, NEXT_PUBLIC_BASE_RPC_URL
+#   BASE_RPC_URL, KV_REST_API_URL, KV_REST_API_TOKEN
+```
+
+### Smart contracts
+
+```bash
+cd packages/contracts
+forge install
+forge build
+forge test -vv
+
+# Local fork
+anvil --fork-url https://sepolia.base.org &
+forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
+```
+
+### Web app
+
+```bash
+cd apps/web
+pnpm dev        # → http://localhost:3000
+pnpm build      # production build
+```
+
+---
+
+## Testing
+
+### Smart contract tests (Foundry)
+
+73 tests across 4 test files covering core logic, exploit scenarios, and owner abuse vectors:
+
+```bash
+cd packages/contracts && forge test -vv
+```
+
+| Test file | Tests | Coverage |
+|---|---|---|
+| `PulseRegistry.t.sol` | 44 | Core pulse, streak, TTL, admin |
+| `PulseRegistryExploit.t.sol` | 13 | Reentrancy, overflow, DoS |
+| `PulseRegistryExploitV2.t.sol` | 13 | Fee-on-transfer, gas grief, hooks |
+| `PulseRegistryOwnerAbuse.t.sol` | 3 | Owner privilege escalation |
+
+Mock contracts: `ReentrantERC20`, `FeeOnTransferToken`, `GasGriefToken`, `HookToken`.
+
+### Integration tests (Vitest)
+
+```bash
+cd apps/web && pnpm test
+```
+
+---
+
+## Security
+
+Agent Pulse has undergone **2 pentest rounds** with **5 red team agents** operating adversarially against the contracts and API surface. **27 findings** identified and remediated, including:
+
+- **CEI pattern enforcement** (I-01) — effects before interactions in `pulse()`
+- **Safe math for streak counters** (M-01) — no unchecked arithmetic
+- **TTL/min-pulse upper bounds** (M-02) — `MAX_TTL = 30 days`, `MAX_MIN_PULSE = 1000 PULSE`
+- **Day-boundary streak gaming prevention** (RED-4) — 20h minimum gap
+- **KV-backed rate limiting** — per-IP limits on all public endpoints
+- **Server-side RPC URL isolation** (H-4) — `BASE_RPC_URL` never exposed to clients
+
+Full reports: [`REPORTS/`](./REPORTS)
+
+---
 
 ## License
 
-Apache-2.0 — see [LICENSE](./LICENSE)
-
----
-
-## Resources
-
-| Resource | Link |
-|----------|------|
-| Live Demo | https://agent-pulse-nine.vercel.app |
-| GitHub | https://github.com/consensus-hq/agent-pulse |
-| X/Twitter | https://x.com/PulseOnBase |
-| Base | https://base.org |
-
----
-
-*Built for the OpenClaw ecosystem — autonomous agents need reliable signals.*
+MIT — see [LICENSE](./LICENSE) for details.
