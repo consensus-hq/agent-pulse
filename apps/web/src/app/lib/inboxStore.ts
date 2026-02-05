@@ -148,6 +148,29 @@ export async function issueKey(
   return record;
 }
 
+export async function getActiveKey(wallet: string): Promise<InboxKey | null> {
+  const persistence = getInboxPersistence();
+  const normalized = normalizeWallet(wallet);
+  const state = await persistence.getState();
+  const removedByCleanup = maybeCleanup(state);
+  const record = state.keys[normalized];
+  if (!record) {
+    if (removedByCleanup > 0) {
+      await persistence.setState(state);
+    }
+    return null;
+  }
+  if (Date.now() > record.expiresAt) {
+    delete state.keys[normalized];
+    await persistence.setState(state);
+    return null;
+  }
+  if (removedByCleanup > 0) {
+    await persistence.setState(state);
+  }
+  return record;
+}
+
 export async function verifyKey(wallet: string, key: string): Promise<boolean> {
   const persistence = getInboxPersistence();
   const normalized = normalizeWallet(wallet);

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAddress, verifyMessage } from "viem";
 import { getAliveStatus } from "../../lib/alive";
-import { InboxKeyExistsError, issueKey } from "../../lib/inboxStore";
+import {
+  InboxKeyExistsError,
+  getActiveKey,
+  issueKey,
+} from "../../lib/inboxStore";
 import { getErc8004Badges } from "../../lib/erc8004";
 import { createRateLimiter } from "../../lib/rateLimit";
 
@@ -131,11 +135,32 @@ export async function POST(request: Request) {
     }
   }
 
+  // H-5 fix: Check for existing active key before issuing new one
+  const existingKey = await getActiveKey(wallet);
+  if (existingKey) {
+    return NextResponse.json({
+      ok: true,
+      key: existingKey.key,
+      expiresAt: existingKey.expiresAt,
+      ...alive,
+    });
+  }
+
   let keyRecord: Awaited<ReturnType<typeof issueKey>>;
   try {
     keyRecord = await issueKey(wallet, ttlSeconds);
   } catch (error) {
     if (error instanceof InboxKeyExistsError) {
+      // H-5 fix: Return existing key instead of error (race condition)
+      const existingKey = await getActiveKey(wallet);
+      if (existingKey) {
+        return NextResponse.json({
+          ok: true,
+          key: existingKey.key,
+          expiresAt: existingKey.expiresAt,
+          ...alive,
+        });
+      }
       return NextResponse.json(
         { ok: false, reason: "key_exists" },
         { status: 409 }

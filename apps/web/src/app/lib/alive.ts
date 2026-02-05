@@ -5,8 +5,7 @@ const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 );
 
-const rpcUrl =
-  process.env.NEXT_PUBLIC_BASE_RPC_URL || process.env.BASE_RPC_URL || "";
+const rpcUrl = process.env.BASE_RPC_URL || "";
 const tokenAddress =
   process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS ||
   process.env.PULSE_TOKEN_ADDRESS ||

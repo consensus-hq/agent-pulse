@@ -6,7 +6,7 @@ let _client: any = null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getBaseClient(): any {
-  const rpcUrl = process.env.BASE_RPC_URL ?? process.env.NEXT_PUBLIC_BASE_RPC_URL;
+  const rpcUrl = process.env.BASE_RPC_URL;
   if (!rpcUrl) return null;
   
   if (!_client) {
