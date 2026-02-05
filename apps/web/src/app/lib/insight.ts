@@ -60,33 +60,28 @@ const TRANSFER_SIGNATURE = 'Transfer(address,address,uint256)';
 // ============================================================================
 
 /**
- * Decoded event data from Insight API
+ * Raw event data from Insight API (snake_case fields)
+ * 
+ * The Insight API returns flat objects with snake_case keys.
+ * Decoded params (when ?decode=true) appear in `decoded.indexed_params`
+ * and `decoded.non_indexed_params`.
  */
 export interface InsightDecodedEvent {
-  /** Event name */
-  eventName: string;
-  /** Event signature */
-  signature: string;
-  /** Decoded event data */
-  data: Record<string, unknown>;
-  /** Transaction details */
-  transaction: {
-    hash: string;
-    blockNumber: number;
-    blockHash: string;
-    timestamp: number;
-    gasUsed?: string;
-    gasPrice?: string;
-    from: string;
-    to: string;
-    value?: string;
-  };
-  /** Log details */
-  log: {
-    address: string;
-    topics: string[];
-    data: string;
-    logIndex: number;
+  chain_id: string;
+  block_number: number;
+  block_hash: string;
+  block_timestamp: number;
+  transaction_hash: string;
+  transaction_index: number;
+  log_index: number;
+  address: string;
+  data: string;
+  topics: string[];
+  decoded?: {
+    name: string;
+    signature: string;
+    indexed_params: Record<string, string>;
+    non_indexed_params: Record<string, string>;
   };
 }
 
@@ -397,16 +392,18 @@ export async function getPulseEvents(
   );
   
   // Transform decoded events to PulseEvent format
+  // Insight API returns: { data: "0x...", topics: [...], decoded: { indexed_params: {}, non_indexed_params: {} }, block_number, transaction_hash, log_index, block_timestamp }
   const events: PulseEvent[] = response.data.map((event) => {
-    const data = event.data as unknown as PulseEventData;
+    const decoded = event.decoded as { indexed_params?: Record<string, string>; non_indexed_params?: Record<string, string> } | undefined;
+    const params = { ...decoded?.indexed_params, ...decoded?.non_indexed_params };
     return {
-      agent: (data?.agent ?? '0x0000000000000000000000000000000000000000').toLowerCase(),
-      amount: BigInt(data?.amount ?? 0),
-      timestamp: Number(data?.timestamp ?? 0),
-      streak: Number(data?.streak ?? 0),
-      blockNumber: event.transaction?.blockNumber ?? 0,
-      logIndex: event.log?.logIndex ?? 0,
-      transactionHash: event.transaction?.hash ?? '0x',
+      agent: (params.agent ?? '0x0000000000000000000000000000000000000000').toLowerCase(),
+      amount: BigInt(params.amount ?? 0),
+      timestamp: Number(params.timestamp ?? event.block_timestamp ?? 0),
+      streak: Number(params.streak ?? 0),
+      blockNumber: Number(event.block_number ?? 0),
+      logIndex: Number(event.log_index ?? 0),
+      transactionHash: (event.transaction_hash as string) ?? '0x',
     };
   });
   
@@ -451,24 +448,26 @@ export async function getPauseEvents(
   
   // Transform paused events
   const pausedEvents: PauseEvent[] = pausedResponse.data.map((event) => {
-    const data = event.data as unknown as PauseEventData;
+    const decoded = event.decoded as { indexed_params?: Record<string, string>; non_indexed_params?: Record<string, string> } | undefined;
+    const params = { ...decoded?.indexed_params, ...decoded?.non_indexed_params };
     return {
-      account: data.account.toLowerCase(),
-      blockNumber: event.transaction?.blockNumber ?? 0,
-      timestamp: event.transaction?.timestamp ?? 0,
-      transactionHash: event.transaction?.hash ?? "0x",
+      account: (params.account ?? '0x0').toLowerCase(),
+      blockNumber: Number(event.block_number ?? 0),
+      timestamp: Number(event.block_timestamp ?? 0),
+      transactionHash: (event.transaction_hash as string) ?? "0x",
       isPaused: true,
     };
   });
   
   // Transform unpaused events
   const unpausedEvents: PauseEvent[] = unpausedResponse.data.map((event) => {
-    const data = event.data as unknown as PauseEventData;
+    const decoded = event.decoded as { indexed_params?: Record<string, string>; non_indexed_params?: Record<string, string> } | undefined;
+    const params = { ...decoded?.indexed_params, ...decoded?.non_indexed_params };
     return {
-      account: data.account.toLowerCase(),
-      blockNumber: event.transaction?.blockNumber ?? 0,
-      timestamp: event.transaction?.timestamp ?? 0,
-      transactionHash: event.transaction?.hash ?? "0x",
+      account: (params.account ?? '0x0').toLowerCase(),
+      blockNumber: Number(event.block_number ?? 0),
+      timestamp: Number(event.block_timestamp ?? 0),
+      transactionHash: (event.transaction_hash as string) ?? "0x",
       isPaused: false,
     };
   });
@@ -535,13 +534,14 @@ export async function getBurnTransfers(
   
   // Transform decoded events
   const events: BurnTransferEvent[] = response.data.map((event) => {
-    const data = event.data as unknown as TransferEventData;
+    const decoded = event.decoded as { indexed_params?: Record<string, string>; non_indexed_params?: Record<string, string> } | undefined;
+    const params = { ...decoded?.indexed_params, ...decoded?.non_indexed_params };
     return {
-      from: data.from.toLowerCase(),
-      amount: BigInt(data.value),
-      blockNumber: event.transaction?.blockNumber ?? 0,
-      timestamp: event.transaction?.timestamp ?? 0,
-      transactionHash: event.transaction?.hash ?? "0x",
+      from: (params.from ?? '0x0').toLowerCase(),
+      amount: BigInt(params.value ?? 0),
+      blockNumber: Number(event.block_number ?? 0),
+      timestamp: Number(event.block_timestamp ?? 0),
+      transactionHash: (event.transaction_hash as string) ?? "0x",
     };
   });
   
