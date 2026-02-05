@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import { publicEnv } from "./lib/env.public";
+import { Erc8004Panel } from "./components/Erc8004Panel";
 
 type StatusResponse = {
   address: string;
@@ -224,6 +225,14 @@ export default function Home() {
           <pre className={styles.output}>
             {JSON.stringify(configSnapshot, null, 2)}
           </pre>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Identity &amp; Reputation</h2>
+            <span className={styles.muted}>ERC-8004 on-chain data</span>
+          </div>
+          <Erc8004Panel address={address} showPulseEligibility={true} />
         </section>
 
         <section className={styles.section}>
