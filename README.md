@@ -137,7 +137,7 @@ forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
 
 1. **Agent pulses** → Transfers $PULSE to signal sink
 2. **Registry captures** → Pulse event recorded with timestamp
-3. **Status check** → `isAlive()` returns true if within TTL window
+3. **Status check** → `isAlive()` yields true if within TTL window
 4. **Inbox unlock** → Living agents get short-lived API keys
 5. **Routing** → Marketplaces query status to filter eligible agents
 
@@ -149,7 +149,7 @@ forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
 |----------|--------|-------------|
 | `/api/status/{address}` | GET | Get agent liveness status |
 | `/api/pulse-feed` | GET | Recent pulse events + agent statuses |
-| `/api/inbox-key` | POST | Issue inbox key (requires pulse) |
+| `/api/inbox-key` | POST | Generate inbox key (requires pulse) |
 | `/api/inbox/{wallet}` | GET/POST | Read/write agent inbox (gated) |
 
 See [API_DOCS.md](./API_DOCS.md) for complete documentation.
@@ -169,9 +169,45 @@ See [API_DOCS.md](./API_DOCS.md) for complete documentation.
 
 ---
 
-## Key Features
+## Features
 
-### 📡 Pulse-to-Signal
+### 🔗 Wallet Connect (wagmi + RainbowKit)
+- One-click browser wallet connection via [RainbowKit](https://www.rainbowkit.com/) and [wagmi](https://wagmi.sh/)
+- Base L2 chain configured out of the box (mainnet and Sepolia)
+- WalletConnect v2 support with project-ID fallback to injected connector
+- `WalletPanel` component: live balance display, pulse action, streak + hazard readout
+
+### 📬 Inbox Persistence, Auth & Request Throttling
+- **File-backed persistence** (`inboxPersist.ts`) — inbox keys and tasks survive server restarts
+- **Pulse-gated auth** — only agents with a valid `isAlive` status can generate or use inbox keys
+- **Per-wallet request throttling** (see `throttle` module) — sliding-window throttle on `/api/inbox-key` and `/api/inbox/{wallet}` to prevent abuse
+- Automatic key expiry and `/api/inbox/cleanup` endpoint for stale entry removal
+
+### 🆔 ERC-8004 Live Identity Panel
+- `Erc8004Panel` component queries the Base Identity Registry (`0x8004…A432`) in real time
+- Displays resolved **name**, **reputation score**, and pulse-eligibility status for any connected wallet
+- Graceful loading states and fault handling when the registry is unreachable
+- Powered by the `useErc8004` React hook with viem `readContract` calls
+
+### 🛡️ API Hardening
+- **Deadlines** — every RPC read is wrapped in `Promise.race` with a configurable time cap; HTTP transport enforces a 10 s deadline with 2 retries
+- **Request throttling** — sliding-window throttle applied to inbox and key-generation endpoints
+- **503 / 504 responses** — missing registry config responds with `503 Service Unavailable`; RPC deadline breaches respond with `504 Gateway Unavailable` (no silent 500s)
+- Cache headers (`s-maxage`, `stale-while-revalidate`) on status responses to reduce RPC load
+
+### 🚀 Deploy Pipeline
+- **`deploy-token.ts`** — standalone script to deploy the PULSE ERC-20 token via viem + a deployer key
+- **`deploy-all.ts`** — orchestration script that deploys token → registry in sequence (or accepts an existing `PULSE_TOKEN_ADDRESS`)
+- Both scripts support Base mainnet (`8453`) and Sepolia (`84532`) via `CHAIN_ID` env var
+- Additional Foundry deployment via `forge script script/Deploy.s.sol` for contract-level control
+
+### 🎨 Brand Design System
+- Full brand guide in [`brand/BRAND_GUIDE.md`](./brand/BRAND_GUIDE.md)
+- **Color palette:** Void (`#0A0F0A`) through Green (`#4ADE80`) — dark-first, signal-green accent
+- **Typography:** JetBrains Mono at multiple weights; "AGENT" light / "PULSE" bold wordmark
+- SVG logo suite (primary, wordmark, mono, favicon) plus social assets (`pfp-400x400`, `banner-1500x500`)
+
+### 📡 Pulse-to-Signal (Core Protocol)
 - **1 PULSE** minimum to pulse
 - Tokens are **consumed** (sent to signal sink)
 - No recoverable treasury from pulse signals
@@ -186,7 +222,7 @@ See [API_DOCS.md](./API_DOCS.md) for complete documentation.
 - Miss a day → streak resets to 1
 - Visible on dashboard and API
 
-### 🛡️ Security
+### 🔒 Security
 - 65/65 tests passing
 - ReentrancyGuard on all state-changing functions
 - CEI pattern (Checks-Effects-Interactions)
@@ -219,7 +255,7 @@ agent-pulse/
 ## Compliance & Policy
 
 - **$PULSE** is a utility token for pulse signals only
-- No investment, trading, or speculation language
+- No speculative, trading, or financial-promotion language
 - No DEX links at launch
 - No liquidity management promises
 - A pulse shows recent wallet activity — it does **not** prove identity, quality, or "AI"
