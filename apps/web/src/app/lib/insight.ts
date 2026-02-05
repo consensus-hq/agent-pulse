@@ -400,10 +400,10 @@ export async function getPulseEvents(
   const events: PulseEvent[] = response.data.map((event) => {
     const data = event.data as unknown as PulseEventData;
     return {
-      agent: data.agent.toLowerCase(),
-      amount: BigInt(data.amount),
-      timestamp: Number(data.timestamp),
-      streak: Number(data.streak),
+      agent: (data?.agent ?? '0x0000000000000000000000000000000000000000').toLowerCase(),
+      amount: BigInt(data?.amount ?? 0),
+      timestamp: Number(data?.timestamp ?? 0),
+      streak: Number(data?.streak ?? 0),
       blockNumber: event.transaction.blockNumber,
       logIndex: event.log.logIndex,
       transactionHash: event.transaction.hash,
