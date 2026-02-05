@@ -22,6 +22,14 @@ if (!FACILITATOR_URL) {
   throw new Error("Missing x402 facilitator URL configuration.");
 }
 
+if (!PULSE_TOKEN_ADDRESS || !SIGNAL_SINK_ADDRESS) {
+  throw new Error("Missing PULSE_TOKEN_ADDRESS or SIGNAL_SINK_ADDRESS configuration.");
+}
+
+if (!PULSE_TOKEN_NAME || !PULSE_TOKEN_VERSION) {
+  throw new Error("Missing PULSE_TOKEN_NAME or PULSE_TOKEN_VERSION (EIP-712 domain) configuration.");
+}
+
 const createAuthHeaders = async (): Promise<{
   verify: Record<string, string>;
   settle: Record<string, string>;
@@ -46,20 +54,6 @@ const resourceServer = registerExactEvmScheme(new x402ResourceServer(facilitator
 });
 
 const handler = async (request: NextRequest): Promise<NextResponse> => {
-  if (!PULSE_TOKEN_ADDRESS || !SIGNAL_SINK_ADDRESS) {
-    return NextResponse.json(
-      { error: "Missing PULSE token or signal sink configuration." },
-      { status: 500 },
-    );
-  }
-
-  if (!PULSE_TOKEN_NAME || !PULSE_TOKEN_VERSION) {
-    return NextResponse.json(
-      { error: "Missing PULSE token EIP-712 domain configuration." },
-      { status: 500 },
-    );
-  }
-
   const body = (await request.json().catch(() => ({}))) as { agent?: string };
   const agent = body.agent?.toLowerCase();
 

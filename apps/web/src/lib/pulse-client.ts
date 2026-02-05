@@ -9,8 +9,16 @@ interface PulseResponse {
   paidAmount: string;
 }
 
-export async function sendPulse(agentAddress: string, privateKey: string): Promise<PulseResponse> {
-  const response = await fetch("/api/pulse", {
+/**
+ * Send a pulse signal via x402 micropayment.
+ * @param agentAddress - The agent's Ethereum address
+ * @param privateKey - The agent's private key for EIP-712 signing
+ * @param baseUrl - Absolute base URL of the Agent Pulse API (e.g. "https://agent-pulse-nine.vercel.app")
+ */
+export async function sendPulse(agentAddress: string, privateKey: string, baseUrl: string): Promise<PulseResponse> {
+  const pulseUrl = `${baseUrl.replace(/\/+$/, "")}/api/pulse`;
+
+  const response = await fetch(pulseUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agent: agentAddress }),
@@ -41,7 +49,7 @@ export async function sendPulse(agentAddress: string, privateKey: string): Promi
   const paymentPayload = await client.createPaymentPayload(paymentRequired);
   const paymentHeader = encodePaymentSignatureHeader(paymentPayload);
 
-  const paidResponse = await fetch("/api/pulse", {
+  const paidResponse = await fetch(pulseUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
