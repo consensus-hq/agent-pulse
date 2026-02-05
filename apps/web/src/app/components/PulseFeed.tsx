@@ -29,7 +29,8 @@ export function PulseFeed({
     return () => window.clearInterval(id);
   }, [onRefresh]);
 
-  const feedRows = feedData?.recentPulses?.slice(0, 8) ?? [];
+  // API returns .data array, legacy type expected .recentPulses
+  const feedRows = (feedData?.data ?? feedData?.recentPulses)?.slice(0, 8) ?? [];
 
   return (
     <section className={styles.section}>
@@ -62,7 +63,8 @@ export function PulseFeed({
           </div>
         ) : (
           feedRows.map((pulse, index) => {
-            const txHash = pulse.txHash ?? "";
+            // API returns transactionHash, legacy expected txHash
+            const txHash = pulse.transactionHash ?? pulse.txHash ?? "";
             const txUrl = explorerTxBaseUrl && txHash
               ? `${explorerTxBaseUrl}${txHash}`
               : "";
