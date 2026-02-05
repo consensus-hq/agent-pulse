@@ -1,0 +1,25 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="95" stroke="rgba(74,222,128,0.15)" stroke-width="1" fill="none"/>
+  <circle cx="100" cy="100" r="95" stroke="rgba(74,222,128,0.08)" stroke-width="1" fill="none" stroke-dasharray="4 12" stroke-dashoffset="2"/>
+  <circle cx="100" cy="100" r="82" fill="url(#bg)"/>
+  <circle cx="100" cy="100" r="82" stroke="rgba(74,222,128,0.12)" stroke-width="1" fill="none"/>
+  <line x1="24" y1="100" x2="176" y2="100" stroke="rgba(74,222,128,0.06)" stroke-width="1"/>
+  <path d="M 28 100 L 52 100 L 60 100 L 66 88 L 72 100 L 76 100 L 80 72 L 88 134 L 96 52 L 104 148 L 112 64 L 118 112 L 124 96 L 130 100 L 172 100" stroke="url(#pulse)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 28 100 L 52 100 L 60 100 L 66 88 L 72 100 L 76 100 L 80 72 L 88 134 L 96 52 L 104 148 L 112 64 L 118 112 L 124 96 L 130 100 L 172 100" stroke="rgba(74,222,128,0.25)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="28" cy="100" r="2" fill="#4ade80" opacity="0.4"/>
+  <circle cx="172" cy="100" r="2" fill="#4ade80" opacity="0.4"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#132013"/>
+      <stop offset="50%" stop-color="#0d150d"/>
+      <stop offset="100%" stop-color="#080d08"/>
+    </radialGradient>
+    <linearGradient id="pulse" x1="28" y1="100" x2="172" y2="100">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.15"/>
+      <stop offset="15%" stop-color="#4ade80" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#86efac"/>
+      <stop offset="85%" stop-color="#4ade80" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#4ade80" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,13 +1,27 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Agent Pulse Brand Colors */
+  --void: #0a0f0a;
+  --surface-0: #0d120d;
+  --surface-1: #111a11;
+  --surface-2: #162016;
+  --surface-3: #1a2a1a;
+  --border-subtle: rgba(74, 222, 128, 0.06);
+  --border-default: rgba(74, 222, 128, 0.12);
+  --border-strong: rgba(74, 222, 128, 0.25);
+  --green-dim: #1a5c2a;
+  --green: #4ade80;
+  --green-bright: #86efac;
+  --green-light: #bbf7d0;
+  --green-muted: #2d6b3f;
+  --text-primary: #d4e8d4;
+  --text-secondary: #6b8f6b;
+  --text-muted: #3d5c3d;
+  --error: #f87171;
+
+  --background: var(--void);
+  --foreground: var(--text-primary);
 }
 
 html,
@@ -19,9 +33,22 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle grid overlay — terminal aesthetic */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74, 222, 128, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74, 222, 128, 0.012) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
 }
 
 * {
@@ -31,12 +58,14 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--green);
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+a:hover {
+  color: var(--green-bright);
+}
+
+html {
+  color-scheme: dark;
 }
