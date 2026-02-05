@@ -404,9 +404,9 @@ export async function getPulseEvents(
       amount: BigInt(data?.amount ?? 0),
       timestamp: Number(data?.timestamp ?? 0),
       streak: Number(data?.streak ?? 0),
-      blockNumber: event.transaction.blockNumber,
-      logIndex: event.log.logIndex,
-      transactionHash: event.transaction.hash,
+      blockNumber: event.transaction?.blockNumber ?? 0,
+      logIndex: event.log?.logIndex ?? 0,
+      transactionHash: event.transaction?.hash ?? '0x',
     };
   });
   
@@ -454,9 +454,9 @@ export async function getPauseEvents(
     const data = event.data as unknown as PauseEventData;
     return {
       account: data.account.toLowerCase(),
-      blockNumber: event.transaction.blockNumber,
-      timestamp: event.transaction.timestamp,
-      transactionHash: event.transaction.hash,
+      blockNumber: event.transaction?.blockNumber ?? 0,
+      timestamp: event.transaction?.timestamp ?? 0,
+      transactionHash: event.transaction?.hash ?? "0x",
       isPaused: true,
     };
   });
@@ -466,9 +466,9 @@ export async function getPauseEvents(
     const data = event.data as unknown as PauseEventData;
     return {
       account: data.account.toLowerCase(),
-      blockNumber: event.transaction.blockNumber,
-      timestamp: event.transaction.timestamp,
-      transactionHash: event.transaction.hash,
+      blockNumber: event.transaction?.blockNumber ?? 0,
+      timestamp: event.transaction?.timestamp ?? 0,
+      transactionHash: event.transaction?.hash ?? "0x",
       isPaused: false,
     };
   });
@@ -539,9 +539,9 @@ export async function getBurnTransfers(
     return {
       from: data.from.toLowerCase(),
       amount: BigInt(data.value),
-      blockNumber: event.transaction.blockNumber,
-      timestamp: event.transaction.timestamp,
-      transactionHash: event.transaction.hash,
+      blockNumber: event.transaction?.blockNumber ?? 0,
+      timestamp: event.transaction?.timestamp ?? 0,
+      transactionHash: event.transaction?.hash ?? "0x",
     };
   });
   
