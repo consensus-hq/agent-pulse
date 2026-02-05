@@ -241,15 +241,6 @@ function calculateHazardScore(lastPulseAt: number): number {
   return Math.floor((elapsed / PROTOCOL_TTL_SECONDS) * 100);
 }
 
-/**
- * Update hazard score asynchronously (non-critical)
- */
-async function updateHazardScore(_address: string, _timestamp: number): Promise<void> {
-  // Hazard score is updated via setAgentState in updateKVCache.
-  // This function is a no-op — hazard is set to 0 by default and
-  // only changed via the owner's updateHazard() admin function.
-}
-
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -290,11 +281,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Update KV cache atomically
     await updateKVCache(event);
-    
-    // Update hazard score (async, non-blocking)
-    updateHazardScore(event.agent, event.timestamp).catch((error) => {
-      console.error(`[Pulse Webhook ${requestId}] Hazard score update failed:`, error);
-    });
     
     const duration = Date.now() - startTime;
     

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { getAgentState, setAgentState, KV_TTL_ISALIVE_SECONDS } from "@/app/lib/kv";
+import { getAgentState, setAgentState } from "@/app/lib/kv";
 import { readAgentStatus, readTTL } from "@/app/lib/chain";
 
 export const runtime = "edge";
@@ -144,7 +144,7 @@ export async function GET(
       isAlive: cached.isAlive,
       streak: cached.streak,
       lastPulse: cached.lastPulse,
-      hazardScore: cached.hazardScore || calculateHazardScore(cached.lastPulse, ttlSeconds),
+      hazardScore: cached.hazardScore ?? calculateHazardScore(cached.lastPulse, ttlSeconds),
       ttlSeconds,
       source: "cache",
       updatedAt: Date.now(),
