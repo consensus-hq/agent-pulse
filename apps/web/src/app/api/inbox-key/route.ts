@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { isAddress } from "viem";
+import { isAddress, verifyMessage } from "viem";
 import { getAliveStatus } from "../../lib/alive";
-import { issueKey } from "../../lib/inboxStore";
+import { InboxKeyExistsError, issueKey } from "../../lib/inboxStore";
 import { getErc8004Badges } from "../../lib/erc8004";
+import { createRateLimiter } from "../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -17,53 +18,42 @@ const requireErc8004 =
   (process.env.REQUIRE_ERC8004 || "").toLowerCase() === "true" ||
   process.env.REQUIRE_ERC8004 === "1";
 
-// Rate limiting: max 10 key issuances per wallet per hour
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const rateLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+});
 
-function getRateLimitKey(wallet: string): string {
-  return wallet.toLowerCase();
-}
+const SIGNATURE_WINDOW_MS = 10 * 60 * 1000;
 
-function checkRateLimit(wallet: string): { allowed: boolean; remaining: number } {
-  const key = getRateLimitKey(wallet);
-  const now = Date.now();
-  
-  // Clean up expired entries periodically (simple cleanup)
-  if (rateLimitMap.size > 10000) {
-    for (const [k, v] of rateLimitMap.entries()) {
-      if (v.resetAt < now) {
-        rateLimitMap.delete(k);
-      }
+function rateLimitedResponse(resetMs: number) {
+  return NextResponse.json(
+    { ok: false, reason: "rate_limited" },
+    {
+      status: 429,
+      headers: { "Retry-After": Math.ceil(resetMs / 1000).toString() },
     }
-  }
-  
-  const record = rateLimitMap.get(key);
-  
-  if (!record || record.resetAt < now) {
-    // New window or expired window
-    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
-  }
-  
-  if (record.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0 };
-  }
-  
-  record.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX - record.count };
+  );
 }
 
 export async function POST(request: Request) {
-  let payload: { wallet?: string } = {};
+  let payload: {
+    wallet?: string;
+    signature?: string;
+    timestamp?: number | string;
+  } = {};
   try {
-    payload = (await request.json()) as { wallet?: string };
+    payload = (await request.json()) as {
+      wallet?: string;
+      signature?: string;
+      timestamp?: number | string;
+    };
   } catch {
     payload = {};
   }
 
   const wallet = payload.wallet?.trim() || "";
+  const signature = payload.signature?.trim() || "";
+  const timestampRaw = payload.timestamp;
 
   if (!isAddress(wallet)) {
     return NextResponse.json(
@@ -72,25 +62,58 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check rate limit
-  const rateLimit = checkRateLimit(wallet);
-  if (!rateLimit.allowed) {
+  if (!signature || timestampRaw === undefined || timestampRaw === null) {
     return NextResponse.json(
-      { ok: false, reason: "rate_limited", retryAfter: "3600" },
-      { status: 429 }
+      { ok: false, reason: "invalid_signature" },
+      { status: 400 }
     );
   }
 
-  const alive = await getAliveStatus(wallet);
-  
-  // If alive check fails due to missing registry, return 503
-  if (alive.reason === "no_token" || alive.reason === "no_sink") {
+  const timestampValue =
+    typeof timestampRaw === "string" ? Number(timestampRaw) : timestampRaw;
+  if (!Number.isFinite(timestampValue)) {
     return NextResponse.json(
-      { ok: false, reason: "registry_not_configured", ...alive },
-      { status: 503 }
+      { ok: false, reason: "invalid_signature" },
+      { status: 400 }
     );
   }
-  
+
+  const timestampMs =
+    timestampValue < 1_000_000_000_000
+      ? timestampValue * 1000
+      : timestampValue;
+  const now = Date.now();
+  if (Math.abs(now - timestampMs) > SIGNATURE_WINDOW_MS) {
+    return NextResponse.json(
+      { ok: false, reason: "stale_signature" },
+      { status: 400 }
+    );
+  }
+
+  const message = `inbox-key:${wallet}:${String(timestampRaw)}`;
+  let validSignature = false;
+  try {
+    validSignature = await verifyMessage({
+      address: wallet as `0x${string}`,
+      message,
+      signature: signature as `0x${string}`,
+    });
+  } catch {
+    validSignature = false;
+  }
+  if (!validSignature) {
+    return NextResponse.json(
+      { ok: false, reason: "invalid_signature" },
+      { status: 400 }
+    );
+  }
+
+  const rate = rateLimiter.check(wallet.toLowerCase());
+  if (!rate.allowed) {
+    return rateLimitedResponse(rate.resetMs);
+  }
+
+  const alive = await getAliveStatus(wallet);
   if (alive.state !== "alive") {
     return NextResponse.json(
       { ok: false, reason: "not_alive", ...alive },
@@ -108,19 +131,29 @@ export async function POST(request: Request) {
     }
   }
 
-  const keyRecord = issueKey(wallet, ttlSeconds);
+  let keyRecord: Awaited<ReturnType<typeof issueKey>>;
+  try {
+    keyRecord = await issueKey(wallet, ttlSeconds);
+  } catch (error) {
+    if (error instanceof InboxKeyExistsError) {
+      return NextResponse.json(
+        { ok: false, reason: "key_exists" },
+        { status: 409 }
+      );
+    }
+    throw error;
+  }
 
-  // Log issuance event
-  console.log(`[inbox-key] Issued key for ${wallet} at ${new Date().toISOString()}`);
+  console.log("inbox_key_issued", {
+    wallet,
+    issuedAt: Date.now(),
+    ttlSeconds,
+  });
 
   return NextResponse.json({
     ok: true,
     key: keyRecord.key,
     expiresAt: keyRecord.expiresAt,
-    rateLimit: {
-      remaining: rateLimit.remaining,
-      windowSeconds: 3600,
-    },
     ...alive,
   });
 }
