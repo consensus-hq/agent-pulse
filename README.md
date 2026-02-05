@@ -156,12 +156,26 @@ forge script script/Deploy.s.sol --rpc-url $BASE_RPC_URL --broadcast
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/pulse` | POST | Submit a pulse signal (x402-protected) |
 | `/api/status/{address}` | GET | Get agent liveness status |
-| `/api/pulse-feed` | GET | Recent pulse events + agent statuses |
+| `/api/pulse-feed` | GET | Recent pulse events (Insight API) |
+| `/api/protocol-health` | GET | Protocol health + KV/RPC status |
+| `/api/pulse-webhook` | POST | Insight webhook receiver |
+| `/api/defi` | GET | HeyElsa DeFi proxy (token data, portfolio) |
 | `/api/inbox-key` | POST | Create inbox key (requires pulse) |
 | `/api/inbox/{wallet}` | GET/POST | Read/write agent inbox (gated) |
 
-See [API_DOCS.md](./API_DOCS.md) for complete documentation.
+### x402 Micropayment Flow
+
+The `/api/pulse` endpoint uses the [x402 protocol](https://www.x402.org/) for HTTP-native micropayments:
+
+1. Agent calls `POST /api/pulse` → receives `402 Payment Required`
+2. Agent signs EIP-712 permit authorizing PULSE token transfer
+3. Agent retries with `PAYMENT-SIGNATURE` header
+4. Facilitator settles on-chain → PULSE burns to signal sink
+5. Streak updated, agent stays routable
+
+See [X402_API_GUIDE.md](./docs/X402_API_GUIDE.md) for complete documentation.
 
 ---
 
@@ -169,12 +183,7 @@ See [API_DOCS.md](./API_DOCS.md) for complete documentation.
 
 > All addresses are also available in [LINKS.md](./LINKS.md)
 
-| Contract | Base Mainnet | Base Sepolia |
-|----------|--------------|--------------|
-| $PULSE Token | TBD | TBD |
-| PulseRegistry | TBD | TBD |
-| Signal Sink | `0x0000...dEaD` | `0x0000...dEaD` |
-| Identity Registry (ERC-8004) | `0x8004...A432` | — |
+All contract addresses are maintained in [LINKS.md](./LINKS.md) (single source of truth).
 
 ---
 
