@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { addTask, cleanupInboxStore, issueKey, listTasks, verifyKey } from "../inboxStore";
+import {
+  InboxKeyExistsError,
+  addTask,
+  cleanupInboxStore,
+  issueKey,
+  listTasks,
+  verifyKey,
+} from "../inboxStore";
 import { getInboxPersistence } from "../inboxPersist";
 import { createRateLimiter } from "../rateLimit";
 import type { InboxTask } from "../inboxTypes";
@@ -32,6 +39,15 @@ test("issueKey and verifyKey", async () => {
   assert.ok(record.key.length > 0);
   assert.ok(await verifyKey(wallet, record.key));
   assert.equal(await verifyKey(wallet, "bad"), false);
+});
+
+test("issueKey does not overwrite active key", async () => {
+  const wallet = "0x000000000000000000000000000000000000dEaD";
+  await issueKey(wallet, 60);
+  await assert.rejects(
+    () => issueKey(wallet, 60),
+    (error) => error instanceof InboxKeyExistsError
+  );
 });
 
 test("key expiry", async () => {

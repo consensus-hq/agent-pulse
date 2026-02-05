@@ -4,6 +4,13 @@ import type { InboxKey, InboxTask } from "./inboxTypes";
 
 export type { InboxKey, InboxTask } from "./inboxTypes";
 
+export class InboxKeyExistsError extends Error {
+  constructor() {
+    super("inbox_key_exists");
+    this.name = "InboxKeyExistsError";
+  }
+}
+
 const MAX_TASKS_PER_WALLET = 100;
 const MAX_TOTAL_ENTRIES = 10_000;
 const CLEANUP_INTERVAL = 10;
@@ -117,12 +124,22 @@ export async function issueKey(
 ): Promise<InboxKey> {
   const persistence = getInboxPersistence();
   const normalized = normalizeWallet(wallet);
-  const key = crypto.randomBytes(24).toString("hex");
-  const expiresAt = Date.now() + ttlSeconds * 1000;
-  const record = { key, expiresAt };
-
   const state = await persistence.getState();
   maybeCleanup(state);
+
+  const now = Date.now();
+  const existing = state.keys[normalized];
+  if (existing) {
+    if (existing.expiresAt > now) {
+      throw new InboxKeyExistsError();
+    }
+    delete state.keys[normalized];
+  }
+
+  const key = crypto.randomBytes(24).toString("hex");
+  const expiresAt = now + ttlSeconds * 1000;
+  const record = { key, expiresAt };
+
   state.keys[normalized] = record;
   trimWalletTasks(state);
   trimTotalEntries(state);
