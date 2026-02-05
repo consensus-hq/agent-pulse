@@ -1,5 +1,5 @@
-import { createPublicClient, http, isAddress, parseAbiItem } from "viem";
-import { base } from "viem/chains";
+import { http, isAddress, parseAbiItem, createPublicClient } from "viem";
+import { base, baseSepolia } from "viem/chains";
 
 const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -33,6 +33,7 @@ const confirmations = Number.parseInt(
 
 export type AliveStatus = {
   state: "alive" | "stale" | "unknown";
+  reason?: string;
   alive: boolean;
   lastPulseAt: number | null;
   lastPulseBlock: string | null;
@@ -40,9 +41,11 @@ export type AliveStatus = {
 };
 
 export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
-  if (!rpcUrl || !tokenAddress || !signalSinkAddress || !isAddress(wallet)) {
+  // Check for missing configuration
+  if (!rpcUrl) {
     return {
       state: "unknown",
+      reason: "no_rpc",
       alive: false,
       lastPulseAt: null,
       lastPulseBlock: null,
@@ -50,9 +53,45 @@ export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
     };
   }
 
+  if (!tokenAddress) {
+    return {
+      state: "unknown",
+      reason: "no_token",
+      alive: false,
+      lastPulseAt: null,
+      lastPulseBlock: null,
+      windowSeconds: aliveWindowSeconds,
+    };
+  }
+
+  if (!signalSinkAddress) {
+    return {
+      state: "unknown",
+      reason: "no_sink",
+      alive: false,
+      lastPulseAt: null,
+      lastPulseBlock: null,
+      windowSeconds: aliveWindowSeconds,
+    };
+  }
+
+  if (!isAddress(wallet)) {
+    return {
+      state: "unknown",
+      reason: "invalid_wallet",
+      alive: false,
+      lastPulseAt: null,
+      lastPulseBlock: null,
+      windowSeconds: aliveWindowSeconds,
+    };
+  }
+
+  const chainId = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID;
+  const chain = chainId === "84532" ? baseSepolia : base;
+
   const publicClient = createPublicClient({
-    chain: base,
-    transport: http(rpcUrl),
+    chain,
+    transport: http(rpcUrl, { timeout: 5_000, retryCount: 1 }),
   });
 
   try {
@@ -104,9 +143,10 @@ export async function getAliveStatus(wallet: string): Promise<AliveStatus> {
       lastPulseBlock: lastLog.blockNumber?.toString() ?? null,
       windowSeconds: aliveWindowSeconds,
     };
-  } catch {
+  } catch (error) {
     return {
       state: "unknown",
+      reason: error instanceof Error ? error.message : "rpc_error",
       alive: false,
       lastPulseAt: null,
       lastPulseBlock: null,
