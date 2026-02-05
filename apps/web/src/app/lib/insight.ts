@@ -323,14 +323,26 @@ async function insightRequest<T>(
     const data = await response.json();
     
     // Normalize response format
+    // Use ?? (nullish coalescing) not || to preserve valid 0 values
+    const dataArray = data.data ?? [];
+    const rawTotal = data.meta?.total_events ?? data.meta?.totalEvents ?? null;
+    // If the API doesn't provide a total count (or returns 0 while data exists),
+    // fall back to data.length as a minimum floor
+    const totalEvents = (rawTotal !== null && rawTotal >= dataArray.length)
+      ? rawTotal
+      : dataArray.length;
+    const limit = data.meta?.limit ?? 50;
+    const totalPages = data.meta?.total_pages ?? data.meta?.totalPages
+      ?? (totalEvents > 0 ? Math.ceil(totalEvents / limit) : 0);
+
     return {
-      data: data.data || [],
+      data: dataArray,
       meta: {
-        totalEvents: data.meta?.total_events || data.meta?.totalEvents || 0,
-        page: data.meta?.page || 0,
-        limit: data.meta?.limit || 50,
-        totalPages: data.meta?.total_pages || data.meta?.totalPages || 0,
-        hasNextPage: data.meta?.has_next_page || data.meta?.hasNextPage || false,
+        totalEvents,
+        page: data.meta?.page ?? 0,
+        limit,
+        totalPages,
+        hasNextPage: data.meta?.has_next_page ?? data.meta?.hasNextPage ?? false,
       },
     };
   } catch (error) {
