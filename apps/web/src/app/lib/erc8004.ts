@@ -439,8 +439,12 @@ export async function getErc8004Badges(
   const resultMap: Record<string, boolean> = {};
   const toQuery: string[] = [];
 
-  for (const wallet of uniqueWallets) {
-    const cached = await readCache(wallet);
+  // Parallelize KV cache reads to avoid O(n) sequential round-trips
+  const cacheResults = await Promise.all(
+    uniqueWallets.map(async (wallet) => ({ wallet, cached: await readCache(wallet) }))
+  );
+
+  for (const { wallet, cached } of cacheResults) {
     if (cached !== undefined) {
       resultMap[wallet] = cached;
     } else {
