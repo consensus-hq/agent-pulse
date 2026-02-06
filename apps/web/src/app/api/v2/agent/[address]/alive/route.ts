@@ -13,7 +13,7 @@ import { base, baseSepolia } from "viem/chains";
  * If we gate the basic check, nobody uses the filter."
  */
 
-const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453";
 const IS_MAINNET = CHAIN_ID === "8453";
 
 const CHAIN: Chain = IS_MAINNET ? base : baseSepolia;

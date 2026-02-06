@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { getContract, readContract } from "thirdweb";
-import { baseSepolia } from "thirdweb/chains";
+import { base, baseSepolia } from "thirdweb/chains";
 import { createThirdwebClient } from "thirdweb";
 import {
   x402Gate,
@@ -32,6 +32,9 @@ import { PULSE_REGISTRY_ABI } from "../../../../abi/route";
 const ENDPOINT: V2Endpoint = "streakAnalysis";
 const PRICE = PRICES[ENDPOINT];
 const CACHE_TTL = CACHE_TTLS[ENDPOINT];
+
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453", 10);
+const CHAIN = CHAIN_ID === 8453 ? base : baseSepolia;
 
 // Thirdweb client for reading from chain
 const thirdwebClient = createThirdwebClient({
@@ -74,7 +77,7 @@ function calculateConsistencyGrade(score: number): "A" | "B" | "C" | "D" | "F" {
 async function getStreakAnalysis(agentAddress: string): Promise<Omit<StreakAnalysisData, "_tier" | "_cached" | "_cachedAt" | "_payment">> {
   const registry = getContract({
     client: thirdwebClient,
-    chain: baseSepolia,
+    chain: CHAIN,
     address: REGISTRY_CONTRACT,
     abi: PULSE_REGISTRY_ABI,
   });

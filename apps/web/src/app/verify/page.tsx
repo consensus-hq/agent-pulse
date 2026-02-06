@@ -86,13 +86,15 @@ interface AgentStatus {
 
 // ============ Network Configurations ============
 const getNetworkConfig = (mode: NetworkMode): NetworkConfig => {
+  const chain = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "8453", 10);
+
   switch (mode) {
     case "testnet":
       return {
-        rpcUrl: process.env.NEXT_PUBLIC_TESTNET_RPC_URL || "https://sepolia.base.org",
+        rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || (process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? "https://mainnet.base.org" : "https://sepolia.base.org"),
         registryAddress: (process.env.NEXT_PUBLIC_TESTNET_REGISTRY_ADDRESS as Address) || null,
         tokenAddress: (process.env.NEXT_PUBLIC_TESTNET_TOKEN_ADDRESS as Address) || null,
-        explorerBase: "https://sepolia.basescan.org/tx/",
+        explorerBase: process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? "https://basescan.org/tx/" : "https://sepolia.basescan.org/tx/",
         label: "Base Sepolia Testnet",
         logUrl: process.env.NEXT_PUBLIC_VERIFY_LOG_TESTNET_URL || null,
       };
@@ -108,10 +110,15 @@ const getNetworkConfig = (mode: NetworkMode): NetworkConfig => {
     case "mainnet":
     default:
       return {
-        rpcUrl: process.env.NEXT_PUBLIC_BASE_RPC_URL || "https://mainnet.base.org",
+        rpcUrl:
+          process.env.NEXT_PUBLIC_RPC_URL ||
+          (chain === 8453 ? "https://mainnet.base.org" : "https://sepolia.base.org"),
         registryAddress: (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS as Address) || null,
         tokenAddress: (process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS as Address) || null,
-        explorerBase: "https://basescan.org/tx/",
+        explorerBase:
+          chain === 8453
+            ? "https://basescan.org/tx/"
+            : "https://sepolia.basescan.org/tx/",
         label: "Base Mainnet",
         logUrl: process.env.NEXT_PUBLIC_VERIFY_LOG_MAINNET_URL || null,
       };

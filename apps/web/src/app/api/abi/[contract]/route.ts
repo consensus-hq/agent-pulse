@@ -6,7 +6,7 @@ import burnWithFeeAbi from "@/lib/abi-BurnWithFee.json";
 
 export const runtime = 'edge';
 
-const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532", 10);
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453", 10);
 
 const CONTRACT_MAP: Record<string, any> = {
   "PulseRegistry": {

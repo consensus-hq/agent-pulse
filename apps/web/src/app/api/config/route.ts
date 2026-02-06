@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453";
 const NETWORK_NAMES: Record<string, string> = {
   "8453": "Base",
   "84532": "Base Sepolia",
@@ -31,9 +31,12 @@ export async function GET() {
       config: "/api/config",
     },
     x402: {
-      amount: process.env.PULSE_AMOUNT || "1000000000000000000",
-      asset: pulseToken,
-      payTo: signalSink,
+      amount: "1000000", // 1 USDC (6 decimals)
+      asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+      payTo:
+        process.env.NEXT_PUBLIC_TREASURY_SAFE_ADDRESS ||
+        "0xA7940a42c30A7F492Ed578F3aC728c2929103E43",
+      network: `eip155:${chainId}`,
     },
   });
 }

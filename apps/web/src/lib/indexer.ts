@@ -7,7 +7,7 @@ import * as Signals from './signals';
 import { PULSE_REGISTRY_ABI } from '../app/api/abi/route';
 
 // Configuration — chain-aware
-const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || '84532';
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || '8453';
 const IS_MAINNET = CHAIN_ID === '8453';
 const CHAIN = IS_MAINNET ? base : baseSepolia;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || (IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org');

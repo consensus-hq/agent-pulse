@@ -12,7 +12,7 @@ import { calculatePrice } from "./pricing";
 // CONFIGURATION — Chain-aware
 // ============================================
 
-const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453";
 const IS_MAINNET = CHAIN_ID === "8453";
 const NETWORK_EIP155 = IS_MAINNET ? "eip155:8453" : "eip155:84532";
 const VIEM_CHAIN = IS_MAINNET ? viemBase : viemBaseSepolia;
