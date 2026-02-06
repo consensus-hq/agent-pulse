@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useActiveAccount, useActiveWallet } from "thirdweb/react";
+import { useState, useCallback } from "react";
+import { useAccount } from "wagmi";
 import { base } from "viem/chains";
 import styles from "../page.module.css";
 
@@ -46,8 +46,7 @@ interface UsePortfolioResult {
  * No x402 client-side code needed - server handles all payments
  */
 function usePortfolio(): UsePortfolioResult {
-  const account = useActiveAccount();
-  const wallet = useActiveWallet();
+  const { address, isConnected, chainId } = useAccount();
   
   const [data, setData] = useState<HeyElsaPortfolio | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,12 +54,10 @@ function usePortfolio(): UsePortfolioResult {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isCached, setIsCached] = useState(false);
 
-  const chainId = wallet?.getChain()?.id;
   const isCorrectNetwork = chainId === base.id;
-  const isConnected = !!account;
 
   const refresh = useCallback(async (force = false) => {
-    if (!account) {
+    if (!address) {
       setError({ type: "NO_WALLET", message: "Connect your wallet to view DeFi positions" });
       return;
     }
@@ -78,7 +75,7 @@ function usePortfolio(): UsePortfolioResult {
 
     try {
       const response = await fetch(
-        `/api/defi?action=portfolio&address=${account.address}`,
+        `/api/defi?action=portfolio&address=${address}`,
         {
           method: "GET",
           headers: { "Accept": "application/json" },
@@ -126,7 +123,7 @@ function usePortfolio(): UsePortfolioResult {
     } finally {
       setLoading(false);
     }
-  }, [account, isCorrectNetwork, chainId]);
+  }, [address, isCorrectNetwork, chainId]);
 
   return { data, loading, error, lastUpdated, isCached, refresh };
 }
@@ -181,14 +178,11 @@ function getErrorDisplay(error: PortfolioError | null): {
  * - "Powered by HeyElsa x402" attribution
  */
 export default function DefiPanel() {
-  const account = useActiveAccount();
-  const wallet = useActiveWallet();
+  const { isConnected, chainId } = useAccount();
 
   const { data, loading, error, lastUpdated, isCached, refresh } = usePortfolio();
 
-  const chainId = wallet?.getChain()?.id;
   const isCorrectNetwork = chainId === base.id;
-  const isConnected = !!account;
 
   const errorDisplay = getErrorDisplay(error);
 
