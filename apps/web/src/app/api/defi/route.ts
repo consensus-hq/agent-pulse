@@ -37,8 +37,8 @@ const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-// HeyElsa API base URL
-const HEYELSA_BASE_URL = "https://x402-api.heyelsa.ai";
+// HeyElsa API base URL (always mainnet — separate from pulse x402)
+const HEYELSA_BASE_URL = process.env.HEYELSA_X402_API_URL || "https://x402-api.heyelsa.ai";
 
 // Security limits
 const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)

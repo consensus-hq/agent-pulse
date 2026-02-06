@@ -13,3 +13,4 @@ apps/web/public/verification-log-fork.json
 shared/
 .vercel
 .env*.local
+.env.vercel-prod
