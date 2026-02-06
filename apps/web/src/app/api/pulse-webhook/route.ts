@@ -25,7 +25,7 @@ const INSIGHT_WEBHOOK_SECRET = process.env.INSIGHT_WEBHOOK_SECRET;
 /** Registry contract address for validation */
 const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
   ? process.env.NEXT_PUBLIC_PULSE_REGISTRY_MAINNET
-  : process.env.NEXT_PUBLIC_PULSE_REGISTRY_SEPOLIA || '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612';
+  : process.env.NEXT_PUBLIC_PULSE_REGISTRY_SEPOLIA || '0xe61C615743A02983A46aFF66Db035297e8a43846';
 
 // ============================================================================
 // Types

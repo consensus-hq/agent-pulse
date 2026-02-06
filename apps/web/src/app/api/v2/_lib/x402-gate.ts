@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { createThirdwebClient } from "thirdweb";
-import { facilitator, settlePayment } from "thirdweb/x402";
-import { baseSepolia } from "thirdweb/chains";
 import { MetricsCollector } from "@/lib/metrics";
-import { verifyRequestBinding } from "@/lib/x402-request-binding";
 import { PRICING_V2, calculatePrice } from "@/lib/pricing";
+import { 
+  settleX402Payment, 
+  create402Response, 
+  hasPaymentHeader, 
+  PaymentResult 
+} from "@/lib/x402";
 
 /**
  * x402 Payment Gate - Shared Helper for V2 Paid API Endpoints
@@ -18,17 +20,12 @@ import { PRICING_V2, calculatePrice } from "@/lib/pricing";
 // CONFIGURATION
 // ============================================
 
-const secretKey = process.env.THIRDWEB_SECRET_KEY;
-const serverWalletAddress = process.env.SERVER_WALLET_ADDRESS;
-const thirdwebClientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "eb7c5229642079dddc042df63a7a1f42";
-
-// Registry contract on Base Sepolia
-export const REGISTRY_CONTRACT = "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612" as const;
+export const REGISTRY_CONTRACT = (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0xe61C615743A02983A46aFF66Db035297e8a43846") as `0x${string}`;
 export const CHAIN_ID = 84532; // Base Sepolia
 export const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
 
 // ============================================
-// PRICE CONFIGURATION (derived from pricing.ts — single source of truth)
+// PRICE CONFIGURATION
 // ============================================
 
 /**
@@ -47,15 +44,14 @@ const ENDPOINT_BASE_PRICES = {
   reliabilityPortfolio: PRICING_V2.BUNDLE_RISK,
   peerGraph: PRICING_V2.BUNDLE_FLEET,
   uptimeHealth: PRICING_V2.BUNDLE_ROUTER,
-  attest: PRICING_V2.RELIABILITY,
-  attestations: PRICING_V2.LIVENESS_PROOF,
-  reputation: PRICING_V2.RELIABILITY,
+  attest: PRICING_V2.ATTEST,
+  attestations: PRICING_V2.ATTESTATIONS,
+  reputation: PRICING_V2.REPUTATION,
 } as const;
 
 export type V2Endpoint = keyof typeof ENDPOINT_BASE_PRICES;
 
-/** Re-export calculatePrice for routes that want freshness-based dynamic pricing */
-export { calculatePrice } from "@/lib/pricing";
+export { calculatePrice };
 
 /**
  * Convert atomic USDC (6 decimals) bigint to "$X.XX…" string for x402 challenges.
@@ -115,156 +111,6 @@ export const CACHE_TTLS: Record<V2Endpoint, number> = {
 
 const RATE_LIMIT_PER_MINUTE = 60;
 const RATE_LIMIT_TTL_SECONDS = 60;
-
-// ============================================
-// THIRDWEB CLIENT SETUP
-// ============================================
-
-function getThirdwebClient() {
-  if (!secretKey) {
-    throw new Error("THIRDWEB_SECRET_KEY is required for x402 payments");
-  }
-  return createThirdwebClient({ secretKey });
-}
-
-function getThirdwebFacilitator() {
-  if (!serverWalletAddress) {
-    throw new Error("SERVER_WALLET_ADDRESS is required for x402 payments");
-  }
-  return facilitator({
-    client: getThirdwebClient(),
-    serverWalletAddress,
-  });
-}
-
-// ============================================
-// PAYMENT SETTLEMENT
-// ============================================
-
-export interface PaymentResult {
-  status: number;
-  payment?: {
-    payer: string;
-    amount: string;
-    timestamp: string;
-  };
-  error?: string;
-}
-
-/**
- * Settle x402 payment from request headers with Request Binding verification
- */
-export async function settleX402Payment(
-  request: NextRequest,
-  price: string
-): Promise<PaymentResult> {
-  // Use X-402-Payment as the primary header for the new secure protocol
-  const paymentData = request.headers.get("x-402-payment");
-
-  if (!paymentData) {
-    // Fallback for transition period (optional, but requested to use X-402-Payment)
-    const legacyData = request.headers.get("x-payment") || request.headers.get("payment-signature");
-    if (!legacyData) {
-      return {
-        status: 402,
-        error: "Payment required. Include X-402-Payment header with signed request binding.",
-      };
-    }
-    // For legacy, we might want to still allow it or force upgrade
-    // For this security patch, we'll process it but it won't have replay protection
-  }
-
-  try {
-    // 1. Verify Request Binding (P0-B Security Layer)
-    if (paymentData) {
-      const bindingResult = await verifyRequestBinding(request, paymentData);
-      if (!bindingResult.valid) {
-        return {
-          status: 402,
-          error: `Request binding failed: ${bindingResult.error}`,
-        };
-      }
-    }
-
-    // 2. Settle with Thirdweb Facilitator
-    // We use the same 'paymentData' or 'legacyData' for the facilitator
-    const finalToken = paymentData || request.headers.get("x-payment") || request.headers.get("payment-signature");
-
-    const result = await settlePayment({
-      resourceUrl: request.url,
-      method: request.method,
-      paymentData: finalToken!,
-      payTo: serverWalletAddress!,
-      network: baseSepolia,
-      price,
-      facilitator: getThirdwebFacilitator(),
-    });
-
-    if (result.status === 200) {
-      return {
-        status: 200,
-        payment: {
-          payer: result.paymentReceipt?.payer || "unknown",
-          amount: price,
-          timestamp: new Date().toISOString(),
-        },
-      };
-    }
-
-    return {
-      status: result.status,
-      error: "Payment settlement failed",
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return {
-      status: 500,
-      error: `Payment settlement error: ${message}`,
-    };
-  }
-}
-
-/**
- * Check if payment header is present
- */
-export function hasPaymentHeader(request: NextRequest): boolean {
-  return !!(
-    request.headers.get("x-402-payment") ||
-    request.headers.get("x-payment") ||
-    request.headers.get("payment-signature")
-  );
-}
-
-// ============================================
-// 402 CHALLENGE RESPONSE
-// ============================================
-
-export function create402Response(price: string, resource: string): NextResponse {
-  return NextResponse.json(
-    {
-      error: "Payment Required",
-      x402Version: "1.0", // Updated to reflect request-binding spec
-      accepts: [
-        {
-          scheme: "x402-binding",
-          network: "eip155:84532",
-          maxAmountRequired: price,
-          resource,
-          description: "USDC payment with request binding required",
-          mimeType: "application/json",
-          payTo: serverWalletAddress,
-          asset: USDC_BASE_SEPOLIA,
-          maxTimeoutSeconds: 60, // Reduced to match binding expiry
-        },
-      ],
-    },
-    { status: 402 }
-  );
-}
-
-// ============================================
-// RATE LIMITING, STATS, GATE WRAPPER (UNCHANGED LOGIC)
-// ============================================
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
