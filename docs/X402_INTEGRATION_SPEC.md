@@ -9,7 +9,7 @@ Integrate the x402 HTTP-native payment protocol into Agent Pulse's pulse submiss
 **Current flow (without x402):**
 
 1. Agent holds Pulse tokens (launched via Clanker on Base)
-2. Agent sends Pulse to burn sink → proves liveness
+2. Agent sends Pulse to signal sink → proves liveness
 3. Registry updates streak counter
 4. ERC-8004 reputation update if agent is considered alive
 
@@ -19,13 +19,13 @@ Integrate the x402 HTTP-native payment protocol into Agent Pulse's pulse submiss
 2. Server responds with `402 Payment Required` + payment details (amount, token, network)
 3. Agent's wallet signs an EIP-712 typed data payload authorizing Pulse token transfer
 4. Agent retries request with `PAYMENT-SIGNATURE` header
-5. Facilitator verifies signature, settles payment on-chain (Pulse transferred to burn address)
-6. Server confirms payment → triggers on-chain Pulse burn + streak update
+5. Facilitator verifies signature, settles payment on-chain (Pulse transferred to dead address)
+6. Server confirms payment → triggers on-chain Pulse signal sink transfer + streak update
 7. ERC-8004 reputation update proceeds as normal
 
 ## Why x402 + Agent Pulse
 
-- **Stronger anti-spam:** Every pulse costs real economic value (micropayment + token burn), not just gas fees
+- **Stronger anti-spam:** Every pulse costs real economic value (micropayment + dead address transfer), not just gas fees
 - **Native agent compatibility:** x402 is designed for autonomous agent-to-service payments — no human intervention needed
 - **No smart contracts required from us:** The facilitator handles all on-chain settlement, gas, and transaction broadcasting
 - **Pulse token compatibility:** Clanker-launched tokens include ERC-2612 `permit()` by default, making them directly compatible with x402's permit-based payment flow
@@ -71,7 +71,7 @@ When an agent calls POST /pulse:
 2. Parses required amount, token address, and facilitator info
 3. Signs an EIP-712 typed data payload authorizing the Pulse token transfer
 4. Retries the request with PAYMENT-SIGNATURE header attached
-5. Facilitator verifies signature → calls permit() + transferFrom() on-chain → Pulse moves to burn address
+5. Facilitator verifies signature → calls permit() + transferFrom() on-chain → Pulse moves to dead address
 6. Server receives confirmation → proceeds with streak update + ERC-8004 reputation
 
 ### 3. Post-Payment Logic (Server Side)
@@ -86,7 +86,7 @@ Payment confirmed → Update streak in registry → Check streak threshold → I
 | 2. Fund agent wallets | Mint/transfer test Pulse tokens to agent wallets |
 | 3. Configure facilitator | Use thirdweb testnet facilitator URL |
 | 4. Set network to Base Sepolia | eip155:84532 |
-| 5. Test the loop | Agent calls /pulse → 402 → signs → pays Pulse → burn → streak update |
+| 5. Test the loop | Agent calls /pulse → 402 → signs → pays Pulse → signal sink → streak update |
 
 ## Key Dependencies
 

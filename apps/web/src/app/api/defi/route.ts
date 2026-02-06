@@ -30,7 +30,7 @@ const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const HEYELSA_BASE_URL = "https://x402-api.heyelsa.ai";
 
 // Security limits
-const MAX_PAYMENT_PER_CALL = 100000n; // $0.10 USDC (6 decimals)
+const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)
 const CACHE_TTL_SECONDS = 60;
 
 // EIP-3009 TransferWithAuthorization types
@@ -142,7 +142,7 @@ async function createPaymentSignature(
   // Security guard: reject if amount exceeds max
   if (amount > MAX_PAYMENT_PER_CALL) {
     throw new Error(
-      `Payment amount ${amount} exceeds max allowed ${MAX_PAYMENT_PER_CALL} ($0.10 USDC)`
+      `Payment amount ${amount} exceeds max allowed ${MAX_PAYMENT_PER_CALL} ($0.05 USDC)`
     );
   }
 
@@ -299,8 +299,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check KV cache first
-    const cacheKey = `defi:${action}:${address.toLowerCase()}`;
+    // Check KV cache first (include token for token_price to avoid cross-token cache hits)
+    const cacheKey = action === "token_price" 
+      ? `defi:${action}:${(tokenAddress || address).toLowerCase()}`
+      : `defi:${action}:${address.toLowerCase()}`;
     const cached = await kv.get<Record<string, unknown>>(cacheKey);
     
     if (cached) {
@@ -313,10 +315,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Build request body based on action
-    const requestBody: Record<string, unknown> = {
-      wallet_address: address,
-    };
+    const requestBody: Record<string, unknown> = {};
 
+    // token_price uses token_address+chain, not wallet_address (VERA-003)
     if (action === "token_price") {
       if (!tokenAddress || !isValidAddress(tokenAddress)) {
         return NextResponse.json(
@@ -326,6 +327,8 @@ export async function GET(request: NextRequest) {
       }
       requestBody.token_address = tokenAddress;
       requestBody.chain = "base";
+    } else {
+      requestBody.wallet_address = address;
     }
 
     // Fetch from HeyElsa with payment
@@ -375,7 +378,7 @@ export async function GET(request: NextRequest) {
     // Specific error for payment too high
     if (message.includes("exceeds max allowed")) {
       return NextResponse.json(
-        { error: "Payment rejected: Amount exceeds safety limit ($0.10 max)" },
+        { error: "Payment rejected: Amount exceeds safety limit ($0.05 max)" },
         { status: 503 }
       );
     }

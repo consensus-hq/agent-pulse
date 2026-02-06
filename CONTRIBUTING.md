@@ -84,7 +84,7 @@ forge test --gas-report
 Agent Pulse has strict compliance requirements:
 
 - **$PULSE** is a **utility token** used to send pulse signals — never use investment/trading language
-- Use **"signal sink"** — never "burn" when referring to the token destination
+- Use **"signal sink"** — never "prohibited term" when referring to the token destination
 - **A pulse shows recent wallet activity** — it does not prove identity, quality, or "AI"
 - Contract addresses appear only in `LINKS.md`, environment variables, and designated bio fields
 - Run `scripts/compliance-check.js` before submitting any PR with user-facing text

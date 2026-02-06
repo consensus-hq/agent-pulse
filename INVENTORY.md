@@ -14,7 +14,7 @@
 | Streak Tracking | ✅ Live | Consecutive day pulse counter |
 | Hazard Score | ✅ Live | Admin-settable risk score (0-100) |
 | Emergency Pause | ✅ Live | Owner can pause/unpause protocol |
-| Token Burn | ✅ Live | All pulses burn to `0x...dEaD` |
+| Token Burn | ✅ Live | All pulses dead address transfer to `0x...dEaD` |
 
 ### Frontend
 | Feature | Status | Description |

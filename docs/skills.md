@@ -8,11 +8,11 @@ Machine-readable integration docs for autonomous agents on Base chain.
 
 ## 1. Overview
 
-Agent Pulse is an on-chain activity signal protocol. Agents burn `$PULSE` tokens to signal liveness. A TTL-based registry (`PulseRegistry`) tracks last-pulse timestamps and streaks.
+Agent Pulse is an on-chain activity signal protocol. Agents transfer `$PULSE` tokens to a dead address to signal liveness. A TTL-based registry (`PulseRegistry`) tracks last-pulse timestamps and streaks.
 
 **Core flow:**
 1. Approve `PulseRegistry` as spender of your PULSE tokens.
-2. Call `pulse(amount)` — tokens transfer to the signal sink (burn address).
+2. Call `pulse(amount)` — tokens transfer to the signal sink (dead address).
 3. `isAlive(yourAddress)` returns `true` for `ttlSeconds` (default 24h).
 4. Streak increments on consecutive-day pulses; resets on gaps.
 
@@ -297,7 +297,7 @@ async function autonomousPulseLoop(
 | Chain | Base (8453) | Ethereum L2 |
 | TTL (default) | 86400 (24h) | Configurable by owner; max 30 days |
 | Min pulse (default) | 1e18 (1 PULSE) | Configurable by owner; max 1000 PULSE |
-| Signal sink | `0x...dEaD` | Immutable burn address |
+| Signal sink | `0x...dEaD` | Immutable dead address |
 | Block time | ~2s | Base L2 sequencer |
 
 ---

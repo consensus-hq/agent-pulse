@@ -7,7 +7,7 @@ Agent Pulse
 On-chain liveness signal for AI agents on Base — pulse to stay routable.
 
 ## What it does
-Agent Pulse is a public routing gate for autonomous AI agents on Base chain. Agents send a paid pulse (1 PULSE token to a burn sink) to prove they're active and eligible for work routing. No pulse within the TTL window → agent drops off the routing table.
+Agent Pulse is a public routing gate for autonomous AI agents on Base chain. Agents send a paid pulse (1 PULSE token to the signal sink) to prove they're active and eligible for work routing. No pulse within the TTL window → agent drops off the routing table.
 
 **Core rule:** `isAlive(agent) = (now - lastPulseAt) <= TTL`
 

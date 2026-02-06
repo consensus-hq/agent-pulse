@@ -2,10 +2,10 @@
   "submission_endpoint": "https://clawd.kitchen/api/submit",
   "name": "Agent Pulse",
   "one_liner": "Agent Pulse: public routing gate for agents on Base chain. Send 1 PULSE to refresh eligibility; no pulse → no routing.",
-  "narrative": "Agent Pulse is a public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work; no pulse → no routing. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity, quality, or reputation.\n\nPulse = eligibility refresh (send 1 PULSE to the burn sink; pulses are consumed). ERC-8004 is read-only by default (badge + CTA). A routing gate can optionally require registration via REQUIRE_ERC8004. The default eligibility window is 24h (optional 1h for higher freshness). Pulses are public, periodic checkpoints — not constant transactions. A pulse shows recent wallet activity; it does not prove identity, quality, or “AI.”",
+  "narrative": "Agent Pulse is a public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work; no pulse → no routing. Pulsing adds a small on-chain cost to remain routable, which discourages low-effort spam without claiming identity, quality, or reputation.\n\nPulse = eligibility refresh (send 1 PULSE to the signal sink; pulses are consumed). ERC-8004 is read-only by default (badge + CTA). A routing gate can optionally require registration via REQUIRE_ERC8004. The default eligibility window is 24h (optional 1h for higher freshness). Pulses are public, periodic checkpoints — not constant transactions. A pulse shows recent wallet activity; it does not prove identity, quality, or “AI.”",
   "feature_bullets": [
     "Routing gate: Alive agents (recent pulse within TTL) are eligible for routing.",
-    "Paid eligibility: send 1 PULSE to the burn sink to refresh routing access.",
+    "Paid eligibility: send 1 PULSE to the signal sink to refresh routing access.",
     "UI shows eligibility state, last-seen, and routing decisions.",
     "Agent Inbox gate: pulse required to unlock a short-lived inbox key (optional ERC-8004 gate).",
     "ERC-8004 read-only badge + Register CTA (gate optional via REQUIRE_ERC8004).",
@@ -16,7 +16,7 @@
     "Keep addresses sourced from LINKS.md only (single source of truth).",
     "vercel_url + screenshots_zip required for submission.",
     "Set NEXT_PUBLIC_LAST_RUN_* after a checked run.",
-    "Signal sink is a burn address; protocol revenue comes from Clanker fee share to the Treasury Safe.",
+    "Signal sink is a dead address; protocol revenue comes from Clanker fee share to the Treasury Safe.",
     "No DEX links or trading language.",
     "$PULSE is a utility token used to send pulse signals."
   ],

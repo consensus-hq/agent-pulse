@@ -49,7 +49,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "signalSink()(address)" --r
 0x000000000000000000000000000000000000dEaD
 ```
 
-**Status:** ✅ PASS - Returns burn address (dead address), which is a valid sink
+**Status:** ✅ PASS - Returns dead address (dead address), which is a valid sink
 
 ---
 

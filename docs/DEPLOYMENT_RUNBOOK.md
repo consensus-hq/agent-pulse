@@ -66,7 +66,7 @@ Update `LINKS.md` after any deploy:
 - `$PULSE token (Base testnet)` and `$PULSE token (Base mainnet)`
 - `Vercel demo URL`
 - Treasury Safe (fee recipient)
-- Signal sink (burn)
+- Signal sink (dead address transfer)
 
 Do **not** duplicate these values elsewhere.
 

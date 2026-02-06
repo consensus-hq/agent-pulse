@@ -49,7 +49,7 @@
 | `agents(address)` | ✅ Working | Returns struct with streak, timestamp |
 | `ttlSeconds()` | ✅ Working | Returns 86400 (24h) |
 | `minPulseAmount()` | ✅ Working | Returns 1e18 (1 PULSE) |
-| `signalSink()` | ✅ Working | Returns `0x...dEaD` (burn) |
+| `signalSink()` | ✅ Working | Returns `0x...dEaD` (dead address transfer) |
 | `pause()`/`unpause()` | ✅ Working | Owner-only, tested in fork |
 | `setHazardScore()` | ✅ Working | Owner-only, tested in fork |
 
@@ -111,7 +111,7 @@
 |------|---------|
 | Deployer | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` |
-| Signal Sink (burn) | `0x000000000000000000000000000000000000dEaD` |
+| Signal Sink (dead address transfer) | `0x000000000000000000000000000000000000dEaD` |
 | PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
 | PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
 

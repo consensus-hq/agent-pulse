@@ -50,10 +50,10 @@
 
 | Check | Result |
 |-------|--------|
-| Burn Address Balance | `2000000000000000000` (2 PULSE tokens) |
+| Dead Address Balance | `2000000000000000000` (2 PULSE tokens) |
 
 **Analysis:**
-- Signal sink (burn address `0xdead`) has received exactly 2 PULSE tokens
+- Signal sink (dead address `0xdead`) has received exactly 2 PULSE tokens
 - This confirms pulse signals are being burned as designed
 - Tokens are effectively removed from circulation
 
@@ -121,7 +121,7 @@ Time Remaining = 1770332287 - 1770330302 = 1985 seconds (~33 minutes)
 
 **Analysis:**
 - PulseToken address matches expected deployment
-- SignalSink is correctly set to burn address (0xdead)
+- SignalSink is correctly set to dead address (0xdead)
 - These are view functions confirming immutable state variables
 - No setter functions exist to modify these critical addresses
 

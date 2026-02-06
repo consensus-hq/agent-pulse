@@ -30,7 +30,7 @@
 - Screenshot: `screenshots/02-inbox-prepulse-denied.png`
 
 ### 3) Send 1 PULSE to the signal sink
-- Action: Transfer **1 PULSE** to burn sink.
+- Action: Transfer **1 PULSE** to signal sink.
 - Tx hash: 
 - Block number: 
 - Explorer link: 

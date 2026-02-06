@@ -2,7 +2,7 @@
 
 ## Elevator Pitch (for judges)
 
-**Agent Pulse** is a paid-liveness gate for AI agents on Base. Agents burn $PULSE tokens to send a signal ("I'm here, route work to me"). No pulse within the TTL window → agent drops off the routing table. It's the simplest possible anti-spam primitive: a burn-to-signal heartbeat that any directory, marketplace, or router can read from public on-chain logs.
+**Agent Pulse** is a paid-liveness gate for AI agents on Base. Agents transfer $PULSE tokens to a dead address to send a signal ("I'm here, route work to me"). No pulse within the TTL window → agent drops off the routing table. It's the simplest possible anti-spam primitive: a dead-address-transfer-to-signal heartbeat that any directory, marketplace, or router can read from public on-chain logs.
 
 **One sentence:** _Burn a token, stay routable — the cheapest honest signal an agent can send._
 
@@ -12,7 +12,7 @@
 
 | What | Why it matters |
 |------|----------------|
-| **Burn-to-signal (unique mechanism)** | No other project uses consumable liveness signals. Substrate does identity + micropayments; BaseTrust does trust scores. Agent Pulse does *eligibility refresh* — a different primitive entirely. |
+| **Dead-address-transfer-to-signal (unique mechanism)** | No other project uses consumable liveness signals. Substrate does identity + micropayments; BaseTrust does trust scores. Agent Pulse does *eligibility refresh* — a different primitive entirely. |
 | **Agent-first, not human-first** | Designed for autonomous wallets and OpenClaw skills, not browser UX. Registration + pulsing are wallet-native transactions. |
 | **ERC-8004 integration** | Optional identity-gate via the Base ERC-8004 registries — composable with the broader agent-identity ecosystem. |
 | **40-test audit suite** | Security-focused development with a full test harness and documented pentest plan. Most competing projects have zero public tests. |
@@ -110,7 +110,7 @@ Per competition criteria (usability, vibes, UI/UX, transaction volume):
 | **Usability** | One-action UX: connect wallet → pulse → you're routable. Agent SDK for autonomous pulsing. |
 | **Vibes** | Infrastructure play with clear utility. No hype, no speculation — just a clean primitive. |
 | **UI/UX** | Minimal dashboard: eligibility state, last-seen timestamp, transfer feed, streak counter. |
-| **Transaction volume** | Every pulse is an on-chain burn. Volume grows linearly with active agents. Need live pulses before judging. |
+| **Transaction volume** | Every pulse is an on-chain dead address transfer. Volume grows linearly with active agents. Need live pulses before judging. |
 
 ---
 
@@ -120,7 +120,7 @@ Per competition criteria (usability, vibes, UI/UX, transaction volume):
 - [x] $PULSE described as: **"a utility token used to send pulse signals"**
 - [x] No DEX links at launch
 - [x] No liquidity management or market-support promises
-- [x] Signal sink is a burn address (non-recoverable) — no treasury accumulation from pulses
+- [x] Signal sink is a dead address (non-recoverable) — no treasury accumulation from pulses
 - [x] A pulse shows recent wallet activity — **does not prove identity, quality, or "AI"**
 - [x] All addresses sourced from `LINKS.md` (no hardcoded values)
 
@@ -134,7 +134,7 @@ Per competition criteria (usability, vibes, UI/UX, transaction volume):
 | Vercel demo | https://agent-pulse-nine.vercel.app |
 | X / Twitter | https://x.com/PulseOnBase |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` |
-| Signal sink (burn) | `0x000000000000000000000000000000000000dEaD` |
+| Signal sink (dead address) | `0x000000000000000000000000000000000000dEaD` |
 | Identity Registry (ERC-8004) | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | Reputation Registry (ERC-8004) | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
 

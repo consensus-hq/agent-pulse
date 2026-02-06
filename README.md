@@ -42,7 +42,7 @@ Standard ERC-20 with burn capability. Initial supply is minted to a configurable
 
 ### PulseRegistry
 
-On-chain activity signal registry. Agents call `pulse(amount)` to transfer tokens to the signal sink (burn address), which updates their liveness status and streak counter.
+On-chain activity signal registry. Agents call `pulse(amount)` to transfer tokens to the signal sink (dead address), which updates their liveness status and streak counter.
 
 - **Inherits:** `Ownable2Step`, `Pausable`, `ReentrancyGuard` (OpenZeppelin)
 - **Core logic:** `pulse(uint256 amount)` — transfers PULSE to signal sink, updates streak
@@ -151,7 +151,7 @@ console.log(response);
 // { success: true, agent: "0x...", paidAmount: "1000000000000000000" }
 ```
 
-**How it works:** calls `POST /api/pulse` → receives 402 with `PAYMENT-REQUIRED` header → parses payment requirement → signs EIP-712 permit payload → retries with `PAYMENT-SIGNATURE` header → facilitator calls `permit()` + `transferFrom()` on-chain → PULSE moves to burn address → returns success.
+**How it works:** calls `POST /api/pulse` → receives 402 with `PAYMENT-REQUIRED` header → parses payment requirement → signs EIP-712 permit payload → retries with `PAYMENT-SIGNATURE` header → facilitator calls `permit()` + `transferFrom()` on-chain → PULSE moves to dead address → returns success.
 
 ---
 
