@@ -151,7 +151,8 @@ async function createPaymentSignature(
   }
 
   // Generate nonce (random 32 bytes)
-  const nonce = `0x${Buffer.from(crypto.randomUUID().replace(/-/g, ""), "hex").toString("hex")}` as Hex;
+  const { randomBytes } = await import("crypto");
+  const nonce = ("0x" + randomBytes(32).toString("hex")) as Hex;
   
   const now = Math.floor(Date.now() / 1000);
   const validAfter = 0n;
@@ -175,30 +176,25 @@ async function createPaymentSignature(
   });
 
   // Build X-PAYMENT payload (base64 encoded JSON)
+  // Format matches verified working flow against HeyElsa production
   const payload = {
     x402Version: 1,
-    scheme: paymentReq.scheme,
-    network: paymentReq.network,
+    scheme: "exact",
+    network: "base",
     payload: {
-      token: paymentReq.asset,
-      to: paymentReq.payTo,
-      amount: paymentReq.requiredAmount,
+      signature,
       authorization: {
         from: wallet.account.address,
         to: paymentReq.payTo,
         value: paymentReq.requiredAmount,
-        validAfter: validAfter.toString(),
-        validBefore: validBefore.toString(),
+        validAfter: "0",
+        validBefore: String(now + (paymentReq.maxTimeoutSeconds || 300)),
         nonce,
-        signature,
-        version: "2",
-        chainId: 8453,
-        verifyingContract: USDC_BASE,
       },
     },
   };
 
-  return btoa(JSON.stringify(payload));
+  return Buffer.from(JSON.stringify(payload)).toString("base64");
 }
 
 /**
