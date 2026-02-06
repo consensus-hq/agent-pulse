@@ -15,47 +15,71 @@ const buildAuthHeaders = (): Record<string, string> => {
 };
 
 export async function GET(request: NextRequest) {
-  if (!HEYELSA_API_URL) {
-    return NextResponse.json({ error: "Missing HeyElsa API configuration." }, { status: 500 });
-  }
-
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "";
 
   if (!action) {
-    return NextResponse.json({ error: "Missing action parameter.", validActions: ["price", "portfolio"] }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing action parameter.", validActions: ["price", "portfolio"] },
+      { status: 400 },
+    );
   }
 
   const endpoint = action === "price" ? "/price" : action === "portfolio" ? "/portfolio" : "";
   if (!endpoint) {
-    return NextResponse.json({ error: "Unsupported action." }, { status: 400 });
+    return NextResponse.json({ error: "Unsupported action.", validActions: ["price", "portfolio"] }, { status: 400 });
   }
 
-  const targetUrl = new URL(endpoint, HEYELSA_API_URL);
-  for (const [key, value] of searchParams.entries()) {
-    if (key === "action") continue;
-    targetUrl.searchParams.append(key, value);
-  }
-
-  const response = await fetch(targetUrl.toString(), {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-      ...buildAuthHeaders(),
-    },
-  });
-
-  const bodyText = await response.text();
-
-  if (!response.ok) {
+  // If HeyElsa API is not configured, return a structured unavailable response
+  if (!HEYELSA_API_URL) {
     return NextResponse.json(
-      { error: "HeyElsa request failed.", details: bodyText },
-      { status: response.status },
+      {
+        error: "DeFi data source not configured.",
+        available: false,
+        action,
+        message: "HeyElsa x402 API integration pending. Token data available via /api/status/{address} and /api/protocol-health.",
+      },
+      { status: 503 },
     );
   }
 
-  return new NextResponse(bodyText, {
-    status: 200,
-    headers: { "Content-Type": response.headers.get("Content-Type") || "application/json" },
-  });
+  try {
+    const targetUrl = new URL(endpoint, HEYELSA_API_URL);
+    for (const [key, value] of searchParams.entries()) {
+      if (key === "action") continue;
+      targetUrl.searchParams.append(key, value);
+    }
+
+    const response = await fetch(targetUrl.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        ...buildAuthHeaders(),
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    const bodyText = await response.text();
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "DeFi data temporarily unavailable.", details: bodyText, available: false },
+        { status: 502 },
+      );
+    }
+
+    return new NextResponse(bodyText, {
+      status: 200,
+      headers: { "Content-Type": response.headers.get("Content-Type") || "application/json" },
+    });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: "DeFi data temporarily unavailable.",
+        available: false,
+        message: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 503 },
+    );
+  }
 }

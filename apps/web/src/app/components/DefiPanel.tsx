@@ -88,7 +88,7 @@ export default function DefiPanel() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/defi?address=${address}`);
+      const response = await fetch(`/api/defi?action=portfolio&address=${address}`);
       const data: DefiApiResponse = await response.json();
       
       if (!response.ok) {
@@ -103,7 +103,13 @@ export default function DefiPanel() {
       });
       setLastUpdated(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch DeFi data");
+      const msg = err instanceof Error ? err.message : "Failed to fetch DeFi data";
+      // Show user-friendly message for upstream unavailability
+      if (msg.includes("unavailable") || msg.includes("not configured") || msg.includes("503")) {
+        setError("DeFi data integration pending — token activity available via Status Query above.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
