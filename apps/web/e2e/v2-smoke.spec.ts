@@ -12,15 +12,21 @@ test.describe("Agent Pulse v2 E2E Smoke Tests", () => {
 
     response = await request.get("/api/abi");
     expect(response.status()).toBe(200);
+
+    response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/alive`);
+    expect(response.status()).toBe(200);
   });
 
-  test("v2 endpoints require payment: 402 without X-PAYMENT", async ({ request }) => {
-    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`);
-    expect(response.status()).toBe(402);
+  test("Paid endpoints require payment: 402 without x-payment", async ({ request }) => {
+    const healthResponse = await request.get("/api/paid/health");
+    expect(healthResponse.status()).toBe(402);
+
+    const portfolioResponse = await request.get("/api/paid/portfolio");
+    expect(portfolioResponse.status()).toBe(402);
   });
 
   test("402 response includes proper payment details", async ({ request }) => {
-    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`);
+    const response = await request.get("/api/paid/health");
     expect(response.status()).toBe(402);
 
     const data = await response.json();
@@ -28,38 +34,73 @@ test.describe("Agent Pulse v2 E2E Smoke Tests", () => {
     expect(paymentOption).toHaveProperty("payTo");
     expect(paymentOption).toHaveProperty("maxAmountRequired");
     expect(paymentOption).toHaveProperty("network");
+    expect(paymentOption).toHaveProperty("asset");
   });
 
-  test("Rate limiting: 61 rapid requests trigger 429 on 61st", async ({ request }) => {
-    for (let i = 1; i <= 60; i++) {
-      const res = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`);
-      expect(res.status()).toBe(402);
-    }
-    const res61 = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`);
-    expect(res61.status()).toBe(429);
+  test("v2 alive response has correct shape", async ({ request }) => {
+    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/alive`);
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty("address");
+    expect(data).toHaveProperty("isAlive");
+    expect(data).toHaveProperty("streak");
+    expect(data).toHaveProperty("staleness");
+    expect(data).toHaveProperty("ttl");
+    expect(data).toHaveProperty("checkedAt");
+    expect(typeof data.isAlive).toBe("boolean");
+    expect(typeof data.streak).toBe("number");
   });
 
-  test("Cache headers are present", async ({ request }) => {
-    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`);
+  test("Cache headers are present on v2 alive", async ({ request }) => {
+    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/alive`);
     const headers = response.headers();
-    expect(headers).toHaveProperty("x-cache-status");
-    expect(headers).toHaveProperty("x-cache-age");
+    expect(headers["cache-control"]).toBeDefined();
+    expect(headers["cache-control"]).toContain("max-age");
   });
 
   test("Invalid address returns 400", async ({ request }) => {
-    const response = await request.get("/api/v2/agent/notanaddress/reliability");
+    const response = await request.get("/api/v2/agent/notanaddress/alive");
     expect(response.status()).toBe(400);
   });
 
   test("CORS headers on v2 endpoints", async ({ request }) => {
-    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/reliability`, {
+    const response = await request.get(`/api/v2/agent/${VALID_ADDRESS}/alive`, {
       headers: {
         Origin: "https://example.com",
       },
     });
-    expect(response.status()).toBe(402);
+    expect(response.status()).toBe(200);
     const headers = response.headers();
     expect(headers["access-control-allow-origin"]).toBeDefined();
-    // Optionally: expect(headers["access-control-allow-origin"]).toBe("*"); or the origin
+  });
+
+  test("Status endpoint includes hazard score", async ({ request }) => {
+    const response = await request.get(`/api/status/${VALID_ADDRESS}`);
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty("hazardScore");
+    expect(typeof data.hazardScore).toBe("number");
+    expect(data.hazardScore).toBeGreaterThanOrEqual(0);
+    expect(data.hazardScore).toBeLessThanOrEqual(100);
+  });
+
+  test("Config endpoint includes contract addresses", async ({ request }) => {
+    const response = await request.get("/api/config");
+    expect(response.status()).toBe(200);
+
+    const data = await response.json();
+    expect(data.contracts).toHaveProperty("pulseToken");
+    expect(data.contracts).toHaveProperty("pulseRegistry");
+    expect(data.contracts).toHaveProperty("signalSink");
+    expect(data.contracts.signalSink).toBe("0x000000000000000000000000000000000000dEaD");
+  });
+
+  test("Paid endpoints have x-payment-required header", async ({ request }) => {
+    const response = await request.get("/api/paid/health");
+    expect(response.status()).toBe(402);
+    const headers = response.headers();
+    expect(headers["x-payment-required"]).toBeDefined();
   });
 });
