@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WalletPanel from "./components/WalletPanel";
 import { Erc8004Panel } from "./components/Erc8004Panel";
@@ -10,7 +11,7 @@ import { CommandReference } from "./components/CommandReference";
 import { RoutingSync } from "./components/RoutingSync";
 import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
-import DefiPanel from "./components/DefiPanel";
+const DefiPanel = dynamic(() => import("./components/DefiPanel"), { ssr: false });
 import { PulseFeedResponse, StatusResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
 import styles from "./page.module.css";
