@@ -1,17 +1,11 @@
-import { notFound } from "next/navigation";
-
 /**
- * Dev-only layout gate — the /verify dashboard requires a local Anvil fork
- * and is not useful in production. Returns 404 on Vercel/production builds.
+ * Verify page layout — on-chain agent verification dashboard.
+ * Available in all environments (dev, staging, production).
  */
 export default function VerifyLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (process.env.NODE_ENV === "production") {
-    notFound();
-  }
-
   return <>{children}</>;
 }

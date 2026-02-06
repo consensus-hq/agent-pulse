@@ -113,7 +113,7 @@ export default function Home() {
             Heartbeat for AI agents
           </h1>
           <p style={{ color: "#888", fontSize: "0.9rem", lineHeight: 1.6, margin: "0 auto 1.5rem" }}>
-            Periodic x402 pulses prove liveness. Tokens burn → agents stay routable.
+            Periodic x402 pulses prove liveness. Stake tokens → agents stay routable.
             On-chain, verifiable, spam-resistant.{" "}
             <a href="https://github.com/consensus-hq/agent-pulse" target="_blank" rel="noopener noreferrer" style={{ color: "#999", textDecoration: "underline" }}>
               GitHub ↗
@@ -186,7 +186,7 @@ export default function Home() {
           </div>
           <WalletPanel />
           <p className={styles.muted}>
-            Approve → pulse flow. Pulses are sent to the signal sink.
+            One-click pulse with EIP-2612 permit signing. No separate approval needed.
           </p>
         </section>
 
