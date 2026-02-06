@@ -1,291 +1,141 @@
-# Agent Pulse 🫀
+# Agent Pulse ⚡
 
-**Liveness and reliability protocol for AI agents on Base — consume PULSE to prove you're alive, deliver derivative intelligence via x402.**
+**On-chain liveness signal for AI agents on Base.**
 
-> **Don't offer liveness — offer risk reduction.** Routers get free liveness checks. Workers who don't pulse become invisible. Everyone integrates or gets left behind.
-
-[![Tests](https://img.shields.io/badge/tests-98%2B%20passing-success)](./packages/contracts/test)
-[![Security](https://img.shields.io/badge/security-audited-blue)](./REPORTS)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Base](https://img.shields.io/badge/chain-Base-blue)](https://base.org)
-
----
-
-## How It Works
-
-Agents consume PULSE tokens daily to prove they're alive. The protocol indexes these signal sinks, computes **derivative signals** — reliability scores, jitter analysis, hazard rates, peer correlation — and delivers them via **x402-gated API endpoints**.
-
-- **Free tier** (`isAlive`, `lastPulseTimestamp`) drives adoption
-- **Paid tier** (everything else) generates revenue
-
-```mermaid
-flowchart LR
-    A[Agent burns PULSE daily] --> B[Indexer detects burn events]
-    B --> C[Compute derivative signals]
-    C --> D[Reliability / Jitter / Hazard / Correlation]
-    D --> E[x402-gated API endpoints]
-    E --> F[Revenue in USDC]
-    
-    G[Free: isAlive check] --> H[Routers filter agents]
-    H --> I[Workers must pulse to stay visible]
-    I --> A
-```
-
----
-
-## The Wedge: `pulse-filter`
-
-**Get running in 2 minutes.** Free, open-source middleware that drops into any agent framework.
+> Is this agent alive right now? One free API call. One answer.
 
 ```bash
-npm install @agent-pulse/pulse-filter
+curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x9508752Ba171D37EBb3AA437927458E0a21D1e04/alive
 ```
 
-```typescript
-import { createPulseFilter } from '@agent-pulse/pulse-filter';
-
-// LangChain / AutoGen / any router
-const filter = createPulseFilter({ threshold: '24h' });
-
-// Filter candidate agents — dead ones disappear
-const alive = await filter.filterAlive(candidateAgents);
-const best = alive.sort((a, b) => b.reliability - a.reliability)[0];
+```json
+{
+  "isAlive": true,
+  "lastPulseTimestamp": 1770311798,
+  "streak": 1,
+  "staleness": 76412,
+  "ttl": 86400
+}
 ```
 
-**Routers pay nothing** (reads are free). Workers who don't pulse become invisible to every router using the filter. That's the viral loop.
+## The Problem
 
-### The Missing Link (Viral Loop)
+Agent routing without a liveness check is flying blind. You don't know if the agent you're sending work to is still online, still responsive, still real.
 
-```
-1. Router checks filterAlive() → Agent B has no pulse → job rejected
-2. Agent B's dev sees lost revenue → installs Pulse SDK
-3. Agent B starts pulsing → reappears in routing tables
-4. Agent B becomes router → enforces same check downstream
-5. Network grows → more data → better derivative signals → more paid queries
-```
+## The Solution
 
----
+Agent Pulse is a public routing primitive. Agents pulse on-chain to prove they're active. Miss the TTL window = dropped from the routing table.
 
-## API Reference
+- **Free tier**: `isAlive()` — binary liveness check, open to everyone
+- **Paid tier**: Derivative liveness intelligence via [x402](https://www.x402.org/) micropayments (USDC)
 
-**Base URL:** `https://agent-pulse-nine.vercel.app/api/v2`
+## Live Demo
 
-### Free Tier — $0
+🌐 **[agent-pulse-nine.vercel.app](https://agent-pulse-nine.vercel.app)**
 
-| Endpoint | Rate Limit | Description |
-|----------|------------|-------------|
-| `GET /v2/agent/{addr}/alive` | 60/min, 1000/day per IP | `{ alive: bool, lastPulse: timestamp }` |
+## API Endpoints
 
-### Paid Tier — x402 Gated
+### Free (no auth required)
 
-| Endpoint | Base Price | Network Effect | Cache TTL |
-|----------|------------|----------------|-----------|
-| `/v2/agent/{addr}/reliability` | $0.01 | Linear | 5min |
-| `/v2/agent/{addr}/liveness-proof` | $0.005 | None | 30s |
-| `/v2/agent/{addr}/burn-history` | $0.015 | Linear | 15min |
-| `/v2/agent/{addr}/streak-analysis` | $0.008 | None | 5min |
-| `/v2/network/peer-correlation/{addr}` | $0.02 | Superlinear | 60min |
-| `/v2/agent/{addr}/uptime-metrics` | $0.01 | Linear | 5min |
-| `/v2/agent/{addr}/predictive-insights` | $0.025 | Superlinear | 60min |
-| `/v2/network/global-stats` | $0.03 | Superlinear | 60min |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/v2/agent/{address}/alive` | GET | Binary liveness + staleness + streak |
+| `/api/status/{address}` | GET | Full agent status with hazard score |
 
-### Bundled Queries (~20% Discount)
+### Paid (x402 — USDC on Base)
 
-| Bundle | Includes | Price |
-|--------|----------|-------|
-| **Router Bundle** | reliability + liveness-proof + uptime | $0.02 |
-| **Fleet Bundle** | batch reliability + uptime (up to 10 agents) | $0.15 |
-| **Risk Bundle** | peer-correlation + predictive + streak | $0.04 |
+| Endpoint | Price | Description |
+|---|---|---|
+| `/api/paid/health` | $0.001 | Protocol health metrics |
+| `/api/paid/portfolio` | $0.02 | Agent portfolio data |
+| `/api/paid/price/{token}` | $0.005 | Token price data |
 
-### Freshness Pricing
-
-| Freshness | Multiplier | When |
-|-----------|------------|------|
-| Real-time (cache miss) | 1.5x base | Fresh computation |
-| Cached (≤1h) | 0.5x base | Served from cache |
-
-Full API docs: [docs/API_V2.md](./docs/API_V2.md)
-
----
-
-## Token Economics
-
-When an agent burns PULSE:
-
-| Destination | Share | Purpose |
-|-------------|-------|---------|
-| Burn address | 98.7% | Deflationary pressure |
-| Thirdweb platform | 0.3% | Platform fee |
-| Infrastructure Fee Wallet | 1.0% | Via BurnWithFee wrapper contract |
-
-- Fee wallet PULSE periodically swapped to USDC (manual for hackathon, automated for production)
-- DEX liquidity fees: 80% treasury, 20% LP
-- **x402 API revenue is the PRIMARY revenue stream** — token burns are secondary
-
----
-
-## Economics
-
-| Agents | Queries/day | Revenue/day | Cost/day | Margin |
-|--------|-------------|-------------|----------|--------|
-| 50 | 250 | $2.50 | $10.25 | -$7.75 |
-| 200 | 1,000 | $10 | $11 | ~breakeven |
-| 500 | 2,500 | $25 | $12.50 | 50% |
-| 5,000 | 25,000 | $250 | $35 | 86% |
-
-**Breakeven:** ~100-200 agents. **Moat:** 6-12 months and $500K-$2M to replicate.
-
----
-
-## HeyElsa Integration
-
-HeyElsa is a **cost line**, not a revenue source. We consume their DeFi data via x402 for our dashboard panel. We do NOT resell HeyElsa data.
-
-- **What:** Server-side hot wallet pays HeyElsa for DeFi portfolio/balance data
-- **Why:** Qualifies for the $1,000 DeFi bonus in ClawdKitchen hackathon
-- **Revenue comes from:** Selling our OWN derivative liveness intelligence via x402
-
----
-
-## Quick Start
-
-### For Worker Agents (Start Pulsing)
-
-```bash
-npm install @agent-pulse/sdk
-```
-
-```typescript
-import { PulseClient } from '@agent-pulse/sdk';
-
-const pulse = new PulseClient({ walletClient });
-await pulse.beat(); // Your agent is now proving liveness
-```
-
-### For Routers (Filter Agents)
-
-```bash
-npm install @agent-pulse/pulse-filter
-```
-
-```typescript
-import { createPulseFilter } from '@agent-pulse/pulse-filter';
-
-const filter = createPulseFilter();
-const alive = await filter.filterAlive(candidates);
-```
-
-### For ElizaOS
-
-```typescript
-import agentPulsePlugin from "@agent-pulse/elizaos-plugin";
-
-export default {
-  plugins: [agentPulsePlugin],
-  settings: {
-    AGENT_PULSE_API_URL: "https://agent-pulse-nine.vercel.app",
-    AGENT_PULSE_RPC_URL: "https://sepolia.base.org",
-    AGENT_PULSE_CHAIN_ID: "84532",
-    AGENT_PULSE_X402_ENABLED: "true",
-  },
-};
-```
-
-See [SDK Quickstart](./docs/SDK_QUICKSTART.md) for full docs.
-
----
+Paid endpoints return a `402 Payment Required` with x402 challenge details.
 
 ## Architecture
 
 ```
-agent-pulse/
-├── apps/web/                    # Next.js 16 frontend + API
-│   └── src/app/api/v2/          # x402-gated endpoints (8 paid + 3 bundled)
-├── packages/contracts/          # Foundry smart contracts
-│   ├── BurnWithFee.sol          # Wrapper: 98.7% burn + 1% infra fee
-│   ├── PulseRegistryV2.sol      # On-chain liveness registry (65 tests)
-│   └── PeerAttestation.sol      # Peer attestation contract
-├── packages/pulse-filter/       # The viral wedge SDK
-├── packages/sdk/                # Agent SDK with x402 support
-├── packages/elizaos-plugin/     # ElizaOS integration
-├── lib/
-│   ├── x402-gate.ts             # Thirdweb facilitator + freshness pricing
-│   ├── pricing.ts               # All v4 prices in USDC atomic units
-│   ├── cache.ts                 # TTL-based caching
-│   ├── rate-limit.ts            # Free/paid rate limiting
-│   └── metrics.ts               # Observability
-└── docs/                        # Specs, runbooks, security reports
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│  AI Agent    │────▶│  PulseToken  │────▶│  PulseRegistry  │
+│  (pulsing)   │     │  (ERC-20)    │     │  (on-chain)     │
+└─────────────┘     └──────────────┘     └─────────────────┘
+                                                │
+                    ┌──────────────┐             │
+                    │  Signal Sink │◀────────────┘
+                    │  (0x...dEaD) │   1 PULSE per pulse
+                    └──────────────┘
+                                                │
+┌─────────────┐     ┌──────────────┐            ▼
+│  Consumer   │────▶│  Agent Pulse │     ┌─────────────────┐
+│  (querying)  │     │  API (v2)    │────▶│  Liveness Data  │
+└─────────────┘     └──────────────┘     └─────────────────┘
 ```
 
-**Tech stack:** Next.js 16 · Foundry · Vercel Edge Functions · Vercel KV · thirdweb SDK · viem · wagmi · RainbowKit · x402 protocol · Base
+1. Agent sends 1 PULSE token to the signal sink (dead address)
+2. PulseRegistry records the pulse timestamp on-chain
+3. Anyone queries `isAlive(agent)` for free — returns liveness + staleness
+4. Paid endpoints provide derivative intelligence (streaks, reliability, predictions)
 
----
+## Contracts (Base Sepolia)
 
-## Contracts
+| Contract | Address |
+|---|---|
+| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
+| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
+| PeerAttestation | `0x4B14c36e86fC534E401481Bc1834f0762788aaf5` |
+| BurnWithFee | `0x326a15247C958E94de93C8E471acA3eC868f58ec` |
 
-### Deployed (Base Sepolia)
+## Tech Stack
 
-| Contract | Address | Notes |
-|----------|---------|-------|
-| PulseToken | See [LINKS.md](./LINKS.md) | ERC-20 utility token |
-| PulseRegistryV2 | See [LINKS.md](./LINKS.md) | Liveness registry (65 tests) |
-| BurnWithFee | See [LINKS.md](./LINKS.md) | 98.7% burn + 1% infra fee wrapper |
-| PeerAttestation | See [LINKS.md](./LINKS.md) | Peer attestation |
+- **Chain**: Base (Ethereum L2)
+- **Contracts**: Solidity, Foundry (202 tests passing)
+- **API**: Next.js 15, Vercel
+- **Payments**: x402 protocol (HTTP-native micropayments)
+- **DeFi**: HeyElsa integration
+- **Tests**: 202 Foundry + 98 Vitest + E2E
 
----
+## Quick Start (5 minutes)
 
-## Testing
+### 1. Check if an agent is alive
 
 ```bash
-cd packages/contracts && forge test -vv
+curl https://agent-pulse-nine.vercel.app/api/v2/agent/YOUR_AGENT_ADDRESS/alive
 ```
 
-- **BurnWithFee.sol** — 33 tests passing
-- **PulseRegistryV2.sol** — 65 tests passing
-- Plus security/exploit test suites
-
----
-
-## Security
-
-2 pentest rounds with 4 red team agents. 26 findings identified and remediated. Full reports: [`REPORTS/`](./REPORTS)
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [API v2 Reference](./docs/API_V2.md) | Complete endpoint documentation |
-| [SDK Quickstart](./docs/SDK_QUICKSTART.md) | SDK + pulse-filter + ElizaOS |
-| [Technical Brief](./docs/TECHNICAL_BRIEF.md) | Architecture and system design |
-| [Dual x402 Economy](./docs/DUAL_X402_ECONOMY.md) | Token flow and revenue model |
-| [Deployment Runbook](./docs/DEPLOYMENT_RUNBOOK.md) | Deploy and configure |
-| [Hackathon](./docs/CLAWDKITCHEN_HACKATHON.md) | ClawdKitchen submission |
-
----
-
-## Local Development
+### 2. Get full agent status
 
 ```bash
-git clone https://github.com/consensus-hq/agent-pulse.git
-cd agent-pulse && pnpm install
-cp apps/web/.env.example apps/web/.env.local
-# Edit .env.local with contract addresses from LINKS.md
-
-# Contracts
-cd packages/contracts && forge test -vv
-
-# Web app
-cd apps/web && pnpm dev  # → http://localhost:3000
+curl https://agent-pulse-nine.vercel.app/api/status/YOUR_AGENT_ADDRESS
 ```
 
+### 3. Try a paid endpoint (will return 402 challenge)
+
+```bash
+curl -i https://agent-pulse-nine.vercel.app/api/paid/health
+```
+
+## Development
+
+```bash
+# Install
+pnpm install
+
+# Run web app
+cd apps/web && pnpm dev
+
+# Run contract tests
+cd packages/contracts && forge test -vvv
+
+# Run web tests
+cd apps/web && npx vitest run
+```
+
+## Links
+
+- **Live**: [agent-pulse-nine.vercel.app](https://agent-pulse-nine.vercel.app)
+- **GitHub**: [github.com/consensus-hq/agent-pulse](https://github.com/consensus-hq/agent-pulse)
+- **X**: [@PulseOnBase](https://x.com/PulseOnBase)
+
 ---
 
-## License
-
-MIT — see [LICENSE](./LICENSE).
-
----
-
-**Built by Connie** — an AI agent building risk infrastructure for AI agents. On Base.
+Built for [ClawdKitchen](https://clawd.kitchen) hackathon on Base.
