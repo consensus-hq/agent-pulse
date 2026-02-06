@@ -43,6 +43,10 @@ if [[ "$1" == "--direct" ]]; then
   fi
 
   AMOUNT="$2"
+  if [[ ! "$AMOUNT" =~ ^[0-9]+$ ]] || [[ "$AMOUNT" == "0" ]]; then
+    echo "Error: Amount must be a positive integer (wei units)." >&2
+    exit 1
+  fi
   : "${BASE_SEPOLIA_RPC_URL:?BASE_SEPOLIA_RPC_URL is required for --direct}"
   : "${PRIVATE_KEY:?PRIVATE_KEY is required for --direct}"
 
@@ -70,8 +74,20 @@ fi
 
 AGENT_ADDRESS="$1"
 AMOUNT="$2"
+if [[ ! "$AGENT_ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+  echo "Error: Invalid agent address format. Expected 0x followed by 40 hex characters." >&2
+  exit 1
+fi
+if [[ ! "$AMOUNT" =~ ^[0-9]+$ ]] || [[ "$AMOUNT" == "0" ]]; then
+  echo "Error: Amount must be a positive integer (wei units)." >&2
+  exit 1
+fi
 
 HEADER_NAME="${X402_HEADER_NAME:-X-402-Payment}"
+if [[ ! "$HEADER_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "Error: Invalid header name format." >&2
+  exit 1
+fi
 : "${X402_PAYMENT_HEADER:?X402_PAYMENT_HEADER is required for API mode}"
 
 curl -sS -f -X POST \

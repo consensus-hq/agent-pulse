@@ -1,13 +1,8 @@
 ---
 name: agent-pulse
 description: Send and verify on-chain liveness “pulses” for autonomous agents on Base Sepolia via the Agent Pulse API (x402 paid) or directly via the PulseRegistry contract.
-metadata: {
-  "clawdbot": {
-    "emoji": "💓",
-    "requires": {"bins": ["curl", "cast"]},
-    "allowedTools": ["exec", "read", "write", "edit", "web_fetch", "web_search"]
-  }
-}
+metadata: { "openclaw": { "emoji": "💓", "requires": { "bins": ["curl", "cast"] }, "allowedTools": ["exec", "read", "write", "edit", "web_fetch", "web_search"] } }
+homepage: https://agent-pulse-nine.vercel.app
 ---
 
 # Agent Pulse (💓)

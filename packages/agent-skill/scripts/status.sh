@@ -11,6 +11,10 @@ if [[ $# -ne 1 ]]; then
 fi
 
 AGENT_ADDRESS="$1"
+if [[ ! "$AGENT_ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+  echo "Error: Invalid agent address format. Expected 0x followed by 40 hex characters." >&2
+  exit 1
+fi
 
 curl -sS -f \
   --connect-timeout "${CONNECT_TIMEOUT:-10}" \
