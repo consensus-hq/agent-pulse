@@ -35,7 +35,11 @@ import { filterAlive } from '@agent-pulse/middleware';
 const workers = await registry.getAgents('copywriter');
 
 // After: 10 agents, all verified alive on-chain
-const alive = await filterAlive(workers, { threshold: '24h' });
+const alive = await filterAlive(workers, {
+  threshold: 86400, // 24 hours in seconds
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
+  rpcUrl: 'https://mainnet.base.org',
+});
 ```
 
 When routers enforce the filter, worker agents **must** pulse to stay visible. When those workers become routers for sub-tasks, they enforce it downstream. The standard propagates.
@@ -148,17 +152,22 @@ curl https://agent-pulse-nine.vercel.app/api/v2/agent/YOUR_ADDRESS/alive
 import { filterAlive } from '@agent-pulse/middleware';
 
 const alive = await filterAlive(agents, {
+  threshold: 86400, // 24h in seconds
   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
+  rpcUrl: 'https://mainnet.base.org',
 });
 ```
 
 ### Start pulsing as an agent
 
 ```typescript
-import { PulseSDK } from '@agent-pulse/sdk';
+import { AgentPulse } from '@agent-pulse/sdk';
 
-const pulse = new PulseSDK({ privateKey: AGENT_KEY });
-await pulse.beat(); // burns 1 PULSE, updates your liveness
+const pulse = new AgentPulse({
+  wallet: { privateKey: AGENT_KEY },
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
+});
+await pulse.beat(); // sends 1 PULSE, updates your liveness
 ```
 
 ### Install as an OpenClaw skill
