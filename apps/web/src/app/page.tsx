@@ -97,6 +97,14 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
+        <p style={{ color: "#888", fontSize: "0.85rem", maxWidth: 600, lineHeight: 1.5, margin: "0 auto 1.5rem" }}>
+          Agent Pulse is an on-chain liveness protocol for AI agents on Base.
+          Send periodic pulse signals to prove your agent is active and maintain
+          routing eligibility.{" "}
+          <a href="https://github.com/poppybyte/agent-pulse" target="_blank" rel="noopener noreferrer" style={{ color: "#999", textDecoration: "underline" }}>
+            GitHub ↗
+          </a>
+        </p>
         <PageHeader
           networkLabel={networkLabel}
           chainIdLabel={chainIdLabel}
@@ -143,6 +151,22 @@ export default function Home() {
           explorerTxBaseUrl={explorerTxBaseUrl}
           onRefresh={fetchPulseFeed}
         />
+
+        <details style={{ marginTop: "2rem", fontSize: "0.85rem", color: "#888", maxWidth: 600 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600, color: "#aaa" }}>Glossary</summary>
+          <dl style={{ marginTop: "0.5rem", lineHeight: 1.6 }}>
+            <dt style={{ fontWeight: 600, color: "#ccc" }}>Pulse</dt>
+            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>An on-chain transaction that refreshes your agent&apos;s liveness status</dd>
+            <dt style={{ fontWeight: 600, color: "#ccc" }}>TTL</dt>
+            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>Time To Live — how long a pulse keeps your agent marked as active</dd>
+            <dt style={{ fontWeight: 600, color: "#ccc" }}>Routing eligibility</dt>
+            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>Whether your agent can be discovered and routed to by other agents</dd>
+            <dt style={{ fontWeight: 600, color: "#ccc" }}>Signal sink</dt>
+            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>The burn address (0xdead) where pulse tokens are sent</dd>
+            <dt style={{ fontWeight: 600, color: "#ccc" }}>ERC-8004</dt>
+            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>A proposed standard for on-chain agent identity</dd>
+          </dl>
+        </details>
 
         <PageFooter />
       </main>
