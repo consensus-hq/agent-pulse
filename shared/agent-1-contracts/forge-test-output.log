@@ -1,0 +1,278 @@
+No files changed, compilation skipped
+
+Ran 3 tests for test/PulseRegistryOwnerAbuse.t.sol:PulseRegistryOwnerAbuseTest
+[PASS] testPauseDoesNotFreezeTTL() (gas: 115893)
+[PASS] testTTLIncreaseResurrectsAgent() (gas: 102701)
+[PASS] testTTLReductionRetroactivelyKillsAgent() (gas: 99505)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.58ms (569.89µs CPU time)
+
+Ran 33 tests for test/BurnWithFee.t.sol:BurnWithFeeTest
+[PASS] test_BurnEmitsEvent() (gas: 100161)
+[PASS] test_BurnWithMaxFeeRate() (gas: 108356)
+[PASS] test_BurnWithMinimumAmount() (gas: 97755)
+[PASS] test_BurnWithZeroFeeRate() (gas: 79838)
+[PASS] test_Constructor_SetsDefaults() (gas: 1050700)
+[PASS] test_Constructor_ZeroFeeWallet() (gas: 132545)
+[PASS] test_Constructor_ZeroTokenAddress() (gas: 132566)
+[PASS] test_DifferentAgentsBurnIndependently() (gas: 139200)
+[PASS] test_DustAmount_Boundary() (gas: 97733)
+[PASS] test_FeeCalculation_1Percent_Default() (gas: 97174)
+[PASS] test_FeeCalculation_VariousAmounts() (gas: 244288)
+[PASS] test_FeeRoundsToZeroReverts() (gas: 63058)
+[PASS] test_GasBenchmark_BurnWithFee() (gas: 99089)
+Logs:
+  Gas used for burnWithFee: 80700
+
+[PASS] test_GasBenchmark_MultipleBurns() (gas: 273009)
+Logs:
+  Average gas per burn: 27513
+
+[PASS] test_LargeAmountBurn() (gas: 103771)
+[PASS] test_MultipleBurnsAccumulateFees() (gas: 177379)
+[PASS] test_NormalBurnWithFeeSplit() (gas: 109237)
+[PASS] test_ReentrancyGuard_ProtectsBurn() (gas: 99438)
+[PASS] test_Revert_BelowMinimumBurn() (gas: 53442)
+[PASS] test_Revert_InsufficientApproval() (gas: 92909)
+[PASS] test_Revert_NoApproval() (gas: 29546)
+[PASS] test_Revert_SetFeeBps_Excessive() (gas: 12113)
+[PASS] test_Revert_SetFeeBps_MaxBoundary() (gas: 21230)
+[PASS] test_Revert_SetFeeWallet_ZeroAddress() (gas: 11199)
+[PASS] test_SetFeeBps_OnlyOwner() (gas: 13972)
+[PASS] test_SetFeeBps_Success() (gas: 15530)
+[PASS] test_SetFeeBps_UpdatesCalculations() (gas: 104576)
+[PASS] test_SetFeeWallet_OnlyOwner() (gas: 16058)
+[PASS] test_SetFeeWallet_Success() (gas: 20542)
+[PASS] test_SetMinBurn() (gas: 15628)
+[PASS] test_SetMinBurn_OnlyOwner() (gas: 13973)
+[PASS] test_SetMinBurn_RevertsZero() (gas: 11285)
+[PASS] test_SmallButValidAmount() (gas: 97822)
+Suite result: ok. 33 passed; 0 failed; 0 skipped; finished in 6.15ms (8.09ms CPU time)
+
+Ran 13 tests for test/PulseRegistryExploit.t.sol:PulseRegistryExploitTest
+[PASS] testERC777StyleHookBlocked() (gas: 2975697)
+[PASS] testFlashLoanPulseSpamNoValue() (gas: 144837)
+[PASS] testFrontRunningHasNoImpact() (gas: 141806)
+[PASS] testGasGriefingToken() (gas: 3201657)
+[PASS] testOwnerCompromiseDoSMinPulse() (gas: 34161)
+[PASS] testOwnerCompromiseDoSTTL() (gas: 20125)
+[PASS] testOwnerCompromisePause() (gas: 55469)
+[PASS] testPauseStrandedApproval() (gas: 105578)
+[PASS] testPulseTokenIsImmutable() (gas: 8336)
+[PASS] testReentrancyViaHookToken() (gas: 2975647)
+[PASS] testSignalSinkIsImmutable() (gas: 8008)
+[PASS] testStrandedApprovalAfterMinPulseIncrease() (gas: 117670)
+[PASS] testUint32DayTruncation() (gas: 87835)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 6.85ms (6.46ms CPU time)
+
+Ran 8 tests for test/P0A-FlashLoan.t.sol:P0A_FlashLoanTest
+[PASS] test_AdditionalStakingWeightedAverage() (gas: 253975)
+Logs:
+  Score before additional stake: 0
+  Score after additional stake: 0
+
+[PASS] test_CannotUnstakeDuringLockup() (gas: 154910)
+[PASS] test_CompleteFlashLoanAttackFlow() (gas: 237722)
+Logs:
+  
+=== P0-A FLASH LOAN ATTACK SIMULATION ===
+
+  Flash loan amount: 1000000000000000000000000
+  Pool balance before: 2000000000000000000000000
+  Attacker balance: 1000000000000000000000000
+  Attack succeeded?: NO (PROTECTED)
+  Score obtained: 0
+  Failure reason: low-level revert
+  Locked amount: 1000000000000000000000000
+  Unlock time (days from now): 7
+  
+=== P0-A VERIFICATION COMPLETE ===
+  Result: EXISTING LOCKUP MECHANISM IS SUFFICIENT
+  - 7-day lockup prevents same-block unstake
+  - durationDays flooring prevents same-block score
+  - Attacker loses access to flash loaned funds for 7 days
+
+[PASS] test_FlashLoanAttack_RevertsOnUnstake() (gas: 201023)
+Logs:
+  Flash Loan Attack Result: BLOCKED
+  Failure Reason: low-level revert
+  Score During Attack: 0
+
+[PASS] test_FlashLoanGriefingAttack_ScoreIsZero() (gas: 161661)
+Logs:
+  Griefing Attack Result: INEFFECTIVE
+  Score Obtained: 0
+  Reason: durationDays floors to 0 in same block
+
+[PASS] test_MaximumFlashLoanAttack() (gas: 171704)
+Logs:
+  Score with 1B tokens staked for 1 day: 0
+
+[PASS] test_StakeAtDayBoundary() (gas: 251954)
+[PASS] test_StakeScoreProgressionOverTime() (gas: 257807)
+Logs:
+  Score at T=0 (same block): 2
+  Score at T=12h: 2
+  Score at T=1d: 18
+  Score at T=7d: 0
+  Score at T=30d: 0
+
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 6.82ms (6.59ms CPU time)
+
+Ran 23 tests for test/PeerAttestation.t.sol:PeerAttestationTest
+[PASS] test_Attest_Success_Negative() (gas: 156076)
+[PASS] test_Attest_Success_Positive() (gas: 157303)
+[PASS] test_CanAttest_Returns_False_DeadAttestor() (gas: 20188)
+[PASS] test_CanAttest_Returns_False_Self() (gas: 16230)
+[PASS] test_CanAttest_Returns_True() (gas: 26742)
+[PASS] test_Constructor_RevertsZeroAddress() (gas: 86503)
+[PASS] test_Constructor_SetsRegistry() (gas: 8290)
+[PASS] test_GetAttestationStats() (gas: 155484)
+[PASS] test_GetNetAttestationScore() (gas: 305271)
+[PASS] test_GetRemainingAttestations_AfterSome() (gas: 149342)
+[PASS] test_GetRemainingAttestations_Fresh() (gas: 10901)
+[PASS] test_GetRemainingAttestations_ResetAfterEpoch() (gas: 149761)
+[PASS] test_GetTimeUntilEpochReset() (gas: 148827)
+[PASS] test_GetTimeUntilEpochReset_ExpiredReturnsZero() (gas: 149479)
+[PASS] test_MultipleAttestorsAccumulateWeight() (gas: 410115)
+[PASS] test_Revert_AlreadyAttestedThisEpoch() (gas: 156946)
+[PASS] test_Revert_AttestorDead() (gas: 27188)
+[PASS] test_Revert_DailyLimit() (gas: 919952)
+[PASS] test_Revert_SelfAttest() (gas: 23233)
+[PASS] test_Revert_SubjectDead() (gas: 31670)
+[PASS] test_Success_NextEpoch() (gas: 165427)
+[PASS] test_Weight_Dynamic() (gas: 159038)
+[PASS] test_Weight_ZeroScore() (gas: 130486)
+Suite result: ok. 23 passed; 0 failed; 0 skipped; finished in 10.94ms (6.23ms CPU time)
+
+Ran 65 tests for test/PulseRegistryV2.t.sol:PulseRegistryV2Test
+[PASS] testCanUnstakeAtExactLockupEnd() (gas: 117633)
+[PASS] testCanUnstakeOneSecondAfterLockup() (gas: 117798)
+[PASS] testConstructorRevertsMinPulseTooHigh() (gas: 92790)
+[PASS] testConstructorRevertsTTLTooHigh() (gas: 92693)
+[PASS] testConstructorRevertsZeroMinPulse() (gas: 92756)
+[PASS] testConstructorRevertsZeroTTL() (gas: 92726)
+[PASS] testConstructorRevertsZeroToken() (gas: 92543)
+[PASS] testConstructorSetsParameters() (gas: 18948)
+[PASS] testIsAliveReturnsFalseAfterTTL() (gas: 125045)
+[PASS] testIsAliveReturnsFalseForUnregistered() (gas: 11246)
+[PASS] testIsAliveReturnsTrueWithinTTL() (gas: 124849)
+[PASS] testIsVerifiedAgentReturnsFalseForDead() (gas: 13447)
+[PASS] testIsVerifiedAgentReturnsFalseForLowStreak() (gas: 122507)
+[PASS] testIsVerifiedAgentReturnsTrueForHighStreak() (gas: 266113)
+[PASS] testLargeStakeAmount() (gas: 145615)
+[PASS] testLockupPeriodExactly7Days() (gas: 131989)
+[PASS] testMultipleAgentsIndependent() (gas: 205278)
+[PASS] testMultipleStakesAccumulate() (gas: 151470)
+[PASS] testPauseAndUnpause() (gas: 132218)
+[PASS] testPulseAccumulatesTotalBurned() (gas: 142113)
+[PASS] testPulseBasic() (gas: 126234)
+[PASS] testPulseBurnsTokens() (gas: 127052)
+[PASS] testPulseConsecutiveDaysIncreasesStreak() (gas: 143980)
+[PASS] testPulseEmitsPulseV2Event() (gas: 123058)
+[PASS] testPulseRevertsBelow() (gas: 24574)
+[PASS] testPulseSameDayNoStreakIncrease() (gas: 141521)
+[PASS] testPulseStreakResetsAfterGap() (gas: 143246)
+[PASS] testPulseWhenPausedReverts() (gas: 40515)
+[PASS] testReliabilityScoreFromStreakOnly() (gas: 123994)
+[PASS] testReliabilityScoreLogVolume() (gas: 147863)
+[PASS] testReliabilityScoreStakeCappedAt20() (gas: 242871)
+[PASS] testReliabilityScoreStakeGrowsOverTime() (gas: 247998)
+[PASS] testReliabilityScoreStakeRequiresTimeToBuild() (gas: 225414)
+[PASS] testReliabilityScoreStreakCappedAt50() (gas: 1326871)
+[PASS] testReliabilityScoreVolumeCappedAt30() (gas: 135965)
+[PASS] testReliabilityScoreZeroForDeadAgent() (gas: 125617)
+[PASS] testReliabilityScoreZeroForUnregisteredAgent() (gas: 17794)
+[PASS] testRequireReliabilityRevertsForDeadAgent() (gas: 16467)
+[PASS] testRequireReliabilityRevertsForLowScore() (gas: 126881)
+[PASS] testRequireReliabilitySucceedsForHighScore() (gas: 125268)
+[PASS] testSetMinPulseAmount() (gas: 15745)
+[PASS] testSetMinPulseAmountRevertsTooHigh() (gas: 11381)
+[PASS] testSetMinPulseAmountRevertsZero() (gas: 11368)
+[PASS] testSetTTL() (gas: 15812)
+[PASS] testSetTTLOnlyOwner() (gas: 14082)
+[PASS] testSetTTLRevertsTooHigh() (gas: 11404)
+[PASS] testSetTTLRevertsZero() (gas: 11305)
+[PASS] testStakeEmitsStakedEvent() (gas: 132830)
+[PASS] testStakeIncreasesStakedAmount() (gas: 133821)
+[PASS] testStakeTransfersTokens() (gas: 139540)
+[PASS] testStakeUnstakeFullCycle() (gas: 122117)
+[PASS] testStakeWithoutApprovalReverts() (gas: 134532)
+[PASS] testStakeZeroReverts() (gas: 20402)
+[PASS] testStreakDoesNotIncrementWithoutMinGap() (gas: 144352)
+[PASS] testStreakIncrementsWithMinGap() (gas: 143999)
+[PASS] testTierBasicForLowScore() (gas: 124044)
+[PASS] testTierPartnerAtThreshold() (gas: 1369981)
+[PASS] testTierProAtThreshold() (gas: 919499)
+[PASS] testTierZeroForDeadAgent() (gas: 125691)
+[PASS] testUnstakeAfterLockup() (gas: 117625)
+[PASS] testUnstakeDuringLockupReverts() (gas: 136563)
+[PASS] testUnstakeEmitsUnstakedEvent() (gas: 118072)
+[PASS] testUnstakeMoreThanStakedReverts() (gas: 138066)
+[PASS] testUnstakePartialAmount() (gas: 146636)
+[PASS] testUnstakeTransfersTokensBack() (gas: 120734)
+Suite result: ok. 65 passed; 0 failed; 0 skipped; finished in 11.06ms (29.75ms CPU time)
+
+Ran 13 tests for test/PulseRegistryExploitV2.t.sol:PulseRegistryExploit
+[PASS] testFeeOnTransferTokenSinkReceivesLess() (gas: 2613751)
+[PASS] testFlashLoanPulseAndRepaySameTx() (gas: 966470)
+[PASS] testFrontRunMinPulseAmountIncrease() (gas: 47611)
+[PASS] testGasGriefingTokenConsumesExcessiveGas() (gas: 6095986)
+[PASS] testMaxParameterBoundaries() (gas: 28258)
+[PASS] testMultiAgentIsolation() (gas: 137433)
+[PASS] testOwnershipTransferSafety() (gas: 41152)
+[PASS] testPauseUnpauseTiming() (gas: 98715)
+[PASS] testReentrancyHookTokenBlocked() (gas: 3054045)
+[PASS] testStreakAdvances_WithSufficientGap() (gas: 103163)
+[PASS] testStreakDayBoundaryGaming_Blocked() (gas: 102384)
+[PASS] testStreakSameBlockNoIncrease() (gas: 99300)
+[PASS] testUpdateHazardOnNeverPulsedAgent() (gas: 39275)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 27.78ms (28.50ms CPU time)
+
+Ran 44 tests for test/PulseRegistry.t.sol:PulseRegistryTest
+[PASS] testBelowMinimumPulseReverts() (gas: 25020)
+[PASS] testConstructorExcessiveMinPulseReverts() (gas: 94410)
+[PASS] testConstructorExcessiveTTLReverts() (gas: 94333)
+[PASS] testConstructorZeroMinPulseReverts() (gas: 94329)
+[PASS] testConstructorZeroSinkReverts() (gas: 94098)
+[PASS] testConstructorZeroTTLReverts() (gas: 94300)
+[PASS] testConstructorZeroTokenReverts() (gas: 94118)
+[PASS] testFirstPulseSetsStreak() (gas: 87476)
+[PASS] testFuzzBelowMinPulseReverts(uint256) (runs: 256, μ: 29389, ~: 29967)
+[PASS] testFuzzPulseAmount(uint256) (runs: 256, μ: 98262, ~: 98424)
+[PASS] testGapResetsStreak() (gas: 101743)
+[PASS] testGetAgentStatusReturnsCorrect() (gas: 94959)
+[PASS] testIsAliveAtExactTTLBoundary() (gas: 95351)
+[PASS] testIsAliveTTL() (gas: 97387)
+[PASS] testLongStreakBuildup() (gas: 217627)
+[PASS] testMultipleAgentsIndependent() (gas: 164320)
+[PASS] testNextDayIncrementsStreak() (gas: 102474)
+[PASS] testOwnable2StepPendingOwnerCannotActBeforeAccept() (gas: 39760)
+[PASS] testOwnable2StepTransfer() (gas: 32987)
+[PASS] testPauseBlocksPulse() (gas: 40786)
+[PASS] testPauseOnlyOwner() (gas: 13754)
+[PASS] testPulseAtDayBoundary() (gas: 105818)
+[PASS] testPulseInsufficientBalance() (gas: 83447)
+[PASS] testPulseNoApproval() (gas: 88257)
+[PASS] testSameDayPulseKeepsStreak() (gas: 99280)
+[PASS] testSetMinPulseAtMaxIsOk() (gas: 15701)
+[PASS] testSetMinPulseOnlyOwner() (gas: 14351)
+[PASS] testSetMinPulseUpperBound() (gas: 11359)
+[PASS] testSetMinPulseZeroReverts() (gas: 11325)
+[PASS] testSetTTLAtMaxIsOk() (gas: 15680)
+[PASS] testSetTTLOnlyOwner() (gas: 14287)
+[PASS] testSetTTLUpperBound() (gas: 11251)
+[PASS] testSetTTLZeroReverts() (gas: 11237)
+[PASS] testStreakResetAfterLongGap() (gas: 163288)
+[PASS] testTokensAreSentToSink() (gas: 93070)
+[PASS] testUnpauseOnlyOwner() (gas: 38423)
+[PASS] testUnpauseReenablesPulse() (gas: 99095)
+[PASS] testUpdateHazard() (gas: 38150)
+[PASS] testUpdateHazardInvalidReverts() (gas: 15200)
+[PASS] testUpdateHazardOnlyOwner() (gas: 16886)
+[PASS] test_pulse_burnVerification() (gas: 95611)
+[PASS] test_pulse_withInsufficientPermitAllowance() (gas: 148212)
+[PASS] test_pulse_withPermitApproval() (gas: 154427)
+[PASS] test_safeTransferFrom_revertsOnFailure() (gas: 87945)
+Suite result: ok. 44 passed; 0 failed; 0 skipped; finished in 48.55ms (87.54ms CPU time)
+
+Ran 8 test suites in 58.25ms (119.71ms CPU time): 202 tests passed, 0 failed, 0 skipped (202 total tests)
