@@ -33,7 +33,8 @@ export interface PaymentResult {
   error?: string;
 }
 
-const SERVER_WALLET_ADDRESS = process.env.SERVER_WALLET_ADDRESS || "0x9508752Ba171D37EBb3AA437927458E0a21D1e04";
+// Default to Treasury Safe multisig for payment collection
+const SERVER_WALLET_ADDRESS = process.env.SERVER_WALLET_ADDRESS || "0xA7940a42c30A7F492Ed578F3aC728c2929103E43";
 
 // ============================================
 // PAYMENT SETTLEMENT
