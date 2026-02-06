@@ -4,6 +4,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { formatUnits } from "viem";
 import styles from "../page.module.css";
 import { publicEnv } from "../lib/env.public";
+import { useAddToken } from "../hooks/useAddToken";
 import { useAgentStatus } from "../hooks/useAgentStatus";
 import { usePulse } from "../hooks/usePulse";
 import { useWallet } from "../hooks/useWallet";
@@ -50,6 +51,7 @@ export default function WalletPanel() {
     balanceLoading,
   } = usePulse();
   const agentStatus = useAgentStatus(address);
+  const { addToken, added: tokenAdded } = useAddToken();
 
   const walletConnectEnabled = Boolean(publicEnv.walletConnectProjectId);
 
@@ -207,6 +209,18 @@ export default function WalletPanel() {
               </button>
             )}
             <span className={styles.muted}>Min pulse: {minPulseLabel}</span>
+          </div>
+
+          <div className={styles.row}>
+            <button
+              className={styles.buttonGhost}
+              type="button"
+              onClick={() => void addToken()}
+              disabled={tokenAdded}
+              title="Add PULSE token to your wallet"
+            >
+              {tokenAdded ? "✓ Added to wallet" : "＋ Add PULSE to wallet"}
+            </button>
           </div>
 
           {statusMessage ? (
