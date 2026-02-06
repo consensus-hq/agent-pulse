@@ -161,7 +161,7 @@ describe("API integration (HTTP-level)", () => {
       type: "event",
       chainId: 84532,
       contractAddress: "0x2222222222222222222222222222222222222222",
-      signature: "Pulse(address,uint256,uint256,uint256)",
+      signature: "PulseV2(address,uint256,uint256,uint256,uint256)",
       eventName: "Pulse",
       data: {
         agent: "0x1111111111111111111111111111111111111111",

@@ -51,6 +51,7 @@ interface InsightWebhookPayload {
     amount: string;
     timestamp: string;
     streak: string;
+    totalBurned?: string;
   };
   /** Transaction details */
   transaction: {
@@ -190,6 +191,7 @@ function extractPulseEvent(payload: InsightWebhookPayload): PulseEvent {
     amount: BigInt(payload.data.amount),
     timestamp: Number(payload.data.timestamp),
     streak: Number(payload.data.streak),
+    totalBurned: BigInt(payload.data.totalBurned ?? 0),
     blockNumber: payload.transaction.blockNumber,
     logIndex: payload.log.logIndex,
     transactionHash: payload.transaction.hash,

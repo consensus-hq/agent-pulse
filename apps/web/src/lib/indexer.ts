@@ -55,7 +55,7 @@ export class PulseIndexer {
     // 2. Fetch logs
     const logs = await this.client.getLogs({
       address: CONTRACT_ADDRESS,
-      event: parseAbiItem('event Pulse(address indexed agent, uint256 amount, uint256 timestamp, uint256 streak)'),
+      event: parseAbiItem('event PulseV2(address indexed agent, uint256 amount, uint256 timestamp, uint256 streak, uint256 totalBurned)'),
       fromBlock,
       toBlock
     });
