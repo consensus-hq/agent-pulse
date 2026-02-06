@@ -1,301 +1,530 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useActiveAccount, useActiveWallet } from "thirdweb/react";
+import { base } from "viem/chains";
 import styles from "../page.module.css";
-import { useWallet } from "../hooks/useWallet";
 
-interface TokenHolding {
-  symbol: string;
-  balance: string;
-  valueUsd: string;
-  address?: string;
-}
-
-interface DefiData {
-  pulsePrice?: string;
-  priceChange24h?: string;
-  portfolio?: {
-    totalValue: string;
-    tokens: TokenHolding[];
-  };
-  swapQuote?: {
-    fromToken: string;
-    fromAmount: string;
-    toToken: string;
-    toAmount: string;
-    exchangeRate: string;
-    slippage: string;
-  };
-}
-
-interface DefiApiResponse {
-  price?: string;
-  priceChange24h?: string;
-  portfolio?: {
-    totalValue: string;
-    tokens: Array<{
+/**
+ * Portfolio data from HeyElsa
+ */
+interface HeyElsaPortfolio {
+  wallet_address: string;
+  total_value_usd: string;
+  chains: string[];
+  portfolio: {
+    balances: Array<{
       symbol: string;
+      name: string;
+      address: string;
+      chain: string;
       balance: string;
-      valueUsd: string;
-      address?: string;
+      priceUSD: string;
+      valueUSD: string;
     }>;
+    defi_positions?: unknown[];
+    staking_positions?: unknown[];
   };
-  swapQuote?: {
-    fromToken: string;
-    fromAmount: string;
-    toToken: string;
-    toAmount: string;
-    exchangeRate: string;
-    slippage: string;
-  };
-  error?: string;
 }
 
-const formatPrice = (price?: string) => {
-  if (!price) return "—";
-  const num = parseFloat(price);
-  if (Number.isNaN(num)) return "—";
-  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
-};
+interface PortfolioError {
+  type: "NO_WALLET" | "WRONG_NETWORK" | "SERVER_ERROR" | "NETWORK_ERROR" | "UNKNOWN";
+  message: string;
+}
 
-const formatChange = (change?: string) => {
-  if (!change) return null;
-  const num = parseFloat(change);
-  if (Number.isNaN(num)) return null;
-  const sign = num >= 0 ? "+" : "";
-  return `${sign}${num.toFixed(2)}%`;
-};
+interface UsePortfolioResult {
+  data: HeyElsaPortfolio | null;
+  loading: boolean;
+  error: PortfolioError | null;
+  lastUpdated: Date | null;
+  isCached: boolean;
+  refresh: (force?: boolean) => Promise<void>;
+}
 
-const formatUsd = (value?: string) => {
-  if (!value) return "—";
-  const num = parseFloat(value);
-  if (Number.isNaN(num)) return "—";
-  return `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
-
-export default function DefiPanel() {
-  const { address, isConnected } = useWallet();
-  const [defiData, setDefiData] = useState<DefiData | null>(null);
+/**
+ * Hook to fetch portfolio from our server-side proxy
+ * No x402 client-side code needed - server handles all payments
+ */
+function usePortfolio(): UsePortfolioResult {
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
+  
+  const [data, setData] = useState<HeyElsaPortfolio | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [swapLoading, setSwapLoading] = useState(false);
+  const [error, setError] = useState<PortfolioError | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isCached, setIsCached] = useState(false);
 
-  const fetchDefiData = useCallback(async () => {
-    if (!isConnected || !address) return;
-    
+  const chainId = wallet?.getChain()?.id;
+  const isCorrectNetwork = chainId === base.id;
+  const isConnected = !!account;
+
+  const refresh = useCallback(async (force = false) => {
+    if (!account) {
+      setError({ type: "NO_WALLET", message: "Connect your wallet to view DeFi positions" });
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      setError({ 
+        type: "WRONG_NETWORK", 
+        message: `Please switch to Base network (current: chain ${chainId ?? "unknown"})` 
+      });
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/defi?action=portfolio&address=${address}`);
-      const data: DefiApiResponse = await response.json();
-      
+      const response = await fetch(
+        `/api/defi?action=portfolio&address=${account.address}`,
+        {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          // Add cache-busting if forcing refresh
+          ...(force && { cache: "no-store" }),
+        }
+      );
+
       if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 503) {
+          throw new Error(errorData.message || "HeyElsa service unavailable");
+        }
+        
+        throw new Error(errorData.message || `Server error: ${response.status}`);
       }
+
+      const result = await response.json();
       
-      setDefiData({
-        pulsePrice: data.price,
-        priceChange24h: data.priceChange24h,
-        portfolio: data.portfolio,
-        swapQuote: data.swapQuote,
-      });
+      setData(result);
       setLastUpdated(new Date());
+      setIsCached(result._cached === true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to fetch DeFi data";
-      // Show user-friendly message for upstream unavailability
-      if (msg.includes("unavailable") || msg.includes("not configured") || msg.includes("503")) {
-        setError("DeFi data integration pending — token activity available via Status Query above.");
+      console.error("Failed to fetch portfolio:", err);
+      
+      const message = err instanceof Error ? err.message : String(err);
+      
+      if (message.includes("HeyElsa") || message.includes("503")) {
+        setError({
+          type: "SERVER_ERROR",
+          message: "HeyElsa data service is temporarily unavailable. Please try again later.",
+        });
+      } else if (message.includes("network") || message.includes("fetch")) {
+        setError({
+          type: "NETWORK_ERROR",
+          message: "Network error. Please check your connection and try again.",
+        });
       } else {
-        setError(msg);
+        setError({
+          type: "UNKNOWN",
+          message: message || "Failed to fetch portfolio data",
+        });
       }
     } finally {
       setLoading(false);
     }
-  }, [isConnected, address]);
+  }, [account, isCorrectNetwork, chainId]);
 
-  const fetchSwapQuote = useCallback(async () => {
-    if (!isConnected || !address) return;
+  return { data, loading, error, lastUpdated, isCached, refresh };
+}
 
-    setSwapLoading(true);
-    setError(null);
+/**
+ * Get user-friendly error message
+ */
+function getErrorDisplay(error: PortfolioError | null): {
+  title: string;
+  message: string;
+} {
+  if (!error) return { title: "", message: "" };
 
-    try {
-      // Fetch price to calculate swap quote
-      const response = await fetch(`/api/defi?action=price&address=${address}`);
-      const data = await response.json();
+  switch (error.type) {
+    case "NO_WALLET":
+      return {
+        title: "Wallet not connected",
+        message: "Connect your wallet to view DeFi positions.",
+      };
+    case "WRONG_NETWORK":
+      return {
+        title: "Wrong network",
+        message: "Please switch to Base network to fetch portfolio data.",
+      };
+    case "SERVER_ERROR":
+      return {
+        title: "Service unavailable",
+        message: error.message,
+      };
+    case "NETWORK_ERROR":
+      return {
+        title: "Network error",
+        message: "Unable to connect. Please check your internet connection.",
+      };
+    default:
+      return {
+        title: "Error",
+        message: error.message || "Something went wrong fetching portfolio data.",
+      };
+  }
+}
 
-      if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`);
-      }
+/**
+ * DeFi Panel Component
+ * 
+ * Displays portfolio data from HeyElsa via server-side proxy.
+ * 
+ * Features:
+ * - Server handles x402 payments (no wallet popups)
+ * - 60-second server-side cache
+ * - Clean error states
+ * - "Powered by HeyElsa x402" attribution
+ */
+export default function DefiPanel() {
+  const account = useActiveAccount();
+  const wallet = useActiveWallet();
 
-      // Calculate mock swap quote based on price (100 USDC → PULSE)
-      const usdcAmount = 100;
-      const pulsePrice = parseFloat(data.price || "0");
-      const pulseAmount = pulsePrice > 0 ? (usdcAmount / pulsePrice).toFixed(4) : "0";
+  const { data, loading, error, lastUpdated, isCached, refresh } = usePortfolio();
 
-      setDefiData(prev => ({
-        ...prev,
-        pulsePrice: data.price ?? prev?.pulsePrice,
-        swapQuote: {
-          fromToken: "USDC",
-          fromAmount: usdcAmount.toString(),
-          toToken: "PULSE",
-          toAmount: pulseAmount,
-          exchangeRate: pulsePrice > 0 ? `1 PULSE = $${pulsePrice.toFixed(6)}` : "N/A",
-          slippage: "0.5%",
-        },
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch swap quote");
-    } finally {
-      setSwapLoading(false);
-    }
-  }, [isConnected, address]);
+  const chainId = wallet?.getChain()?.id;
+  const isCorrectNetwork = chainId === base.id;
+  const isConnected = !!account;
 
-  // Auto-refresh every 30 seconds when connected
-  useEffect(() => {
-    if (!isConnected) return;
-    
-    void fetchDefiData();
-    
-    const interval = setInterval(() => {
-      void fetchDefiData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [isConnected, address, fetchDefiData]);
+  const errorDisplay = getErrorDisplay(error);
 
-  const changeValue = formatChange(defiData?.priceChange24h);
-  const isPositiveChange = changeValue && changeValue.startsWith("+");
-  const isNegativeChange = changeValue && changeValue.startsWith("-");
+  // Format portfolio value
+  const portfolioValue = data?.total_value_usd
+    ? `$${parseFloat(data.total_value_usd).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : null;
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>DeFi Panel</h2>
-        <span className={styles.tag}>HeyElsa</span>
+        <h2 className={styles.sectionTitle}>DeFi Portfolio</h2>
+        <span className={styles.tag}>HeyElsa x402</span>
       </div>
 
-      {!isConnected ? (
-        <p className={styles.muted}>
-          Connect a wallet to view your DeFi portfolio and PULSE price data.
-        </p>
-      ) : (
+      {/* Attribution */}
+      <div
+        style={{
+          padding: "12px 16px",
+          backgroundColor: "rgba(0, 123, 255, 0.1)",
+          border: "1px solid rgba(0, 123, 255, 0.3)",
+          borderRadius: "6px",
+          marginBottom: "16px",
+          fontSize: "0.85rem",
+          color: "#aaa",
+        }}
+      >
+        <span style={{ color: "#6af" }}>ℹ️</span> Portfolio data powered by{" "}
+        <a 
+          href="https://x402.heyelsa.ai" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: "#6af", textDecoration: "none" }}
+        >
+          HeyElsa x402
+        </a>
+        . Data refreshes every 60 seconds.
+      </div>
+
+      {/* Not connected state */}
+      {!isConnected && (
+        <div
+          style={{
+            padding: "24px",
+            textAlign: "center",
+            backgroundColor: "rgba(255, 255, 255, 0.03)",
+            borderRadius: "8px",
+          }}
+        >
+          <p className={styles.muted} style={{ marginBottom: "12px" }}>
+            Connect your wallet to view DeFi positions
+          </p>
+          <p style={{ fontSize: "0.8rem", color: "#666" }}>
+            Portfolio data requires a connected wallet on Base network
+          </p>
+        </div>
+      )}
+
+      {/* Connected but not on Base */}
+      {isConnected && !isCorrectNetwork && (
+        <div
+          style={{
+            padding: "16px",
+            backgroundColor: "rgba(255, 193, 7, 0.1)",
+            border: "1px solid rgba(255, 193, 7, 0.3)",
+            borderRadius: "6px",
+            marginBottom: "16px",
+          }}
+        >
+          <p style={{ color: "#ffc107", marginBottom: "8px" }}>
+            ⚠️ Wrong Network
+          </p>
+          <p className={styles.muted}>
+            Please switch to Base network to fetch portfolio data.
+            <br />
+            Current: Chain {chainId ?? "unknown"}
+          </p>
+        </div>
+      )}
+
+      {/* Connected state */}
+      {isConnected && isCorrectNetwork && (
         <>
-          {/* PULSE Price Section */}
-          <div className={styles.panelSection}>
-            <p className={styles.sectionLabel}>PULSE Token Price</p>
-            <div className={styles.panelRow}>
-              <span className={styles.value} style={{ fontSize: "20px", fontWeight: 500 }}>
-                {formatPrice(defiData?.pulsePrice)}
-              </span>
-              {changeValue && (
-                <span
-                  className={
-                    isPositiveChange
-                      ? styles.successIndicator
-                      : isNegativeChange
-                      ? styles.errorIndicator
-                      : styles.mutedIndicator
-                  }
-                >
-                  {changeValue}
-                </span>
-              )}
-              {loading && <span className={styles.loadingDot}>⟳</span>}
-            </div>
-            {lastUpdated && (
-              <p className={styles.muted}>
-                Last updated: {lastUpdated.toLocaleTimeString()}
+          {/* Initial state - no data yet */}
+          {!data && !loading && !error && (
+            <div
+              style={{
+                padding: "24px",
+                textAlign: "center",
+                backgroundColor: "rgba(255, 255, 255, 0.03)",
+                borderRadius: "8px",
+              }}
+            >
+              <p className={styles.muted} style={{ marginBottom: "16px" }}>
+                View your DeFi portfolio across multiple chains
               </p>
-            )}
-          </div>
-
-          {/* Portfolio Section */}
-          <div className={styles.panelSection}>
-            <p className={styles.sectionLabel}>Portfolio Value</p>
-            <div className={styles.panelRow}>
-              <span className={styles.value} style={{ fontSize: "18px" }}>
-                {formatUsd(defiData?.portfolio?.totalValue)}
-              </span>
-            </div>
-            
-            {defiData?.portfolio?.tokens && defiData.portfolio.tokens.length > 0 ? (
-              <div className={styles.walletStats} style={{ marginTop: "12px" }}>
-                {defiData.portfolio.tokens.map((token) => (
-                  <div key={token.symbol}>
-                    <p className={styles.walletLabel}>{token.symbol}</p>
-                    <p className={styles.walletValue}>
-                      {parseFloat(token.balance).toLocaleString("en-US", { maximumFractionDigits: 4 })} 
-                      <span className={styles.muted}> ({formatUsd(token.valueUsd)})</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.muted}>No token holdings found.</p>
-            )}
-          </div>
-
-          {/* Swap Quote Section */}
-          <div className={styles.panelSection}>
-            <p className={styles.sectionLabel}>Swap Quote</p>
-            {defiData?.swapQuote ? (
-              <div className={styles.codeBlock} style={{ margin: "8px 0" }}>
-                <div className={styles.panelRow}>
-                  <span className={styles.label}>From:</span>
-                  <span className={styles.value}>
-                    {defiData.swapQuote.fromAmount} {defiData.swapQuote.fromToken}
-                  </span>
-                </div>
-                <div className={styles.panelRow}>
-                  <span className={styles.label}>To:</span>
-                  <span className={styles.value}>
-                    {defiData.swapQuote.toAmount} {defiData.swapQuote.toToken}
-                  </span>
-                </div>
-                <div className={styles.panelRow}>
-                  <span className={styles.label}>Rate:</span>
-                  <span className={styles.value}>{defiData.swapQuote.exchangeRate}</span>
-                </div>
-                <div className={styles.panelRow}>
-                  <span className={styles.label}>Slippage:</span>
-                  <span className={styles.muted}>{defiData.swapQuote.slippage}</span>
-                </div>
-              </div>
-            ) : (
-              <p className={styles.muted}>Click &ldquo;Get PULSE&rdquo; to fetch a swap quote.</p>
-            )}
-            
-            <div className={styles.row}>
               <button
                 className={styles.button}
-                onClick={fetchSwapQuote}
-                disabled={swapLoading || !isConnected}
-              >
-                {swapLoading ? "Loading…" : "Get PULSE"}
-              </button>
-              <button
-                className={styles.buttonGhost}
-                onClick={() => void fetchDefiData()}
+                onClick={() => refresh()}
                 disabled={loading}
               >
-                Refresh
+                View Portfolio
               </button>
             </div>
-          </div>
+          )}
 
-          {/* Error Display */}
-          {error && (
-            <div className={styles.statusRow}>
-              <span className={styles.errorIndicator}>✗</span>
-              <span className={styles.error}>{error}</span>
+          {/* Loading state */}
+          {loading && (
+            <div style={{ padding: "24px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                <div
+                  className={styles.loadingDot}
+                  style={{ fontSize: "1.2rem" }}
+                >
+                  ⟳
+                </div>
+                <span className={styles.muted}>Fetching portfolio...</span>
+              </div>
+              {/* Skeleton loading */}
+              <div>
+                <SkeletonLine width="60%" />
+                <SkeletonLine width="40%" />
+                <SkeletonLine width="80%" />
+                <SkeletonLine width="50%" />
+              </div>
+            </div>
+          )}
+
+          {/* Error state */}
+          {error && !loading && (
+            <div
+              style={{
+                padding: "16px",
+                backgroundColor: "rgba(220, 53, 69, 0.1)",
+                border: "1px solid rgba(220, 53, 69, 0.3)",
+                borderRadius: "6px",
+                marginBottom: "16px",
+              }}
+            >
+              <p style={{ color: "#ff6b6b", marginBottom: "8px" }}>
+                {errorDisplay.title}
+              </p>
+              <p className={styles.muted} style={{ marginBottom: "12px" }}>
+                {errorDisplay.message}
+              </p>
+              <button
+                className={styles.buttonGhost}
+                onClick={() => refresh(true)}
+                style={{ fontSize: "0.85rem" }}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Success state - Portfolio data */}
+          {data && !loading && (
+            <div>
+              {/* Total Value */}
+              <div
+                style={{
+                  padding: "16px",
+                  backgroundColor: "rgba(40, 167, 69, 0.1)",
+                  borderRadius: "8px",
+                  marginBottom: "16px",
+                }}
+              >
+                <p className={styles.muted} style={{ fontSize: "0.85rem" }}>
+                  Total Portfolio Value
+                </p>
+                <p
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 600,
+                    color: "#28a745",
+                  }}
+                >
+                  {portfolioValue}
+                </p>
+                {data.chains && data.chains.length > 0 && (
+                  <p
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "#888",
+                      marginTop: "4px",
+                    }}
+                  >
+                    Across {data.chains.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              {/* Token Holdings */}
+              {data.portfolio?.balances &&
+                data.portfolio.balances.length > 0 && (
+                  <div style={{ marginBottom: "16px" }}>
+                    <p
+                      className={styles.sectionLabel}
+                      style={{ marginBottom: "12px" }}
+                    >
+                      Token Holdings
+                    </p>
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "8px",
+                      }}
+                    >
+                      {data.portfolio.balances.map((token) => (
+                        <div
+                          key={token.address || token.symbol}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "12px",
+                            backgroundColor: "rgba(255, 255, 255, 0.03)",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          <div>
+                            <p style={{ fontWeight: 500 }}>{token.symbol}</p>
+                            <p
+                              style={{
+                                fontSize: "0.8rem",
+                                color: "#888",
+                              }}
+                            >
+                              {parseFloat(token.balance).toLocaleString(
+                                "en-US",
+                                {
+                                  maximumFractionDigits: 6,
+                                }
+                              )}{" "}
+                              {token.symbol}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <p style={{ fontWeight: 500 }}>
+                              ${parseFloat(token.valueUSD || "0").toLocaleString("en-US", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </p>
+                            <p
+                              style={{
+                                fontSize: "0.8rem",
+                                color: "#888",
+                              }}
+                            >
+                              @ ${parseFloat(token.priceUSD || "0").toLocaleString("en-US", {
+                                minimumFractionDigits: 4,
+                                maximumFractionDigits: 6,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Refresh button with cache status */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  padding: "12px",
+                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                  borderRadius: "6px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <button
+                    className={styles.button}
+                    onClick={() => refresh(true)}
+                    disabled={loading}
+                  >
+                    Refresh
+                  </button>
+                  {isCached && (
+                    <span
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#28a745",
+                      }}
+                    >
+                      Cached
+                    </span>
+                  )}
+                </div>
+                {lastUpdated && (
+                  <p className={styles.muted} style={{ fontSize: "0.75rem" }}>
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * Skeleton loading line component
+ */
+function SkeletonLine({ width }: { width: string }) {
+  return (
+    <div
+      style={{
+        height: "16px",
+        width,
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        borderRadius: "4px",
+        marginBottom: "12px",
+        animation: "pulse 1.5s ease-in-out infinite",
+      }}
+    />
   );
 }
