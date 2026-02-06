@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WalletPanel from "./components/WalletPanel";
 import { Erc8004Panel } from "./components/Erc8004Panel";
 import { PageHeader } from "./components/PageHeader";
@@ -57,8 +57,12 @@ export default function Home() {
     return () => window.clearInterval(id);
   }, []);
 
+  const feedInitialLoad = useRef(true);
   const fetchPulseFeed = useCallback(async () => {
-    setFeedLoading(true);
+    // Only show loading spinner on initial load, not refreshes
+    if (feedInitialLoad.current) {
+      setFeedLoading(true);
+    }
     setFeedError("");
     try {
       const response = await fetch(feedUrl, { cache: "no-store" });
@@ -68,6 +72,10 @@ export default function Home() {
         setFeedError(payload?.error ?? "Pulse feed unavailable.");
         setFeedData(null);
       } else {
+        // Map meta.timestamp (seconds) to updatedAt (ms) if not present
+        if (!payload.updatedAt && payload.meta?.timestamp) {
+          payload.updatedAt = payload.meta.timestamp * 1000;
+        }
         setFeedData(payload);
       }
     } catch {
@@ -75,6 +83,7 @@ export default function Home() {
       setFeedData(null);
     } finally {
       setFeedLoading(false);
+      feedInitialLoad.current = false;
     }
   }, [feedUrl]);
 
