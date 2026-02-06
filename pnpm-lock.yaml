@@ -32,6 +32,9 @@ importers:
       '@x402/evm':
         specifier: ^2.2.0
         version: 2.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+      '@x402/fetch':
+        specifier: ^2.2.0
+        version: 2.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
       '@x402/next':
         specifier: ^2.2.0
         version: 2.3.0(bufferutil@4.1.0)(ethers@6.16.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(fastestsmallesttextencoderdecoder@1.0.22)(next@16.1.6(@babel/core@7.29.0)(@playwright/test@1.58.1)(babel-plugin-macros@3.1.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(typescript@5.9.3)(utf-8-validate@5.0.10)
@@ -2618,6 +2621,9 @@ packages:
 
   '@x402/extensions@2.3.0':
     resolution: {integrity: sha512-hpx4CQ/fvfimwKQgw2LVu5Nj4s6+mzOAu3bhYE/5YtkMe49r2nxlTdhBoqjXs1nP7osL08r06wr1EVdzEdtYYQ==}
+
+  '@x402/fetch@2.3.0':
+    resolution: {integrity: sha512-XyY5wcR1gClC5QXJ4ev8O95ZHpiF8UMh5KkMHPYlNqxi59WNXR563XZE8LVoBd/fgRhDdjAoXlqwqBuDL50HOw==}
 
   '@x402/next@2.3.0':
     resolution: {integrity: sha512-PNV/OycHjdIOiD3J+3odBNMjqgaMXy/TG2+BFBoXJOa2A1XN2fDV7NhjhvQRbEqUV4X0TQkX/ZkxoKp9wOgevA==}
@@ -10334,6 +10340,16 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - ethers
+      - typescript
+      - utf-8-validate
+
+  '@x402/fetch@2.3.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@x402/core': 2.3.0
+      viem: 2.45.1(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
       - typescript
       - utf-8-validate
 
