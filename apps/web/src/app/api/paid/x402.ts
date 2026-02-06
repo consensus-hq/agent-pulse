@@ -15,31 +15,42 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 // ============================================
-// THIRDWEB CLIENT SETUP
+// THIRDWEB CLIENT SETUP (lazy — no throws at import time)
 // ============================================
 
-const secretKey = process.env.THIRDWEB_SECRET_KEY;
-const serverWalletAddress = process.env.SERVER_WALLET_ADDRESS;
-
-if (!secretKey) {
-  throw new Error("THIRDWEB_SECRET_KEY is required for x402 payments");
+function getSecretKey(): string {
+  const key = process.env.THIRDWEB_SECRET_KEY;
+  if (!key) throw new Error("THIRDWEB_SECRET_KEY is required for x402 payments");
+  return key;
 }
 
-if (!serverWalletAddress) {
-  throw new Error("SERVER_WALLET_ADDRESS is required for x402 payments");
+function getServerWalletAddress(): string {
+  const addr = process.env.SERVER_WALLET_ADDRESS;
+  if (!addr) throw new Error("SERVER_WALLET_ADDRESS is required for x402 payments");
+  return addr;
 }
 
-/**
- * Thirdweb client instance for x402 operations
- */
-export const thirdwebClient = createThirdwebClient({ secretKey });
+let _client: ReturnType<typeof createThirdwebClient> | null = null;
+function getClient() {
+  if (!_client) _client = createThirdwebClient({ secretKey: getSecretKey() });
+  return _client;
+}
 
-/**
- * Thirdweb facilitator for payment settlement
- */
-export const thirdwebFacilitator = facilitator({
-  client: thirdwebClient,
-  serverWalletAddress,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _facilitator: any = null;
+function getFacilitator() {
+  if (!_facilitator) {
+    _facilitator = facilitator({
+      client: getClient(),
+      serverWalletAddress: getServerWalletAddress(),
+    });
+  }
+  return _facilitator;
+}
+
+// Backward-compat named exports (lazy)
+export const thirdwebClient = new Proxy({} as ReturnType<typeof createThirdwebClient>, {
+  get: (_target, prop) => (getClient() as Record<string | symbol, unknown>)[prop],
 });
 
 // ============================================
@@ -70,10 +81,6 @@ export interface PaymentResult {
 
 /**
  * Settle x402 payment from request headers
- * 
- * @param request - Next.js request object
- * @param price - Price string (e.g., "$0.02")
- * @returns Payment settlement result
  */
 export async function settleX402Payment(
   request: NextRequest,
@@ -97,10 +104,10 @@ export async function settleX402Payment(
       resourceUrl: request.url,
       method: request.method,
       paymentData,
-      payTo: serverWalletAddress!,
+      payTo: getServerWalletAddress(),
       network: base,
       price,
-      facilitator: thirdwebFacilitator,
+      facilitator: getFacilitator(),
     });
 
     if (result.status === 200) {
@@ -128,11 +135,7 @@ export async function settleX402Payment(
 }
 
 /**
- * Higher-order function that wraps a route handler with x402 payment verification
- * 
- * @param price - Price for this endpoint
- * @param handler - Route handler to execute after payment verification
- * @returns Wrapped route handler
+ * Higher-order function wrapping a route handler with x402 payment verification
  */
 export function withPayment<T>(
   price: string,
@@ -156,22 +159,14 @@ export function withPayment<T>(
       ) as NextResponse<{ error: string; paymentRequired?: boolean }>;
     }
 
-    // Payment successful, execute the handler
     return handler(request, paymentResult.payment!);
   };
 }
 
 // ============================================
-// 402 CHALLENGE RESPONSE (for clients that need payment requirements)
+// 402 CHALLENGE RESPONSE
 // ============================================
 
-/**
- * Generate a 402 Payment Required response with x402 requirements
- * 
- * @param price - Price for the resource
- * @param resource - Resource URL/path
- * @returns NextResponse with 402 status and payment requirements
- */
 export function create402Response(price: string, resource: string): NextResponse {
   return NextResponse.json(
     {
@@ -184,7 +179,7 @@ export function create402Response(price: string, resource: string): NextResponse
           resource,
           description: "USDC payment required to access this resource",
           mimeType: "application/json",
-          payTo: serverWalletAddress,
+          payTo: getServerWalletAddress(),
           asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
           maxTimeoutSeconds: 300,
         },
