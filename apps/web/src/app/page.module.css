@@ -328,6 +328,36 @@
   letter-spacing: 0.3px;
 }
 
+.socialLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.socialLink:hover {
+  color: var(--accent);
+  border-color: var(--accent-muted);
+  background: rgba(74, 222, 128, 0.04);
+}
+
+.socialIcon {
+  font-size: 13px;
+}
+
 /* ERC-8004 Panel Styles */
 .erc8004Panel {
   border: 1px solid var(--border);
