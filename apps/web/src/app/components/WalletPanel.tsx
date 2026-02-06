@@ -33,8 +33,10 @@ export default function WalletPanel() {
   const {
     status,
     error,
+    approvalMethod,
     approve,
     pulse,
+    sendPulseAuto,
     allowance,
     balance,
     minPulseAmount,
@@ -61,8 +63,7 @@ export default function WalletPanel() {
     ? `${formatTokenAmount(minPulseAmount, decimals)} ${symbol}`
     : "—";
 
-  const canApprove = isReady && needsApproval && !isPending;
-  const canPulse = isReady && !needsApproval && minPulseAmount > 0n && !isPending;
+  const canPulse = isReady && minPulseAmount > 0n && !isPending;
 
   const pulseSignalLabel = agentStatus.loading
     ? "loading…"
@@ -73,8 +74,11 @@ export default function WalletPanel() {
     : "stale";
 
   const statusMessage = (() => {
-    if (status === "approving") return "Approval pending…";
-    if (status === "approved") return "Approval confirmed.";
+    if (status === "signing") return "Sign permit in wallet…";
+    if (status === "approving") return approvalMethod === "permit"
+      ? "Submitting permit…"
+      : "Approval pending…";
+    if (status === "approved") return "Approved — sending pulse…";
     if (status === "pulsing") return "Pulse pending…";
     if (status === "confirmed") return "Pulse confirmed.";
     if (status === "error") return error || "Transaction failed.";
@@ -85,7 +89,7 @@ export default function WalletPanel() {
     ? styles.statusError
     : status === "approved" || status === "confirmed"
     ? styles.statusSuccess
-    : status === "approving" || status === "pulsing"
+    : status === "signing" || status === "approving" || status === "pulsing"
     ? styles.statusPending
     : "";
 
@@ -183,23 +187,23 @@ export default function WalletPanel() {
           </div>
 
           <div className={styles.row}>
-            {needsApproval ? (
+            <button
+              className={styles.button}
+              type="button"
+              onClick={() => void sendPulseAuto()}
+              disabled={!canPulse}
+            >
+              {needsApproval ? "Sign & Pulse" : "Send pulse"}
+            </button>
+            {needsApproval && (
               <button
-                className={styles.button}
+                className={styles.buttonGhost}
                 type="button"
                 onClick={() => void approve()}
-                disabled={!canApprove}
+                disabled={!isReady || isPending}
+                title="Use a standard ERC-20 approval transaction instead of EIP-2612 permit"
               >
-                Approve
-              </button>
-            ) : (
-              <button
-                className={styles.button}
-                type="button"
-                onClick={() => void pulse()}
-                disabled={!canPulse}
-              >
-                Send pulse
+                Approve (tx)
               </button>
             )}
             <span className={styles.muted}>Min pulse: {minPulseLabel}</span>
@@ -207,7 +211,7 @@ export default function WalletPanel() {
 
           {statusMessage ? (
             <div className={styles.statusRow}>
-              {(status === "approving" || status === "pulsing") && (
+              {(status === "signing" || status === "approving" || status === "pulsing") && (
                 <span className={styles.spinner} aria-hidden="true" />
               )}
               {(status === "approved" || status === "confirmed") && (
