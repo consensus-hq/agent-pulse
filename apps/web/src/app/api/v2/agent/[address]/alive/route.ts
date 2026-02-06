@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http, isAddress } from "viem";
-import { baseSepolia } from "viem/chains";
+import { createPublicClient, http, isAddress, type Chain } from "viem";
+import { base, baseSepolia } from "viem/chains";
 
 /**
  * GET /api/v2/agent/{address}/alive
@@ -13,7 +13,13 @@ import { baseSepolia } from "viem/chains";
  * If we gate the basic check, nobody uses the filter."
  */
 
-const PULSE_REGISTRY = process.env.NEXT_PUBLIC_PULSE_REGISTRY || "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612";
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const IS_MAINNET = CHAIN_ID === "8453";
+
+const CHAIN: Chain = IS_MAINNET ? base : baseSepolia;
+const DEFAULT_RPC = IS_MAINNET ? "https://mainnet.base.org" : "https://sepolia.base.org";
+
+const PULSE_REGISTRY = process.env.NEXT_PUBLIC_PULSE_REGISTRY || process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612";
 const TTL_SECONDS = 86400; // 24 hours
 
 const REGISTRY_ABI = [
@@ -24,7 +30,7 @@ const REGISTRY_ABI = [
       { name: "isAlive", type: "bool" },
       { name: "lastPulse", type: "uint256" },
       { name: "streak", type: "uint256" },
-      { name: "stakeAmount", type: "uint256" },
+      { name: "totalBurned", type: "uint256" },
     ],
     stateMutability: "view",
     type: "function",
@@ -46,8 +52,8 @@ export async function GET(
 
   try {
     const client = createPublicClient({
-      chain: baseSepolia,
-      transport: http(process.env.NEXT_PUBLIC_RPC_URL || "https://sepolia.base.org"),
+      chain: CHAIN,
+      transport: http(process.env.NEXT_PUBLIC_RPC_URL || DEFAULT_RPC),
     });
 
     const result = await client.readContract({

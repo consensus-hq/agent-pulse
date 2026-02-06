@@ -6,26 +6,28 @@ import burnWithFeeAbi from "@/lib/abi-BurnWithFee.json";
 
 export const runtime = 'edge';
 
+const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532", 10);
+
 const CONTRACTS = {
   PulseRegistry: {
     address: process.env.NEXT_PUBLIC_REGISTRY_ADDRESS,
     abi: pulseRegistryAbi,
-    chainId: 84532
+    chainId: CHAIN_ID
   },
   PulseToken: {
     address: process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS,
     abi: pulseTokenAbi,
-    chainId: 84532
+    chainId: CHAIN_ID
   },
   PeerAttestation: {
     address: process.env.NEXT_PUBLIC_PEER_ATTESTATION_ADDRESS,
     abi: peerAttestationAbi,
-    chainId: 84532
+    chainId: CHAIN_ID
   },
   BurnWithFee: {
     address: process.env.NEXT_PUBLIC_BURN_WITH_FEE_ADDRESS,
     abi: burnWithFeeAbi,
-    chainId: 84532
+    chainId: CHAIN_ID
   }
 };
 
