@@ -15,8 +15,8 @@ import {
   type State,
   elizaLogger,
 } from "@elizaos/core";
-import type { AgentStatus, ProtocolConfig, ProtocolHealth } from "../types.ts";
-import { isValidAddress } from "../environment.ts";
+import type { AgentStatus, ProtocolConfig, ProtocolHealth } from "../types";
+import { isValidAddress } from "../environment";
 
 /**
  * Action name for getAgentStatus
@@ -51,11 +51,11 @@ const getStatusAction: Action = {
   examples: [
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Check my agent status" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Agent status: Alive ✅\nLast pulse: 2 hours ago\nStreak: 5 days\nHazard: 0/100",
           action: GET_STATUS_ACTION,
@@ -64,11 +64,11 @@ const getStatusAction: Action = {
     ],
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Is 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb alive?" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Agent status: Dead ❌\nLast pulse: 3 days ago\nTTL expired",
           action: GET_STATUS_ACTION,
@@ -77,8 +77,9 @@ const getStatusAction: Action = {
     ],
   ] as ActionExample[][],
 
+
   validate: async (
-    runtime: IAgentRuntime,
+    _runtime: IAgentRuntime,
     message: Memory,
     _state?: State
   ): Promise<boolean> => {
@@ -105,6 +106,7 @@ const getStatusAction: Action = {
 
     try {
       const apiUrl = runtime.getSetting("AGENT_PULSE_API_URL") ?? "https://api.agentpulse.io";
+
       
       // Parse address from message or options
       const text = message.content.text ?? "";
@@ -139,7 +141,7 @@ const getStatusAction: Action = {
         throw new Error(`Status API error: ${response.status}`);
       }
 
-      const status: AgentStatus = await response.json();
+      const status = await response.json() as AgentStatus;
 
       // Format status message
       const lastPulseTime = new Date(status.lastPulse * 1000).toLocaleString();
@@ -176,11 +178,12 @@ const getStatusAction: Action = {
       elizaLogger.info(`Status retrieved for ${address}: alive=${status.alive}`);
 
     } catch (error) {
-      elizaLogger.error("Error getting agent status:", error);
+      elizaLogger.error("Error getting agent status:", String(error));
       
       if (callback) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await callback({
-          text: `❌ Failed to get status: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ Failed to get status: ${errorMessage}`,
         });
       }
     }
@@ -210,11 +213,11 @@ export const getConfigAction: Action = {
   examples: [
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Show protocol config" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Protocol Config:\nNetwork: Base Sepolia (84532)\nPulseToken: 0x7f24...\nRegistry: 0x2C80...",
           action: GET_CONFIG_ACTION,
@@ -224,7 +227,7 @@ export const getConfigAction: Action = {
   ] as ActionExample[][],
 
   validate: async (
-    runtime: IAgentRuntime,
+    _runtime: IAgentRuntime,
     message: Memory
   ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() ?? "";
@@ -249,7 +252,7 @@ export const getConfigAction: Action = {
         throw new Error(`Config API error: ${response.status}`);
       }
 
-      const config: ProtocolConfig = await response.json();
+      const config = await response.json() as ProtocolConfig;
 
       const message_text =
         `**Protocol Configuration**\n\n` +
@@ -275,10 +278,11 @@ export const getConfigAction: Action = {
       }
 
     } catch (error) {
-      elizaLogger.error("Error getting protocol config:", error);
+      elizaLogger.error("Error getting protocol config:", String(error));
       if (callback) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await callback({
-          text: `❌ Failed to get config: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ Failed to get config: ${errorMessage}`,
         });
       }
     }
@@ -308,11 +312,11 @@ export const getHealthAction: Action = {
   examples: [
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Check protocol health" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Protocol Health: ✅ Healthy\nTotal Agents: 1,234\nStatus: Active",
           action: GET_HEALTH_ACTION,
@@ -322,7 +326,7 @@ export const getHealthAction: Action = {
   ] as ActionExample[][],
 
   validate: async (
-    runtime: IAgentRuntime,
+    _runtime: IAgentRuntime,
     message: Memory
   ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() ?? "";
@@ -347,7 +351,7 @@ export const getHealthAction: Action = {
         throw new Error(`Health API error: ${response.status}`);
       }
 
-      const health: ProtocolHealth = await response.json();
+      const health = await response.json() as ProtocolHealth;
 
       const healthEmoji = health.health === "healthy" ? "✅" : 
                          health.health === "degraded" ? "⚠️" : "❌";
@@ -379,10 +383,11 @@ export const getHealthAction: Action = {
       }
 
     } catch (error) {
-      elizaLogger.error("Error getting protocol health:", error);
+      elizaLogger.error("Error getting protocol health:", String(error));
       if (callback) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await callback({
-          text: `❌ Failed to get health: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ Failed to get health: ${errorMessage}`,
         });
       }
     }

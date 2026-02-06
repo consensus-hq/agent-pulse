@@ -16,8 +16,8 @@ import {
   type State,
   elizaLogger,
 } from "@elizaos/core";
-import type { PulseResponse, SendPulseParams } from "../types.ts";
-import { isValidAddress } from "../environment.ts";
+import type { PulseResponse, SendPulseParams } from "../types";
+import { isValidAddress } from "../environment";
 
 /**
  * Action name for sendPulse
@@ -49,11 +49,11 @@ const sendPulseAction: Action = {
   examples: [
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Send a pulse for my agent" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Successfully sent pulse. Transaction: 0xabc... Streak: 5",
           action: SEND_PULSE_ACTION,
@@ -62,11 +62,11 @@ const sendPulseAction: Action = {
     ],
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Pulse 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb with 2 PULSE" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Pulse sent successfully. Tx: 0xdef... Streak: 12",
           action: SEND_PULSE_ACTION,
@@ -75,11 +75,11 @@ const sendPulseAction: Action = {
     ],
     [
       {
-        user: "{{user1}}",
+        name: "{{user1}}",
         content: { text: "Keep my agent alive" },
       },
       {
-        user: "{{agent}}",
+        name: "{{agent}}",
         content: {
           text: "Sending pulse to maintain liveness... Success! Streak: 3",
           action: SEND_PULSE_ACTION,
@@ -89,7 +89,7 @@ const sendPulseAction: Action = {
   ] as ActionExample[][],
 
   validate: async (
-    runtime: IAgentRuntime,
+    _runtime: IAgentRuntime,
     message: Memory,
     _state?: State
   ): Promise<boolean> => {
@@ -155,7 +155,7 @@ const sendPulseAction: Action = {
         throw new Error(`Pulse API error: ${response.status} - ${errorText}`);
       }
 
-      const result: PulseResponse = await response.json();
+      const result = await response.json() as PulseResponse;
 
       // Update state with pulse info
       const newState = {
@@ -177,11 +177,12 @@ const sendPulseAction: Action = {
       elizaLogger.info(`Pulse sent: ${result.txHash}, streak: ${result.streak}`);
 
     } catch (error) {
-      elizaLogger.error("Error sending pulse:", error);
+      elizaLogger.error("Error sending pulse:", String(error));
       
       if (callback) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await callback({
-          text: `❌ Failed to send pulse: ${error instanceof Error ? error.message : String(error)}`,
+          text: `❌ Failed to send pulse: ${errorMessage}`,
         });
       }
     }
