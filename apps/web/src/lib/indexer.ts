@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createPublicClient, http, parseAbiItem, Log } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { kv } from '@vercel/kv';

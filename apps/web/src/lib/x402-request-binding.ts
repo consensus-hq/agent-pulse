@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createHash } from "crypto";
-import { verifyMessage } from "ethers";
+import { recoverMessageAddress } from "viem";
 import { NonceRegistry } from "./nonce-registry";
 
 /**
@@ -134,8 +134,13 @@ export async function verifyRequestBinding(
   try {
     const { "x402-signature": signature, ...rest } = payload;
     const signable = createSignablePayload(rest as any);
-    const recovered = verifyMessage(signable, signature);
-    
+
+    const sig = (signature.startsWith("0x") ? signature : `0x${signature}`) as `0x${string}`;
+    const recovered = await recoverMessageAddress({
+      message: signable,
+      signature: sig,
+    });
+
     if (recovered.toLowerCase() !== sender.toLowerCase()) {
       return { valid: false, error: "INVALID_SIGNATURE", sender };
     }

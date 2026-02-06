@@ -5,6 +5,8 @@ import { NextRequest } from "next/server";
 const mockState = {
   kvGet: vi.fn(),
   kvSet: vi.fn(),
+  kvIncr: vi.fn().mockResolvedValue(1),
+  kvExpire: vi.fn().mockResolvedValue(1),
   signTypedData: vi.fn(),
 };
 
@@ -13,6 +15,13 @@ vi.mock("@vercel/kv", () => ({
   kv: {
     get: (...args: unknown[]) => mockState.kvGet(...args),
     set: (...args: unknown[]) => mockState.kvSet(...args),
+    incr: (...args: unknown[]) => mockState.kvIncr(...args),
+    expire: (...args: unknown[]) => mockState.kvExpire(...args),
+    pipeline: vi.fn(() => ({
+      incr: vi.fn(),
+      expire: vi.fn(),
+      exec: vi.fn().mockResolvedValue([1, true]),
+    })),
   },
 }));
 

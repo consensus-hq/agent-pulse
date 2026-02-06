@@ -106,7 +106,7 @@ This document contains sensitive financial infrastructure details. Never share w
 | Field | Value |
 |-------|-------|
 | **Address** | *TBD — recommend NEW EOA* |
-| **Purpose** | Capture 1% fee from PULSE token burns |
+| **Purpose** | Capture 1% fee from PULSE signal sinks |
 | **Networks** | Base Mainnet |
 | **Holds** | PULSE tokens (later swapped to USDC) |
 | **Risk Level** | **MEDIUM** — accumulates value, swept frequently |
@@ -142,7 +142,7 @@ For the Clawdkitchen submission:
 Single Wallet: 0xDb48A285a559F61EF3B3AFbc7ef5D7Ce9FAAAcd6
 ├── Receives: x402 API revenue from external agents
 ├── Pays: HeyElsa for DeFi data
-└── Net: Revenue - Cost = Profit (or loss if unprofitable)
+└── Net: Revenue - Cost = Surplus (or deficit if costs exceed revenue)
 ```
 
 **Pros:**
@@ -153,7 +153,7 @@ Single Wallet: 0xDb48A285a559F61EF3B3AFbc7ef5D7Ce9FAAAcd6
 
 **Cons:**
 - No separation between revenue streams
-- Harder to attribute profit/loss per stream
+- Harder to attribute revenue/cost per stream
 - If compromised, lose both revenue and payment ability
 
 ### Production Justification (SEPARATE)
@@ -308,7 +308,7 @@ Assumptions:
 | $0.015/portfolio (promo) | ~56 calls | 1,680 calls |
 | $0.03/portfolio (premium) | ~28 calls | 840 calls |
 
-> **Insight:** At $0.02/call, Stream B is profitable with just ~42 daily calls. This is the primary revenue driver at low-to-medium scale.
+> **Insight:** At $0.02/call, Stream B is self-sustaining with just ~42 daily calls. This is the primary revenue driver at low-to-medium scale.
 
 ### Combined Break-Even
 
@@ -396,7 +396,7 @@ Assumptions:
 |--------|--------|-------|
 | Gross Revenue | $500/month | Moderate scenario baseline |
 | Operating Costs | $100/month | HeyElsa + infrastructure |
-| Net Profit | $400/month | 80% margin before labor |
+| Net Surplus | $400/month | 80% margin before labor |
 | Treasury Sweep | Weekly | Move excess to Safe |
 | Hot Wallet Top-Up | As needed | Maintain $25 float |
 

@@ -1,8 +1,8 @@
 # Agent Pulse 🫀
 
-**Liveness and reliability protocol for AI agents on Base — burn PULSE to prove you're alive, sell derivative intelligence via x402.**
+**Liveness and reliability protocol for AI agents on Base — consume PULSE to prove you're alive, deliver derivative intelligence via x402.**
 
-> **Don't sell liveness — sell risk reduction.** Routers get free liveness checks. Workers who don't pulse become invisible. Everyone integrates or gets left behind.
+> **Don't offer liveness — offer risk reduction.** Routers get free liveness checks. Workers who don't pulse become invisible. Everyone integrates or gets left behind.
 
 [![Tests](https://img.shields.io/badge/tests-98%2B%20passing-success)](./packages/contracts/test)
 [![Security](https://img.shields.io/badge/security-audited-blue)](./REPORTS)
@@ -13,7 +13,7 @@
 
 ## How It Works
 
-Agents burn PULSE tokens daily to prove they're alive. The protocol indexes these burns, computes **derivative signals** — reliability scores, jitter analysis, hazard rates, peer correlation — and sells them via **x402-gated API endpoints**.
+Agents consume PULSE tokens daily to prove they're alive. The protocol indexes these signal sinks, computes **derivative signals** — reliability scores, jitter analysis, hazard rates, peer correlation — and delivers them via **x402-gated API endpoints**.
 
 - **Free tier** (`isAlive`, `lastPulseTimestamp`) drives adoption
 - **Paid tier** (everything else) generates revenue
@@ -119,7 +119,7 @@ When an agent burns PULSE:
 | Infrastructure Fee Wallet | 1.0% | Via BurnWithFee wrapper contract |
 
 - Fee wallet PULSE periodically swapped to USDC (manual for hackathon, automated for production)
-- DEX trading fees: 80% treasury, 20% LP
+- DEX liquidity fees: 80% treasury, 20% LP
 - **x402 API revenue is the PRIMARY revenue stream** — token burns are secondary
 
 ---

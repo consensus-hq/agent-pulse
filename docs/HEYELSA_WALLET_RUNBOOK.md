@@ -39,7 +39,7 @@ Save the private key (starts with `0x`). The corresponding address is your payme
 ### Get USDC on Base Mainnet
 
 1. **Bridge from Ethereum:** Use [Base Bridge](https://bridge.base.org) to transfer USDC from Ethereum to Base
-2. **Buy directly on Base:** Use an on-ramp that supports Base (Coinbase, etc.)
+2. **Acquire directly on Base:** Use an on-ramp that supports Base (Coinbase, etc.)
 3. **Transfer from exchange:** Withdraw USDC to your payment wallet address on Base network
 
 ### Recommended Funding Amount

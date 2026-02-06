@@ -1,36 +1,44 @@
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
+import pulseRegistryAbi from "@/lib/abi-PulseRegistry.json";
+import pulseTokenAbi from "@/lib/abi-PulseToken.json";
+import peerAttestationAbi from "@/lib/abi-PeerAttestation.json";
+import burnWithFeeAbi from "@/lib/abi-BurnWithFee.json";
 
-import { NextRequest, NextResponse } from "next/server";
+export const runtime = 'edge';
 
-import { getAbiResponse } from "../route";
-
-type Params = { contract: string };
-
-const normalize = (value: string) => value.trim().toLowerCase().replace(/[_\s]+/g, "-");
+const CONTRACT_MAP: Record<string, any> = {
+  "PulseRegistry": {
+    address: process.env.NEXT_PUBLIC_REGISTRY_ADDRESS,
+    abi: pulseRegistryAbi,
+    chainId: 84532
+  },
+  "PulseToken": {
+    address: process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS,
+    abi: pulseTokenAbi,
+    chainId: 84532
+  },
+  "PeerAttestation": {
+    address: process.env.NEXT_PUBLIC_PEER_ATTESTATION_ADDRESS,
+    abi: peerAttestationAbi,
+    chainId: 84532
+  },
+  "BurnWithFee": {
+    address: process.env.NEXT_PUBLIC_BURN_WITH_FEE_ADDRESS,
+    abi: burnWithFeeAbi,
+    chainId: 84532
+  }
+};
 
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<Params> }
-): Promise<NextResponse> {
-  const { contract } = await context.params;
-  const key = normalize(contract);
-  const all = getAbiResponse();
-
-  if (key === "pulse-registry" || key === "registry") {
-    return NextResponse.json({
-      chainId: all.chainId,
-      contract: "PulseRegistry",
-      abi: all.contracts.PulseRegistry.abi,
-    });
+  request: Request,
+  { params }: { params: Promise<{ contract: string }> }
+) {
+  const { contract } = await params;
+  const data = CONTRACT_MAP[contract];
+  
+  if (!data) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
-
-  if (key === "pulse-token" || key === "token" || key === "erc20") {
-    return NextResponse.json({
-      chainId: all.chainId,
-      contract: "PulseToken",
-      abi: all.contracts.PulseToken.abi,
-    });
-  }
-
-  return NextResponse.json({ error: `Unknown contract: ${contract}` }, { status: 404 });
+  
+  return NextResponse.json(data);
 }
