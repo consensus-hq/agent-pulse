@@ -1,95 +1,196 @@
-# Deployment runbook
+# Deployment Runbook — Agent Pulse v4
 
-## Scope
-This runbook covers the **testnet deploy**, verification, env updates, and the required `LINKS.md` updates for Agent Pulse. It also documents the mainnet gating rule: **mainnet deploys only proceed once funding is confirmed**.
+---
 
-## Guardrails (read first)
-- **Addresses live only in `LINKS.md`.** Do not paste addresses into docs, README, or code comments.
+## Guardrails
+
+- **Addresses live only in `LINKS.md`.** Do not paste addresses into docs, README, or code.
 - **No DEX links at launch.**
-- **Mainnet requires funding.** If the deployer wallet is not funded and the Treasury Safe can’t receive fees, stop after the testnet steps.
+- **Mainnet requires funding.** If deployer wallet is not funded, stop after testnet steps.
 
-## Prereqs
-- Access to deploy wallet (EOA allowed per hackathon constraints).
-- Treasury Safe address confirmed in `LINKS.md`.
-- Base testnet RPC and faucet access.
-- Vercel project access for `apps/web`.
-- `.env.example` is the canonical env list.
+---
 
-## 1) Testnet deploy (Base Sepolia)
-1. Confirm the testnet RPC and chain settings.
-2. Deploy the $PULSE token (Clanker or approved deploy path).
-3. Record the deployed token address and any required contract address.
-4. Verify the deployment on the explorer (token + any registry/aux contracts).
-5. Update `LINKS.md` with **testnet** values in the Agent Pulse section:
-   - `$PULSE token (Base testnet)`
-   - `Vercel demo URL` (if testnet UI is deployed)
-6. Update Vercel env vars for **testnet** values (see “Env updates” below).
-7. Smoke test (testnet):
-   - Send **1 PULSE** to the signal sink.
-   - Confirm ALIVE state flips to eligible.
-   - Confirm inbox key + gated inbox route work end-to-end.
+## 1. Smart Contract Deployment
 
-## 2) Verification
-- Verify the token contract and any custom contracts on the chain explorer.
-- Store the explorer links in deployment notes (do **not** paste addresses in docs).
-- Ensure `NEXT_PUBLIC_LAST_RUN_*` reflects the latest verification run for the UI.
+### BurnWithFee Wrapper
 
-## 3) Env updates (Vercel)
-Use `apps/web/.env.example` as the single source of truth. Required variables:
-- `BASE_RPC_URL`
-- `PULSE_TOKEN_ADDRESS`
-- `SIGNAL_ADDRESS`
-- `NEXT_PUBLIC_BASE_RPC_URL`
-- `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS`
-- `NEXT_PUBLIC_SIGNAL_ADDRESS`
-- `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS`
-- `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS`
+The BurnWithFee contract wraps PULSE burns with the v4 fee split:
 
-Recommended:
-- `NEXT_PUBLIC_ALIVE_WINDOW_SECONDS`
-- `INBOX_KEY_TTL_SECONDS`
-- `NEXT_PUBLIC_INBOX_KEY_TTL_SECONDS`
-- `BLOCK_CONFIRMATIONS`
-- `BLOCK_TIME_SECONDS`
+```bash
+cd packages/contracts
 
-Optional:
-- `REQUIRE_ERC8004`
-- `NEXT_PUBLIC_ERC8004_REGISTER_URL`
-- `NEXT_PUBLIC_PULSE_FEED_URL`
-- `NEXT_PUBLIC_LAST_RUN_STATUS`
-- `NEXT_PUBLIC_LAST_RUN_TS`
-- `NEXT_PUBLIC_LAST_RUN_NETWORK`
-- `NEXT_PUBLIC_LAST_RUN_LOG`
+# Deploy BurnWithFee
+forge create contracts/BurnWithFee.sol:BurnWithFee \
+  --constructor-args ${PULSE_TOKEN_ADDR} ${BURN_ADDRESS} ${FEE_WALLET_ADDR} \
+  --rpc-url ${RPC_URL} \
+  --private-key ${PRIVATE_KEY}
 
-## 4) LINKS.md updates
-Update `LINKS.md` after any deploy:
-- `$PULSE token (Base testnet)` and `$PULSE token (Base mainnet)`
-- `Vercel demo URL`
-- Treasury Safe (fee recipient)
-- Signal sink (dead address transfer)
+# Verify
+forge verify-contract ${BURNWITHFEE_ADDR} BurnWithFee \
+  --chain ${CHAIN_ID} \
+  --constructor-args $(cast abi-encode "constructor(address,address,address)" \
+    ${PULSE_TOKEN_ADDR} ${BURN_ADDRESS} ${FEE_WALLET_ADDR})
+```
 
-Do **not** duplicate these values elsewhere.
+Fee split (immutable in contract):
+- 98.7% → burn address (0xdead)
+- 0.3% → Thirdweb platform fee
+- 1.0% → Infrastructure Fee Wallet
 
-## 5) Mainnet deploy gating
-Only proceed to mainnet once **all** of the following are true:
-- Deployer wallet is funded for gas + deploy.
-- Treasury Safe is confirmed as fee recipient.
-- Testnet smoke test completed successfully.
-- Vercel envs are ready to switch to mainnet values.
+### PulseRegistryV2
 
-If any are missing, stop and document what’s needed to unblock funding.
+```bash
+forge create contracts/PulseRegistryV2.sol:PulseRegistryV2 \
+  --constructor-args ${PULSE_TOKEN_ADDR} ${BURNWITHFEE_ADDR} 86400 1000000000000000000 \
+  --rpc-url ${RPC_URL} \
+  --private-key ${PRIVATE_KEY}
+```
 
-## 6) Mainnet deploy (Base)
-1. Deploy $PULSE on Base mainnet using the same parameters verified on testnet.
-2. Verify contracts on BaseScan.
-3. Update `LINKS.md` with mainnet token address and Vercel URL.
-4. Update Vercel envs to mainnet values.
-5. Run the production smoke test:
-   - Send **1 PULSE** to the signal sink.
-   - Confirm ALIVE eligibility, inbox key, and inbox route.
+### PeerAttestation
 
-## 7) Post-deploy checklist
-- `LINKS.md` is current and contains all addresses/URLs.
-- `NEXT_PUBLIC_LAST_RUN_*` updated for the UI.
-- No addresses were added to docs, README, or code comments.
-- Submission payload fields can be filled from `LINKS.md`.
+```bash
+forge create contracts/PeerAttestation.sol:PeerAttestation \
+  --constructor-args ${REGISTRY_ADDR} \
+  --rpc-url ${RPC_URL} \
+  --private-key ${PRIVATE_KEY}
+```
+
+### Post-Deploy Verification
+
+```bash
+# Verify all contracts on BaseScan
+forge verify-contract ${ADDR} ContractName --chain ${CHAIN_ID}
+
+# Smoke test
+cast call ${REGISTRY_ADDR} "ttlSeconds()(uint256)" --rpc-url ${RPC_URL}
+# Expected: 86400
+
+cast call ${REGISTRY_ADDR} "minPulseAmount()(uint256)" --rpc-url ${RPC_URL}
+# Expected: 1000000000000000000
+```
+
+Update `LINKS.md` with all deployed addresses.
+
+---
+
+## 2. Thirdweb Server Wallet Setup
+
+The Thirdweb server wallet receives x402 payments and facilitates payment verification.
+
+1. **Create server wallet** at [thirdweb.com/dashboard](https://thirdweb.com/dashboard)
+2. **Fund with gas** — small amount of ETH on Base for transaction fees
+3. **Note the wallet address** — this is `THIRDWEB_SERVER_WALLET_ADDRESS`
+4. **Get secret key** — this is `THIRDWEB_SECRET_KEY`
+
+The server wallet is used by `x402-gate.ts` to:
+- Verify incoming x402 payments
+- Confirm payment settlement on Base
+- No manual payment handling needed
+
+---
+
+## 3. Vercel Environment Variables
+
+Set in Vercel dashboard (Settings → Environment Variables):
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `THIRDWEB_SECRET_KEY` | Thirdweb API authentication | `tw_...` |
+| `THIRDWEB_SERVER_WALLET_ADDRESS` | x402 payment receiving wallet | `0x...` |
+| `BASE_RPC_URL` | Base chain RPC | `https://sepolia.base.org` |
+| `NEXT_PUBLIC_BASE_RPC_URL` | Client-side RPC | `https://sepolia.base.org` |
+| `PULSE_TOKEN_ADDRESS` | PULSE token contract | From LINKS.md |
+| `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS` | Client-side token address | From LINKS.md |
+| `PULSE_REGISTRY_ADDRESS` | PulseRegistryV2 contract | From LINKS.md |
+| `NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS` | Client-side registry | From LINKS.md |
+| `BURNWITHFEE_ADDRESS` | BurnWithFee wrapper contract | From LINKS.md |
+| `SIGNAL_ADDRESS` | Burn address (0xdead) | From LINKS.md |
+| `NEXT_PUBLIC_SIGNAL_ADDRESS` | Client-side burn address | From LINKS.md |
+
+### Cache & Rate Limiting
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KV_REST_API_URL` | Vercel KV endpoint | Auto-configured |
+| `KV_REST_API_TOKEN` | Vercel KV auth | Auto-configured |
+
+### HeyElsa (DeFi Panel)
+
+| Variable | Description |
+|----------|-------------|
+| `HEYELSA_API_URL` | HeyElsa x402 API endpoint |
+| `HEYELSA_WALLET_KEY` | Payment wallet private key for HeyElsa calls |
+
+### Optional
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_ALIVE_WINDOW_SECONDS` | TTL for alive checks | `86400` |
+| `REQUIRE_ERC8004` | Require ERC-8004 badge | `false` |
+| `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS` | ERC-8004 registry | — |
+
+---
+
+## 4. Contract Addresses
+
+All addresses stored in `LINKS.md`. Current deployments:
+
+### Base Sepolia (Testnet)
+
+| Contract | Notes |
+|----------|-------|
+| PulseToken | ERC-20, verified on BaseScan |
+| PulseRegistryV2 | 65 tests passing |
+| BurnWithFee | 33 tests passing |
+| PeerAttestation | Peer attestation |
+| Burn Address | `0x000000000000000000000000000000000000dEaD` |
+
+See `LINKS.md` for actual addresses.
+
+---
+
+## 5. Deployment Steps
+
+### Testnet (Base Sepolia)
+
+1. Deploy contracts (Section 1)
+2. Update `LINKS.md` with addresses
+3. Set Vercel env vars (Section 3)
+4. Push to GitHub → Vercel auto-deploys
+5. Smoke test:
+   ```bash
+   # Free endpoint
+   curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x.../alive
+
+   # Health check
+   curl https://agent-pulse-nine.vercel.app/api/internal/health
+   ```
+
+### Mainnet (Base)
+
+**Prerequisites:**
+- All testnet smoke tests pass
+- Deployer wallet funded with ETH on Base mainnet
+- Treasury Safe confirmed as fee recipient
+- Thirdweb server wallet funded on Base mainnet
+
+1. Deploy contracts to Base mainnet with same parameters
+2. Verify on BaseScan
+3. Update `LINKS.md` with mainnet addresses
+4. Switch Vercel env vars to mainnet values
+5. Production smoke test
+
+---
+
+## 6. Post-Deploy Checklist
+
+- [ ] All contracts verified on BaseScan
+- [ ] `LINKS.md` updated with all addresses
+- [ ] Vercel env vars set correctly
+- [ ] Free endpoint returns data
+- [ ] Paid endpoint returns 402 without payment
+- [ ] Health endpoint returns OK
+- [ ] No addresses in docs/README/code (only in LINKS.md + env vars)
+- [ ] `NEXT_PUBLIC_LAST_RUN_*` updated for UI
