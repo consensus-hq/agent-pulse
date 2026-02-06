@@ -1,277 +1,236 @@
-import { type Address } from 'viem';
-import { filterAlive, isAgentAlive, getRegistryTTL, type FilterOptions, type FilterResult } from './index.js';
-
-// Re-export types
-export type { FilterOptions, FilterResult } from './index.js';
-
 /**
- * LangChain Integration
- * 
- * Provides a callable tool for LangChain agents to filter alive agents.
- * 
+ * Express / Connect middleware for Agent Pulse liveness gating.
+ *
  * @example
- * ```typescript
- * import { LangChainTool } from '@agent-pulse/middleware';
- * import { Tool } from 'langchain/tools';
- * 
- * const aliveFilterTool = new LangChainTool({
- *   threshold: 3600, // 1 hour
- *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
- *   rpcUrl: 'https://sepolia.base.org',
- * });
+ * ```ts
+ * import express from "express";
+ * import { pulseGuard } from "@agent-pulse/middleware/middleware";
+ *
+ * const app = express();
+ * app.use("/api/agents", pulseGuard());
  * ```
+ *
+ * @module middleware
  */
-export class LangChainTool {
-  private options: FilterOptions;
 
-  constructor(options: FilterOptions) {
-    this.options = options;
-  }
+import { PulseFilter, type PulseFilterOptions, type AliveResponse } from "./index.js";
 
-  /**
-   * Tool name for LangChain
-   */
-  name = 'agent_pulse_filter';
+// ============================================================================
+// Types
+// ============================================================================
 
-  /**
-   * Tool description for LangChain
-   */
-  description = `
-Filter Ethereum addresses to return only alive agents from the PulseRegistry.
-Input should be a JSON array of Ethereum addresses: ["0x1234...", "0x5678..."]
-Returns an array of addresses that are currently alive and within the threshold.
-`.trim();
-
-  /**
-   * Call the filter function with agent addresses
-   */
-  async call(addresses: Address[]): Promise<string> {
-    const result = await filterAlive(addresses, this.options);
-    return JSON.stringify({
-      alive: result.alive,
-      count: result.alive.length,
-      total: addresses.length,
-      timestamp: result.timestamp,
-    });
-  }
-
-  /**
-   * Get detailed status for agents
-   */
-  async getDetails(addresses: Address[]): Promise<string> {
-    const result = await filterAlive(addresses, this.options);
-    return JSON.stringify(result, (_, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    );
-  }
+/** Minimal subset of Express Request we depend on. */
+interface MiddlewareRequest {
+  headers: Record<string, string | string[] | undefined>;
+  query?: Record<string, string | string[] | undefined>;
+  body?: Record<string, unknown>;
 }
 
-/**
- * AutoGen Integration
- * 
- * Provides a function-based tool for AutoGen (Microsoft's multi-agent framework).
- * 
- * @example
- * ```typescript
- * import { AutoGenTool } from '@agent-pulse/middleware';
- * 
- * const autoGenTool = new AutoGenTool({
- *   threshold: 3600,
- *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
- *   rpcUrl: 'https://sepolia.base.org',
- * });
- * 
- * // Register with AutoGen
- * user_proxy.register_function({
- *   function_map: {
- *     filter_alive_agents: autoGenTool.filterAgents.bind(autoGenTool),
- *   },
- * });
- * ```
- */
-export class AutoGenTool {
-  private options: FilterOptions;
+/** Minimal subset of Express Response we depend on. */
+interface MiddlewareResponse {
+  status(code: number): MiddlewareResponse;
+  json(body: unknown): void;
+  setHeader?(name: string, value: string): void;
+}
 
-  constructor(options: FilterOptions) {
-    this.options = options;
-  }
+/** Express-compatible next function. */
+type NextFunction = (err?: unknown) => void;
+
+/** The error body returned when an agent has no pulse. */
+export interface PulseGuardRejection {
+  error: "AGENT_HAS_NO_PULSE";
+  message: string;
+  address: string;
+  docs: string;
+}
+
+/** Options for the `pulseGuard` middleware. */
+export interface PulseGuardOptions extends PulseFilterOptions {
+  /**
+   * Request header to read the agent address from.
+   * @default "x-agent-address"
+   */
+  headerName?: string;
 
   /**
-   * Filter agents - compatible with AutoGen function calling
+   * Query-string parameter to read the agent address from.
+   * @default "agent"
    */
-  async filterAgents(addresses: string[]): Promise<string> {
-    // Validate and convert addresses
-    const validAddresses = addresses.filter((addr): addr is Address =>
-      /^0x[a-fA-F0-9]{40}$/.test(addr)
-    );
+  queryParam?: string;
 
-    if (validAddresses.length === 0) {
-      return JSON.stringify({
-        error: 'No valid Ethereum addresses provided',
-        alive: [],
+  /**
+   * JSON body field to read the agent address from.
+   * @default "agentAddress"
+   */
+  bodyField?: string;
+
+  /**
+   * When `true`, the middleware passes the request through even if it cannot
+   * find an agent address (i.e. the address is optional). When `false`
+   * (default), a missing address returns 400.
+   *
+   * @default false
+   */
+  allowMissing?: boolean;
+
+  /**
+   * Custom failure handler. When provided, the middleware calls this instead
+   * of the default 403 response when an agent is dead.
+   */
+  onRejected?: (
+    req: MiddlewareRequest,
+    res: MiddlewareResponse,
+    next: NextFunction,
+    info: { address: string; status?: AliveResponse },
+  ) => void;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Extract the agent address from the request.
+ * Checks (in order): header → query param → body field.
+ */
+function extractAddress(
+  req: MiddlewareRequest,
+  headerName: string,
+  queryParam: string,
+  bodyField: string,
+): string | undefined {
+  // 1. Header
+  const headerVal = req.headers[headerName.toLowerCase()];
+  if (typeof headerVal === "string" && headerVal.length > 0) return headerVal;
+  // Handle Express-style array headers
+  if (Array.isArray(headerVal) && headerVal.length > 0) return headerVal[0];
+
+  // 2. Query param
+  if (req.query) {
+    const qVal = req.query[queryParam];
+    if (typeof qVal === "string" && qVal.length > 0) return qVal;
+  }
+
+  // 3. Body field
+  if (req.body && typeof req.body === "object") {
+    const bVal = (req.body as Record<string, unknown>)[bodyField];
+    if (typeof bVal === "string" && bVal.length > 0) return bVal;
+  }
+
+  return undefined;
+}
+
+// ============================================================================
+// Middleware factory
+// ============================================================================
+
+/**
+ * Create Express/Connect middleware that rejects requests from dead agents.
+ *
+ * The middleware looks for an Ethereum address in the request (header, query
+ * param, or body), calls the Agent Pulse API, and responds with 403 if the
+ * agent is not alive.
+ *
+ * @example
+ * ```ts
+ * import express from "express";
+ * import { pulseGuard } from "@agent-pulse/middleware/middleware";
+ *
+ * const app = express();
+ *
+ * // Protect an entire route
+ * app.use("/api/protected", pulseGuard());
+ *
+ * // Custom options
+ * app.use("/api/agents", pulseGuard({
+ *   headerName: "x-agent-id",
+ *   threshold: 3600,       // 1 hour
+ *   allowMissing: false,
+ *   timeoutMs: 5_000,
+ * }));
+ * ```
+ */
+export function pulseGuard(
+  options?: PulseGuardOptions,
+): (req: MiddlewareRequest, res: MiddlewareResponse, next: NextFunction) => void {
+  const headerName = options?.headerName ?? "x-agent-address";
+  const queryParam = options?.queryParam ?? "agent";
+  const bodyField = options?.bodyField ?? "agentAddress";
+  const allowMissing = options?.allowMissing ?? false;
+  const onRejected = options?.onRejected;
+
+  // Reuse a single PulseFilter instance for connection pooling / config reuse
+  const filter = new PulseFilter(options);
+
+  return (req: MiddlewareRequest, res: MiddlewareResponse, next: NextFunction): void => {
+    const address = extractAddress(req, headerName, queryParam, bodyField);
+
+    // No address found
+    if (!address) {
+      if (allowMissing) {
+        next();
+        return;
+      }
+      res.status(400).json({
+        error: "MISSING_AGENT_ADDRESS",
+        message: `Provide an agent address via the "${headerName}" header, "${queryParam}" query parameter, or "${bodyField}" body field.`,
+        docs: "https://github.com/agenthealth/agent-pulse/tree/main/packages/pulse-filter#express-middleware",
       });
+      return;
     }
 
-    const result = await filterAlive(validAddresses, this.options);
-    
-    return JSON.stringify({
-      alive_agents: result.alive,
-      alive_count: result.alive.length,
-      total_checked: validAddresses.length,
-      timestamp: result.timestamp,
-      threshold_seconds: this.options.threshold,
-    }, (_, value) => typeof value === 'bigint' ? value.toString() : value);
-  }
-
-  /**
-   * Check single agent status
-   */
-  async checkAgent(address: string): Promise<string> {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return JSON.stringify({ error: 'Invalid Ethereum address' });
+    // Validate address format
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
+      res.status(400).json({
+        error: "INVALID_AGENT_ADDRESS",
+        message: `"${address}" is not a valid Ethereum address.`,
+        docs: "https://github.com/agenthealth/agent-pulse/tree/main/packages/pulse-filter#express-middleware",
+      });
+      return;
     }
 
-    const status = await isAgentAlive(address as Address, this.options);
-    
-    return JSON.stringify({
-      address,
-      alive: status.alive,
-      last_pulse_at: status.lastPulseAt.toString(),
-      streak: status.streak.toString(),
-      hazard_score: status.hazardScore.toString(),
-    });
-  }
-}
+    // Check liveness
+    filter
+      .getStatus(address)
+      .then((status) => {
+        const alive =
+          status.isAlive &&
+          (options?.threshold === undefined ||
+            options.threshold <= 0 ||
+            status.staleness === null ||
+            status.staleness <= options.threshold);
 
-/**
- * ElizaOS Integration
- * 
- * Provides an action handler for ElizaOS (ai16z's agent framework).
- * 
- * @example
- * ```typescript
- * import { ElizaAction } from '@agent-pulse/middleware';
- * 
- * const elizaAction = new ElizaAction({
- *   threshold: 3600,
- *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
- *   rpcUrl: 'https://sepolia.base.org',
- * });
- * 
- * // Register with Eliza runtime
- * runtime.registerAction(elizaAction.toElizaAction());
- * ```
- */
-export class ElizaAction {
-  private options: FilterOptions;
-
-  constructor(options: FilterOptions) {
-    this.options = options;
-  }
-
-  /**
-   * Convert to ElizaOS Action format
-   */
-  toElizaAction() {
-    return {
-      name: 'PULSE_FILTER',
-      similes: ['FILTER_ALIVE_AGENTS', 'CHECK_AGENT_STATUS', 'PULSE_CHECK'],
-      description: 'Filter Ethereum addresses to return only alive agents from the PulseRegistry',
-      
-      validate: async (_runtime: unknown, message: { content?: { text?: string } }) => {
-        const text = message?.content?.text || '';
-        // Check if message contains Ethereum addresses
-        return /0x[a-fA-F0-9]{40}/.test(text);
-      },
-
-      handler: async (
-        _runtime: unknown,
-        message: { content?: { text?: string } },
-        _state?: unknown,
-        _options?: unknown,
-        callback?: (response: { text: string; content?: unknown }) => void
-      ) => {
-        const text = message?.content?.text || '';
-        
-        // Extract all Ethereum addresses from the message
-        const addresses = text.match(/0x[a-fA-F0-9]{40}/g) || [];
-        
-        if (addresses.length === 0) {
-          if (callback) {
-            callback({
-              text: 'No valid Ethereum addresses found in your message.',
-            });
-          }
+        if (alive) {
+          // Attach status to request for downstream handlers
+          (req as unknown as Record<string, unknown>)["pulseStatus"] = status;
+          next();
           return;
         }
 
-        try {
-          const result = await filterAlive(addresses as Address[], this.options);
-          
-          const responseText = result.alive.length > 0
-            ? `Found ${result.alive.length} alive agent(s) out of ${addresses.length} checked:\n${result.alive.join('\n')}`
-            : `No alive agents found among the ${addresses.length} addresses checked.`;
-
-          if (callback) {
-            callback({
-              text: responseText,
-              content: {
-                alive: result.alive,
-                details: result.details,
-                timestamp: result.timestamp,
-              },
-            });
-          }
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          if (callback) {
-            callback({
-              text: `Error checking agent status: ${errorMsg}`,
-            });
-          }
+        // Dead agent
+        if (onRejected) {
+          onRejected(req, res, next, { address, status });
+          return;
         }
-      },
-    };
-  }
-}
 
-/**
- * Generic middleware factory
- * Creates a simple filter function that can be used with any framework
- * 
- * @example
- * ```typescript
- * import { createFilter } from '@agent-pulse/middleware';
- * 
- * const filter = createFilter({
- *   threshold: 3600,
- *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
- *   rpcUrl: 'https://sepolia.base.org',
- * });
- * 
- * const aliveAgents = await filter(['0x1234...', '0x5678...']);
- * ```
- */
-export function createFilter(options: FilterOptions) {
-  return async (addresses: Address[]): Promise<FilterResult> => {
-    return filterAlive(addresses, options);
+        const rejection: PulseGuardRejection = {
+          error: "AGENT_HAS_NO_PULSE",
+          message: `Agent ${address} is not alive. Last pulse: ${status.lastPulseTimestamp > 0 ? new Date(status.lastPulseTimestamp * 1000).toISOString() : "never"}.`,
+          address,
+          docs: "https://agentpulse.xyz",
+        };
+        res.status(403).json(rejection);
+      })
+      .catch((err: unknown) => {
+        // Network / API error — fail open with a warning header so callers
+        // can observe it, but don't block the request.
+        if (res.setHeader) {
+          res.setHeader(
+            "X-Pulse-Warning",
+            `Liveness check failed: ${err instanceof Error ? err.message : "unknown error"}`,
+          );
+        }
+        next();
+      });
   };
-}
-
-/**
- * Utility to convert BigInt values to strings for JSON serialization
- */
-export function serializeBigInt(value: unknown): unknown {
-  if (typeof value === 'bigint') {
-    return value.toString();
-  }
-  if (Array.isArray(value)) {
-    return value.map(serializeBigInt);
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, serializeBigInt(v)])
-    );
-  }
-  return value;
 }

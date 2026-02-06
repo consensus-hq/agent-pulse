@@ -1,62 +1,65 @@
 {
   "name": "@agent-pulse/middleware",
   "version": "1.0.0",
-  "description": "Middleware for filtering alive agents from the PulseRegistry",
+  "description": "Lightweight liveness filter for Agent Pulse — check if on-chain agents are alive using just fetch()",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     },
     "./middleware": {
       "types": "./dist/middleware.d.ts",
-      "default": "./dist/middleware.js"
+      "import": "./dist/middleware.js"
     }
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:live": "PULSE_LIVE_TEST=1 vitest run",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
-  },
-  "dependencies": {
-    "viem": "^2.0.0"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
     "typescript": "^5.3.0",
     "vitest": "^1.0.0"
   },
-  "peerDependencies": {
-    "viem": "^2.0.0"
-  },
   "keywords": [
-    "agent",
+    "agent-pulse",
+    "liveness",
     "pulse",
-    "registry",
+    "base",
     "ethereum",
-    "viem",
-    "langchain",
-    "autogen",
-    "elizaos",
     "middleware",
-    "blockchain"
+    "express",
+    "langchain",
+    "ai-agents",
+    "filter",
+    "on-chain"
   ],
   "author": "Agent Pulse Team",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/agent-pulse.git",
+    "url": "https://github.com/consensus-hq/agent-pulse.git",
     "directory": "packages/pulse-filter"
+  },
+  "homepage": "https://agentpulse.xyz",
+  "bugs": {
+    "url": "https://github.com/consensus-hq/agent-pulse/issues"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "sideEffects": false
 }

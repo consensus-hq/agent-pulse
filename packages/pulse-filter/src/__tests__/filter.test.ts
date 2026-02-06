@@ -1,239 +1,448 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { filterAlive, isAgentAlive, getRegistryTTL, type FilterOptions } from '../index.js';
-import type { Address } from 'viem';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  isAlive,
+  filterAlive,
+  filterAliveDetailed,
+  PulseFilter,
+  type AliveResponse,
+} from "../index.js";
 
-// Mock viem
-vi.mock('viem', async () => {
-  const actual = await vi.importActual<typeof import('viem')>('viem');
+// ============================================================================
+// Mock setup
+// ============================================================================
+
+const mockFetch = vi.fn<
+  [input: string | URL | Request, init?: RequestInit | undefined],
+  Promise<Response>
+>();
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", mockFetch);
+  mockFetch.mockReset();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** Helper to create a mock API response. */
+function makeAliveResponse(overrides: Partial<AliveResponse> = {}): AliveResponse {
   return {
-    ...actual,
-    createPublicClient: vi.fn(),
-    http: vi.fn(() => 'mock-transport'),
+    address: "0x1111111111111111111111111111111111111111",
+    isAlive: true,
+    lastPulseTimestamp: Math.floor(Date.now() / 1000) - 100,
+    streak: 5,
+    staleness: 100,
+    ttl: 86400,
+    checkedAt: new Date().toISOString(),
+    ...overrides,
   };
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// ============================================================================
+// isAlive
+// ============================================================================
+
+describe("isAlive", () => {
+  it("returns true for an alive agent", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111");
+    expect(result).toBe(true);
+  });
+
+  it("returns false for a dead agent", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ isAlive: false })),
+    );
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111");
+    expect(result).toBe(false);
+  });
+
+  it("throws on invalid address format", async () => {
+    await expect(isAlive("not-an-address")).rejects.toThrow("Invalid Ethereum address");
+  });
+
+  it("throws on short address", async () => {
+    await expect(isAlive("0x123")).rejects.toThrow("Invalid Ethereum address");
+  });
+
+  it("respects threshold — alive within threshold", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ isAlive: true, staleness: 500 })),
+    );
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111", {
+      threshold: 3600,
+    });
+    expect(result).toBe(true);
+  });
+
+  it("respects threshold — dead beyond threshold", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ isAlive: true, staleness: 7200 })),
+    );
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111", {
+      threshold: 3600,
+    });
+    expect(result).toBe(false);
+  });
+
+  it("treats null staleness as alive when isAlive is true", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ isAlive: true, staleness: null })),
+    );
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111", {
+      threshold: 3600,
+    });
+    expect(result).toBe(true);
+  });
+
+  it("calls the correct API URL", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    await isAlive("0xABCDEF1234567890ABCDEF1234567890ABCDEF12");
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const calledUrl = mockFetch.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe(
+      "https://agent-pulse-nine.vercel.app/api/v2/agent/0xABCDEF1234567890ABCDEF1234567890ABCDEF12/alive",
+    );
+  });
+
+  it("uses custom API URL", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    await isAlive("0x1111111111111111111111111111111111111111", {
+      apiUrl: "https://custom.api.example.com",
+    });
+
+    const calledUrl = mockFetch.mock.calls[0]![0] as string;
+    expect(calledUrl.startsWith("https://custom.api.example.com/api/v2/agent/")).toBe(true);
+  });
+
+  it("retries on 500 errors", async () => {
+    mockFetch
+      .mockResolvedValueOnce(new Response("Internal Server Error", { status: 500 }))
+      .mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111", {
+      retries: 2,
+      retryDelayMs: 10, // Fast for tests
+    });
+
+    expect(result).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry on 404", async () => {
+    mockFetch.mockResolvedValue(
+      new Response("Not Found", { status: 404 }),
+    );
+
+    await expect(
+      isAlive("0x1111111111111111111111111111111111111111", {
+        retries: 2,
+        retryDelayMs: 10,
+      }),
+    ).rejects.toThrow("HTTP 404");
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws after all retries exhausted on server error", async () => {
+    mockFetch.mockResolvedValue(
+      new Response("Bad Gateway", { status: 502 }),
+    );
+
+    await expect(
+      isAlive("0x1111111111111111111111111111111111111111", {
+        retries: 1,
+        retryDelayMs: 10,
+      }),
+    ).rejects.toThrow("HTTP 502");
+
+    // 1 initial + 1 retry = 2
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries on network errors (fetch throws)", async () => {
+    mockFetch
+      .mockRejectedValueOnce(new Error("ECONNRESET"))
+      .mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    const result = await isAlive("0x1111111111111111111111111111111111111111", {
+      retries: 1,
+      retryDelayMs: 10,
+    });
+
+    expect(result).toBe(true);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
 });
 
-import { createPublicClient } from 'viem';
+// ============================================================================
+// filterAlive
+// ============================================================================
 
-const TEST_OPTIONS: FilterOptions = {
-  threshold: 3600,
-  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
-  rpcUrl: 'https://sepolia.base.org',
-};
+describe("filterAlive", () => {
+  it("returns only alive addresses", async () => {
+    const addr1 = "0x1111111111111111111111111111111111111111";
+    const addr2 = "0x2222222222222222222222222222222222222222";
+    const addr3 = "0x3333333333333333333333333333333333333333";
 
-describe('filterAlive', () => {
-  let mockReadContract: ReturnType<typeof vi.fn>;
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: addr1, isAlive: true })),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: addr2, isAlive: false })),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: addr3, isAlive: true })),
+      );
 
-  beforeEach(() => {
-    mockReadContract = vi.fn();
-    vi.mocked(createPublicClient).mockReturnValue({
-      readContract: mockReadContract,
-    } as unknown as ReturnType<typeof createPublicClient>);
+    const result = await filterAlive([addr1, addr2, addr3]);
+
+    expect(result).toEqual([addr1, addr3]);
   });
 
-  it('should filter alive agents within threshold', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const addresses: Address[] = [
-      '0x1111111111111111111111111111111111111111',
-      '0x2222222222222222222222222222222222222222',
-      '0x3333333333333333333333333333333333333333',
-    ];
-
-    // Mock responses: [alive, lastPulseAt, streak, hazardScore]
-    mockReadContract
-      .mockResolvedValueOnce([true, BigInt(now - 100), BigInt(5), BigInt(0)])  // Alive, recent
-      .mockResolvedValueOnce([true, BigInt(now - 4000), BigInt(3), BigInt(1)]) // Alive, old
-      .mockResolvedValueOnce([false, BigInt(now - 50), BigInt(0), BigInt(0)]); // Dead
-
-    const result = await filterAlive(addresses, TEST_OPTIONS);
-
-    expect(result.alive).toHaveLength(1);
-    expect(result.alive[0]).toBe(addresses[0]);
-    expect(result.details).toHaveLength(3);
-    expect(result.errors).toHaveLength(0);
+  it("returns empty array for empty input", async () => {
+    const result = await filterAlive([]);
+    expect(result).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('should return empty array for no agents', async () => {
-    const result = await filterAlive([], TEST_OPTIONS);
-    
-    expect(result.alive).toHaveLength(0);
-    expect(result.details).toHaveLength(0);
-    expect(result.errors).toHaveLength(0);
+  it("excludes invalid addresses without crashing", async () => {
+    const valid = "0x1111111111111111111111111111111111111111";
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ address: valid, isAlive: true })),
+    );
+
+    const result = await filterAlive([valid, "bad-address", "0xshort"]);
+    expect(result).toEqual([valid]);
   });
 
-  it('should handle invalid addresses', async () => {
-    const addresses = [
-      '0x1111111111111111111111111111111111111111',
-      'invalid-address',
-      '0xnot-hex',
-    ] as Address[];
-
-    mockReadContract.mockImplementation(async (params: unknown) => {
-      const args = (params as { args: [Address] }).args;
-      if (args[0] === '0x1111111111111111111111111111111111111111') {
-        const now = Math.floor(Date.now() / 1000);
-        return [true, BigInt(now - 100), BigInt(1), BigInt(0)];
-      }
-      throw new Error('Unexpected address');
-    });
-
-    const result = await filterAlive(addresses, TEST_OPTIONS);
-
-    expect(result.alive).toHaveLength(1);
-    expect(result.errors).toHaveLength(2);
-    expect(result.errors[0].reason).toContain('Invalid address');
+  it("handles all addresses being invalid", async () => {
+    const result = await filterAlive(["abc", "def"]);
+    expect(result).toEqual([]);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('should handle contract call errors gracefully', async () => {
-    const addresses: Address[] = [
-      '0x1111111111111111111111111111111111111111',
-      '0x2222222222222222222222222222222222222222',
-    ];
+  it("fetches all valid addresses concurrently", async () => {
+    const addresses = Array.from({ length: 5 }, (_, i) =>
+      `0x${String(i + 1).repeat(40).slice(0, 40)}`,
+    );
 
-    mockReadContract.mockImplementation(async (params: unknown) => {
-      const args = (params as { args: [Address] }).args;
-      if (args[0] === '0x1111111111111111111111111111111111111111') {
-        throw new Error('Contract call failed');
-      }
-      const now = Math.floor(Date.now() / 1000);
-      return [true, BigInt(now - 100), BigInt(1), BigInt(0)];
-    });
+    for (const addr of addresses) {
+      mockFetch.mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: addr, isAlive: true })),
+      );
+    }
 
-    const result = await filterAlive(addresses, TEST_OPTIONS);
+    const result = await filterAlive(addresses);
+    expect(result).toHaveLength(5);
+    expect(mockFetch).toHaveBeenCalledTimes(5);
+  });
+});
 
-    expect(result.alive).toHaveLength(1);
+// ============================================================================
+// filterAliveDetailed
+// ============================================================================
+
+describe("filterAliveDetailed", () => {
+  it("returns full details including errors", async () => {
+    const alive = "0x1111111111111111111111111111111111111111";
+    const dead = "0x2222222222222222222222222222222222222222";
+    const invalid = "not-valid";
+
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: alive, isAlive: true })),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ address: dead, isAlive: false })),
+      );
+
+    const result = await filterAliveDetailed([alive, dead, invalid]);
+
+    expect(result.alive).toEqual([alive]);
+    expect(result.details).toHaveLength(2);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].reason).toContain('Contract call failed');
+    expect(result.errors[0]!.address).toBe(invalid);
+    expect(result.errors[0]!.reason).toContain("Invalid");
+    expect(result.checkedAt).toBeTruthy();
   });
 
-  it('should use provided timestamp for filtering', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const addresses: Address[] = ['0x1111111111111111111111111111111111111111'];
+  it("records network errors in errors array", async () => {
+    const addr = "0x1111111111111111111111111111111111111111";
 
-    mockReadContract.mockResolvedValueOnce([true, BigInt(now - 1800), BigInt(1), BigInt(0)]);
+    mockFetch.mockRejectedValueOnce(new Error("Network timeout"));
 
-    const result = await filterAlive(addresses, { ...TEST_OPTIONS, threshold: 3600 });
+    const result = await filterAliveDetailed([addr], {
+      retries: 0,
+      retryDelayMs: 10,
+    });
 
-    expect(result.alive).toHaveLength(1);
-    expect(result.timestamp).toBeGreaterThan(1700000000); // Sanity check
+    expect(result.alive).toEqual([]);
+    expect(result.details).toEqual([]);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.reason).toContain("Network timeout");
   });
 
-  it('should filter agents at exact threshold boundary', async () => {
-    const now = Math.floor(Date.now() / 1000);
-    const addresses: Address[] = [
-      '0x1111111111111111111111111111111111111111', // exactly at threshold
-      '0x2222222222222222222222222222222222222222', // just inside
-      '0x3333333333333333333333333333333333333333', // just outside
-    ];
+  it("applies threshold to detailed results", async () => {
+    const fresh = "0x1111111111111111111111111111111111111111";
+    const stale = "0x2222222222222222222222222222222222222222";
 
-    mockReadContract
-      .mockResolvedValueOnce([true, BigInt(now - 3600), BigInt(1), BigInt(0)])
-      .mockResolvedValueOnce([true, BigInt(now - 3599), BigInt(1), BigInt(0)])
-      .mockResolvedValueOnce([true, BigInt(now - 3601), BigInt(1), BigInt(0)]);
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse(
+          makeAliveResponse({ address: fresh, isAlive: true, staleness: 100 }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          makeAliveResponse({ address: stale, isAlive: true, staleness: 5000 }),
+        ),
+      );
 
-    const result = await filterAlive(addresses, TEST_OPTIONS);
+    const result = await filterAliveDetailed([fresh, stale], {
+      threshold: 3600,
+    });
 
-    // Should include agent at exactly 3600s and within, exclude outside
-    expect(result.alive).toContain(addresses[0]);
-    expect(result.alive).toContain(addresses[1]);
-    expect(result.alive).not.toContain(addresses[2]);
-  });
-
-  it('should batch call contract for all valid addresses', async () => {
-    const addresses: Address[] = [
-      '0x1111111111111111111111111111111111111111',
-      '0x2222222222222222222222222222222222222222',
-    ];
-
-    mockReadContract
-      .mockResolvedValueOnce([true, BigInt(1707000000), BigInt(1), BigInt(0)])
-      .mockResolvedValueOnce([true, BigInt(1707000000), BigInt(1), BigInt(0)]);
-
-    await filterAlive(addresses, TEST_OPTIONS);
-
-    expect(mockReadContract).toHaveBeenCalledTimes(2);
-    expect(mockReadContract).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      address: TEST_OPTIONS.registryAddress,
-      functionName: 'getAgentStatus',
-      args: [addresses[0]],
-    }));
-    expect(mockReadContract).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      address: TEST_OPTIONS.registryAddress,
-      functionName: 'getAgentStatus',
-      args: [addresses[1]],
-    }));
+    expect(result.alive).toEqual([fresh]);
+    expect(result.details).toHaveLength(2);
   });
 });
 
-describe('isAgentAlive', () => {
-  let mockReadContract: ReturnType<typeof vi.fn>;
+// ============================================================================
+// PulseFilter class
+// ============================================================================
 
-  beforeEach(() => {
-    mockReadContract = vi.fn();
-    vi.mocked(createPublicClient).mockReturnValue({
-      readContract: mockReadContract,
-    } as unknown as ReturnType<typeof createPublicClient>);
+describe("PulseFilter", () => {
+  it("constructs with default options", () => {
+    const filter = new PulseFilter();
+    expect(filter).toBeInstanceOf(PulseFilter);
   });
 
-  it('should return status for single agent', async () => {
-    const address: Address = '0x1111111111111111111111111111111111111111';
-    const expectedStatus = {
-      alive: true,
-      lastPulseAt: BigInt(1707000000),
-      streak: BigInt(5),
-      hazardScore: BigInt(0),
-    };
+  it("constructs with custom options", () => {
+    const filter = new PulseFilter({
+      apiUrl: "https://custom.api",
+      threshold: 3600,
+      timeoutMs: 5000,
+      retries: 3,
+    });
+    expect(filter).toBeInstanceOf(PulseFilter);
+  });
 
-    mockReadContract.mockResolvedValueOnce([
-      expectedStatus.alive,
-      expectedStatus.lastPulseAt,
-      expectedStatus.streak,
-      expectedStatus.hazardScore,
+  it("isAlive delegates to the underlying function", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    const filter = new PulseFilter({ threshold: 3600 });
+    const result = await filter.isAlive("0x1111111111111111111111111111111111111111");
+
+    expect(result).toBe(true);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("filterAlive delegates to the underlying function", async () => {
+    const addr = "0x1111111111111111111111111111111111111111";
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(makeAliveResponse({ address: addr, isAlive: true })),
+    );
+
+    const filter = new PulseFilter();
+    const result = await filter.filterAlive([addr]);
+
+    expect(result).toEqual([addr]);
+  });
+
+  it("getStatus returns the full API response", async () => {
+    const expected = makeAliveResponse({
+      streak: 42,
+      staleness: 300,
+    });
+    mockFetch.mockResolvedValueOnce(jsonResponse(expected));
+
+    const filter = new PulseFilter();
+    const status = await filter.getStatus("0x1111111111111111111111111111111111111111");
+
+    expect(status.streak).toBe(42);
+    expect(status.staleness).toBe(300);
+  });
+
+  it("getStatus throws on invalid address", async () => {
+    const filter = new PulseFilter();
+    await expect(filter.getStatus("bad")).rejects.toThrow("Invalid Ethereum address");
+  });
+
+  it("uses configured API URL across calls", async () => {
+    const customUrl = "https://my-pulse-api.example.com";
+    mockFetch
+      .mockResolvedValueOnce(jsonResponse(makeAliveResponse()))
+      .mockResolvedValueOnce(jsonResponse(makeAliveResponse()));
+
+    const filter = new PulseFilter({ apiUrl: customUrl });
+    await filter.isAlive("0x1111111111111111111111111111111111111111");
+    await filter.isAlive("0x2222222222222222222222222222222222222222");
+
+    for (const call of mockFetch.mock.calls) {
+      expect((call[0] as string).startsWith(customUrl)).toBe(true);
+    }
+  });
+});
+
+// ============================================================================
+// Live integration test (opt-in via PULSE_LIVE_TEST=1)
+// ============================================================================
+
+const LIVE = process.env["PULSE_LIVE_TEST"] === "1";
+
+describe.skipIf(!LIVE)("Live API integration", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals(); // Restore real fetch for live tests
+  });
+
+  it("checks a random address against the live API", async () => {
+    const result = await isAlive("0x0000000000000000000000000000000000000001");
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("filterAliveDetailed returns proper structure from live API", async () => {
+    const result = await filterAliveDetailed([
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000002",
     ]);
 
-    const result = await isAgentAlive(address, TEST_OPTIONS);
-
-    expect(result).toEqual(expectedStatus);
+    expect(result).toHaveProperty("alive");
+    expect(result).toHaveProperty("details");
+    expect(result).toHaveProperty("errors");
+    expect(result).toHaveProperty("checkedAt");
+    expect(Array.isArray(result.alive)).toBe(true);
+    expect(result.details.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('should handle dead agents', async () => {
-    const address: Address = '0x1111111111111111111111111111111111111111';
+  it("PulseFilter.getStatus returns valid structure", async () => {
+    const filter = new PulseFilter();
+    const status = await filter.getStatus(
+      "0x0000000000000000000000000000000000000001",
+    );
 
-    mockReadContract.mockResolvedValueOnce([false, BigInt(1707000000), BigInt(0), BigInt(10)]);
-
-    const result = await isAgentAlive(address, TEST_OPTIONS);
-
-    expect(result.alive).toBe(false);
-    expect(result.streak).toBe(BigInt(0));
-    expect(result.hazardScore).toBe(BigInt(10));
-  });
-});
-
-describe('getRegistryTTL', () => {
-  let mockReadContract: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    mockReadContract = vi.fn();
-    vi.mocked(createPublicClient).mockReturnValue({
-      readContract: mockReadContract,
-    } as unknown as ReturnType<typeof createPublicClient>);
-  });
-
-  it('should return TTL from registry', async () => {
-    const expectedTTL = BigInt(86400); // 24 hours
-    mockReadContract.mockResolvedValueOnce(expectedTTL);
-
-    const result = await getRegistryTTL(TEST_OPTIONS);
-
-    expect(result).toBe(expectedTTL);
-    expect(mockReadContract).toHaveBeenCalledWith(expect.objectContaining({
-      address: TEST_OPTIONS.registryAddress,
-      functionName: 'ttlSeconds',
-    }));
-  });
-
-  it('should return different TTL values', async () => {
-    mockReadContract.mockResolvedValueOnce(BigInt(3600)); // 1 hour
-    const result1 = await getRegistryTTL(TEST_OPTIONS);
-    expect(result1).toBe(BigInt(3600));
+    expect(status).toHaveProperty("address");
+    expect(status).toHaveProperty("isAlive");
+    expect(status).toHaveProperty("lastPulseTimestamp");
+    expect(status).toHaveProperty("streak");
+    expect(status).toHaveProperty("ttl");
+    expect(status).toHaveProperty("checkedAt");
   });
 });
