@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const NETWORK_NAMES: Record<string, string> = {
+  "8453": "Base",
+  "84532": "Base Sepolia",
+};
+
 export async function GET() {
   const pulseToken = process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS || "";
-  const signalSink = process.env.NEXT_PUBLIC_SIGNAL_SINK_ADDRESS || "";
+  const signalSink = process.env.SIGNAL_SINK_ADDRESS || process.env.NEXT_PUBLIC_SIGNAL_SINK_ADDRESS || "";
+  const chainId = parseInt(CHAIN_ID, 10);
 
   return NextResponse.json({
-    network: "Base Sepolia",
-    chainId: 84532,
+    description: "Agent Pulse — x402-powered liveness protocol. Agents pay PULSE tokens to prove activity and maintain routing eligibility.",
+    network: NETWORK_NAMES[CHAIN_ID] || `Chain ${CHAIN_ID}`,
+    chainId,
     contracts: {
       pulseToken,
       pulseRegistry: process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "",
@@ -23,7 +31,7 @@ export async function GET() {
       config: "/api/config",
     },
     x402: {
-      amount: "1000000000000000000",
+      amount: process.env.PULSE_AMOUNT || "1000000000000000000",
       asset: pulseToken,
       payTo: signalSink,
     },

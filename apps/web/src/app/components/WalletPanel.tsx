@@ -29,7 +29,7 @@ const formatUnix = (seconds?: number | null) => {
 };
 
 export default function WalletPanel() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, isConnecting, isDisconnected, connectError } = useWallet();
   const {
     status,
     error,
@@ -89,8 +89,15 @@ export default function WalletPanel() {
     ? styles.statusPending
     : "";
 
+  // Determine auth status for data attribute
+  const authStatus = isConnected ? "connected" : "disconnected";
+
   return (
-    <div className={styles.walletPanel}>
+    <div 
+      className={styles.walletPanel}
+      data-auth-status={authStatus}
+      data-wallet-address={address || ""}
+    >
       <div className={styles.walletHeader}>
         <span className={styles.tag}>Wallet link</span>
         <ConnectButton.Custom>
@@ -122,7 +129,7 @@ export default function WalletPanel() {
                   }
                   return (
                     <button onClick={openAccountModal} type="button" className={styles.buttonGhost}>
-                      {account.displayName}
+                      {shortenAddress(account.address)}
                     </button>
                   );
                 })()}
@@ -213,9 +220,37 @@ export default function WalletPanel() {
           ) : null}
         </>
       ) : (
-        <p className={styles.muted}>
-          Connect a wallet to send an activity pulse signal.
-        </p>
+        <div className={styles.walletStats} data-auth-status={isConnecting ? "connecting" : "disconnected"}>
+          <div>
+            <p className={styles.walletLabel}>Status</p>
+            <p className={styles.walletValue}>
+              {isConnecting ? (
+                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span className={styles.spinner} />
+                  Connecting wallet…
+                </span>
+              ) : connectError ? (
+                <span style={{ color: "var(--error)" }}>Connection failed</span>
+              ) : (
+                <span style={{ color: "var(--muted)" }}>Disconnected</span>
+              )}
+            </p>
+          </div>
+          {connectError && (
+            <div>
+              <p className={styles.walletLabel}>Error</p>
+              <p className={styles.walletValue} style={{ color: "var(--error)", fontSize: "11px" }}>
+                {connectError.message || "Failed to connect wallet"}
+              </p>
+            </div>
+          )}
+          <div>
+            <p className={styles.walletLabel}>Action required</p>
+            <p className={styles.walletValue}>
+              Click <strong>Authenticate</strong> to connect your wallet
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

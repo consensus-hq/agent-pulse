@@ -540,3 +540,92 @@
     border-color: var(--accent);
   }
 }
+
+/* ============================================================================
+   Auth Status Indicators
+   ============================================================================ */
+
+/* Data attribute selectors for agent detection */
+[data-auth-status="connected"] {
+  /* Visual indicator that wallet is connected */
+  border-color: var(--accent-dim);
+}
+
+[data-auth-status="disconnected"] {
+  /* Visual indicator that wallet is disconnected */
+  border-color: var(--border);
+}
+
+[data-auth-status="connecting"] {
+  /* Visual indicator that wallet is connecting */
+  border-color: var(--warning);
+  opacity: 0.9;
+}
+
+/* Auth status badge for connected state */
+.authStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.authStatusBadge[data-status="connected"] {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+}
+
+.authStatusBadge[data-status="connected"]::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+
+.authStatusBadge[data-status="disconnected"] {
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.authStatusBadge[data-status="disconnected"]::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--dim);
+  border-radius: 50%;
+}
+
+.authStatusBadge[data-status="connecting"] {
+  background: rgba(255, 210, 138, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(255, 210, 138, 0.3);
+}
+
+.authStatusBadge[data-status="connecting"]::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--warning);
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+.authStatusBadge[data-status="error"] {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.authStatusBadge[data-status="error"]::before {
+  content: '✕';
+  font-size: 8px;
+  color: var(--error);
+}
