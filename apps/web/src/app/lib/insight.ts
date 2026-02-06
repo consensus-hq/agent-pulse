@@ -45,8 +45,8 @@ const SIGNAL_SINK = '0x000000000000000000000000000000000000dEaD';
 // Event Signatures
 // ============================================================================
 
-/** Pulse event signature: Pulse(address indexed agent, uint256 amount, uint256 timestamp, uint256 streak) */
-const PULSE_SIGNATURE = 'Pulse(address,uint256,uint256,uint256)';
+/** PulseV2 event signature: PulseV2(address indexed agent, uint256 amount, uint256 timestamp, uint256 streak, uint256 totalBurned) */
+const PULSE_SIGNATURE = 'PulseV2(address,uint256,uint256,uint256,uint256)';
 
 /** Paused event signature */
 const PAUSED_SIGNATURE = 'Paused(address)';
@@ -99,6 +99,8 @@ export interface PulseEventData {
   timestamp: string;
   /** Current streak */
   streak: string;
+  /** Total burned by this agent */
+  totalBurned: string;
 }
 
 /**
@@ -204,6 +206,8 @@ export interface PulseEvent {
   timestamp: number;
   /** Current streak */
   streak: number;
+  /** Total burned by this agent */
+  totalBurned: bigint;
   /** Block number */
   blockNumber: number;
   /** Log index */
@@ -425,6 +429,7 @@ export async function getPulseEvents(
         amount: BigInt(params.amount ?? 0),
         timestamp: Number(params.timestamp ?? event.block_timestamp ?? 0),
         streak: Number(params.streak ?? 0),
+        totalBurned: BigInt(params.totalBurned ?? 0),
         blockNumber: Number(event.block_number ?? 0),
         logIndex: Number(event.log_index ?? 0),
         transactionHash: (event.transaction_hash as string) ?? '0x',

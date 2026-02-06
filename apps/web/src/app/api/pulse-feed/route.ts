@@ -174,6 +174,7 @@ function formatFeedItem(event: {
   amount: bigint;
   timestamp: number;
   streak: number;
+  totalBurned?: bigint;
   blockNumber: number;
   logIndex: number;
   transactionHash: string;
