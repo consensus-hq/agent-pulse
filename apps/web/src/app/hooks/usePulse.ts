@@ -133,6 +133,9 @@ export function usePulse() {
     ? currentAllowance < minAmount
     : false;
 
+  // Approve max uint256 so users only need to approve once
+  const MAX_UINT256 = 2n ** 256n - 1n;
+
   const approve = useCallback(
     async (amount?: bigint) => {
       if (!tokenAddress || !registryAddress) {
@@ -140,8 +143,7 @@ export function usePulse() {
         setError("Missing contract configuration.");
         return;
       }
-      const targetAmount = amount ?? minAmount;
-      if (!targetAmount || targetAmount <= 0n) {
+      if (!minAmount || minAmount <= 0n) {
         setStatus("error");
         setError("Min pulse amount unavailable.");
         return;
@@ -153,7 +155,7 @@ export function usePulse() {
           address: tokenAddress,
           abi: erc20Abi,
           functionName: "approve",
-          args: [registryAddress, targetAmount],
+          args: [registryAddress, amount ?? MAX_UINT256],
         });
         setApproveHash(hash);
       } catch (err) {
