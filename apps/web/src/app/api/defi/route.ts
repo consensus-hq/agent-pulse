@@ -38,11 +38,11 @@ const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 // HeyElsa API base URL (always mainnet — separate from pulse x402)
-const HEYELSA_BASE_URL = process.env.HEYELSA_X402_API_URL || "https://x402-api.heyelsa.ai";
+export const HEYELSA_BASE_URL = process.env.HEYELSA_X402_API_URL || "https://x402-api.heyelsa.ai";
 
 // Security limits
-const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)
-const CACHE_TTL_SECONDS = 60;
+export const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)
+export const CACHE_TTL_SECONDS = 60;
 
 // EIP-3009 TransferWithAuthorization types
 const TRANSFER_WITH_AUTHORIZATION_TYPES = {
@@ -208,7 +208,7 @@ async function getRateLimitRejections(): Promise<number> {
 // WALLET & PAYMENT UTILITIES
 // ============================================
 
-function getPaymentWallet() {
+export function getPaymentWallet() {
   const privateKey = process.env.HEYELSA_PAYMENT_KEY;
   
   if (!privateKey) {
@@ -225,7 +225,7 @@ function getPaymentWallet() {
   });
 }
 
-interface PaymentRequirements {
+export interface PaymentRequirements {
   scheme: string;
   network: string;
   maxAmountRequired: string;
@@ -243,7 +243,7 @@ interface PaymentRequirements {
   }>;
 }
 
-async function parse402Response(response: Response): Promise<PaymentRequirements> {
+export async function parse402Response(response: Response): Promise<PaymentRequirements> {
   const body = await response.json();
   const accepts = body.accepts || body.paymentRequirements || [];
   
@@ -270,7 +270,7 @@ async function parse402Response(response: Response): Promise<PaymentRequirements
   };
 }
 
-async function createPaymentSignature(
+export async function createPaymentSignature(
   wallet: ReturnType<typeof getPaymentWallet>,
   paymentReq: PaymentRequirements["paymentRequirements"][0]
 ): Promise<string> {
@@ -325,7 +325,7 @@ async function createPaymentSignature(
   return Buffer.from(JSON.stringify(payload)).toString("base64");
 }
 
-async function fetchWithPayment(
+export async function fetchWithPayment(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<Response> {
@@ -376,7 +376,7 @@ async function fetchWithPayment(
   });
 }
 
-function isValidAddress(address: string): boolean {
+export function isValidAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
