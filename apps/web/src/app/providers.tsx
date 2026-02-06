@@ -9,13 +9,11 @@ import {
 import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { baseSepolia } from "wagmi/chains";
+import { base, baseSepolia } from "wagmi/chains";
 import { publicEnv } from "./lib/env.public";
 
+const IS_MAINNET = publicEnv.chainId === "8453";
 const baseRpcUrl = publicEnv.baseRpcUrl || undefined;
-const transports = {
-  [baseSepolia.id]: http(baseRpcUrl),
-};
 
 // Warn in development if WalletConnect Project ID is missing
 if (typeof window !== "undefined" && !publicEnv.walletConnectProjectId) {
@@ -26,20 +24,36 @@ if (typeof window !== "undefined" && !publicEnv.walletConnectProjectId) {
   );
 }
 
-const wagmiConfig = publicEnv.walletConnectProjectId
-  ? getDefaultConfig({
-      appName: "Agent Pulse",
-      projectId: publicEnv.walletConnectProjectId,
-      chains: [baseSepolia],
-      transports,
-      ssr: true,
-    })
-  : createConfig({
-      chains: [baseSepolia],
-      transports,
-      connectors: [injected()],
-      ssr: true,
-    });
+// Build wagmi config for the correct chain based on environment
+const wagmiConfig = IS_MAINNET
+  ? publicEnv.walletConnectProjectId
+    ? getDefaultConfig({
+        appName: "Agent Pulse",
+        projectId: publicEnv.walletConnectProjectId,
+        chains: [base],
+        transports: { [base.id]: http(baseRpcUrl) },
+        ssr: true,
+      })
+    : createConfig({
+        chains: [base],
+        transports: { [base.id]: http(baseRpcUrl) },
+        connectors: [injected()],
+        ssr: true,
+      })
+  : publicEnv.walletConnectProjectId
+    ? getDefaultConfig({
+        appName: "Agent Pulse",
+        projectId: publicEnv.walletConnectProjectId,
+        chains: [baseSepolia],
+        transports: { [baseSepolia.id]: http(baseRpcUrl) },
+        ssr: true,
+      })
+    : createConfig({
+        chains: [baseSepolia],
+        transports: { [baseSepolia.id]: http(baseRpcUrl) },
+        connectors: [injected()],
+        ssr: true,
+      });
 
 export default function Providers({
   children,
