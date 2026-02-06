@@ -126,7 +126,7 @@ if command -v gh &>/dev/null; then
     elif echo "$DEPLOY_STATUS" | grep -qi "fail\|error\|✗"; then
       fail "Vercel preview FAILED: $DEPLOY_STATUS"
     elif echo "$DEPLOY_STATUS" | grep -qi "pending\|running"; then
-      warn "Vercel preview still building. Wait for it to finish."
+      fail "Vercel preview still building. Wait for READY before merging."
     else
       warn "Vercel status unclear: $DEPLOY_STATUS"
     fi
@@ -154,7 +154,7 @@ elif command -v gh &>/dev/null; then
   elif [ "$COMMENTS" -gt 0 ]; then
     pass "$COMMENTS review comments, no red/P1 issues"
   else
-    warn "No review comments yet. Devin/Codex take 3-5 min. Wait or re-check."
+    fail "No review comments yet. Devin/Codex take 3-5 min. Wait and re-run."
   fi
 else
   warn "gh CLI not available. Check review comments manually."
@@ -166,8 +166,8 @@ echo "── Gate 7: Diff size ──"
 if command -v gh &>/dev/null; then
   DIFF_STATS=$(gh pr view "$PR_NUMBER" --json additions,deletions,changedFiles --jq '"\(.changedFiles) files, +\(.additions) -\(.deletions)"' 2>/dev/null || echo "unknown")
   echo "  Changes: $DIFF_STATS"
-  CHANGED_FILES=$(gh pr view "$PR_NUMBER" --json changedFiles --jq '.changedFiles' 2>/dev/null || echo "0")
-  if [ "$CHANGED_FILES" -gt 50 ]; then
+  CHANGED_FILES=$(gh pr view "$PR_NUMBER" --json changedFiles --jq '.changedFiles // 0' 2>/dev/null || echo "0")
+  if [ "$CHANGED_FILES" -gt 50 ] 2>/dev/null; then
     warn "Large PR ($CHANGED_FILES files). Consider splitting."
   else
     pass "PR size reasonable ($DIFF_STATS)"
