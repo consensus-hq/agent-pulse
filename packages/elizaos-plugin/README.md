@@ -35,7 +35,7 @@ npm install @openclaw/eliza-plugin-pulse
         "mode": "strict",
         "threshold": "24h"
       },
-      "contractAddress": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612",
+      "contractAddress": "0xe61C615743A02983A46aFF66Db035297e8a43846",
       "chainId": 84532
     }
   }
@@ -47,8 +47,8 @@ npm install @openclaw/eliza-plugin-pulse
 ```bash
 AGENT_PULSE_RPC_URL=https://sepolia.base.org
 AGENT_PULSE_API_URL=https://api.agentpulse.io
-AGENT_PULSE_TOKEN_ADDRESS=0x7f24C286872c9594499CD634c7Cc7735551242a2
-AGENT_PULSE_REGISTRY_ADDRESS=0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612
+AGENT_PULSE_TOKEN_ADDRESS=0x21111B39A502335aC7e45c4574Dd083A69258b07
+AGENT_PULSE_REGISTRY_ADDRESS=0xe61C615743A02983A46aFF66Db035297e8a43846
 ```
 
 ## Gate Configuration
@@ -64,7 +64,7 @@ The gate reads configuration from `character.settings.pulse`:
         "mode": "strict",     // "strict" | "permissive" | "audit"
         "threshold": "24h"    // Max age for considering agent alive
       },
-      "contractAddress": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612",
+      "contractAddress": "0xe61C615743A02983A46aFF66Db035297e8a43846",
       "chainId": 84532,
       "rpcUrl": "https://sepolia.base.org"  // Optional override
     }
@@ -285,8 +285,8 @@ console.log(decision.log);    // true/false
 ## Contract Addresses
 
 **Base Sepolia (Chain ID: 84532)**
-- PulseRegistry: `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
-- PulseToken: `0x7f24C286872c9594499CD634c7Cc7735551242a2`
+- PulseRegistry: `0xe61C615743A02983A46aFF66Db035297e8a43846`
+- PulseToken: `0x21111B39A502335aC7e45c4574Dd083A69258b07`
 
 ## Development
 

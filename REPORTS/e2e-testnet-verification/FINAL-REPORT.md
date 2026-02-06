@@ -43,7 +43,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 
 | Function | Tested | Result | Details |
 |----------|--------|--------|---------|
-| `pulseToken()` | ✅ Yes | ✅ PASS | Returns correct token address: `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
+| `pulseToken()` | ✅ Yes | ✅ PASS | Returns correct token address: `0x21111B39A502335aC7e45c4574Dd083A69258b07` |
 | `signalSink()` | ✅ Yes | ✅ PASS | Returns dead address: `0x000000000000000000000000000000000000dEaD` |
 | `ttlSeconds()` | ✅ Yes | ✅ PASS | Returns 86,400 seconds (24 hours) |
 | `minPulseAmount()` | ✅ Yes | ✅ PASS | Returns 1e18 (1 PULSE token minimum) |
@@ -149,8 +149,8 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 ## Configuration Details
 
 ### Contract Addresses
-- **PulseRegistry:** `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
-- **PulseToken:** `0x7f24C286872c9594499CD634c7Cc7735551242a2`
+- **PulseRegistry:** `0xe61C615743A02983A46aFF66Db035297e8a43846`
+- **PulseToken:** `0x21111B39A502335aC7e45c4574Dd083A69258b07`
 - **Signal Sink:** `0x000000000000000000000000000000000000dEaD`
 
 ### Contract Parameters

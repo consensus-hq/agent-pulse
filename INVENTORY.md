@@ -111,8 +111,8 @@
 
 | Contract | Address | Verified |
 |----------|---------|----------|
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` | ✅ |
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | ✅ |
+| PulseToken | `0x21111B39A502335aC7e45c4574Dd083A69258b07` | ✅ |
+| PulseRegistry | `0xe61C615743A02983A46aFF66Db035297e8a43846` | ✅ |
 | Signal Sink | `0x000000000000000000000000000000000000dEaD` | N/A |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` | ✅ |
 
@@ -133,5 +133,5 @@
 
 - **Live Demo:** https://agent-pulse-nine.vercel.app
 - **GitHub:** https://github.com/consensus-hq/agent-pulse
-- **BaseScan (Token):** https://sepolia.basescan.org/address/0x7f24C286872c9594499CD634c7Cc7735551242a2
-- **BaseScan (Registry):** https://sepolia.basescan.org/address/0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612
+- **BaseScan (Token):** https://sepolia.basescan.org/address/0x21111B39A502335aC7e45c4574Dd083A69258b07
+- **BaseScan (Registry):** https://sepolia.basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846

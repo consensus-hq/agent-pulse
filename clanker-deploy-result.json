@@ -1,0 +1,11 @@
+{
+  "tokenAddress": "0x21111B39A502335aC7e45c4574Dd083A69258b07",
+  "txHash": "0x5bee30aeff8df895cb7de05321efb103ad776f1a3a9b7dd72fb8f385d887e61a",
+  "deployer": "0x9508752Ba171D37EBb3AA437927458E0a21D1e04",
+  "treasury": "0xA7940a42c30A7F492Ed578F3aC728c2929103E43",
+  "chain": "base",
+  "chainId": 8453,
+  "deployedAt": "2026-02-06T19:52:15.662Z",
+  "devBuyEth": 0.002,
+  "note": "Clanker V4 deployment with Uniswap V4 pool"
+}

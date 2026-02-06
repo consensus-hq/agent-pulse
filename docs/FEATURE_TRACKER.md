@@ -12,8 +12,8 @@
 | 1 | [The Graph + Chainlink Reputation](#1-the-graph--chainlink-reputation) | Planned | P1 | $5-25/day | 85% |
 | 2 | [x402-Gated Paid API (8 endpoints)](#2-x402-gated-paid-api) | Built | P0 | $10-250/day | 90% |
 | 3 | [pulse-filter SDK (Viral Wedge)](#3-pulse-filter-sdk) | Built | P0 | Indirect | 75% |
-| 4 | [BurnWithFee Wrapper (1% Infrastructure Fee)](#4-burnwithfee-wrapper) | Deployed (Sepolia) | P0 | $0.10-10/day | 95% |
-| 5 | [Peer Attestation System](#5-peer-attestation-system) | Deployed (Sepolia) | P1 | Indirect | 80% |
+| 4 | [BurnWithFee Wrapper (1% Infrastructure Fee)](#4-burnwithfee-wrapper) | Deployed (Base Mainnet) | P0 | $0.10-10/day | 95% |
+| 5 | [Peer Attestation System](#5-peer-attestation-system) | Deployed (Base Mainnet) | P1 | Indirect | 80% |
 | 6 | [Inbox System (Job Gating)](#6-inbox-system) | Production | P0 | Indirect | 90% |
 | 7 | [ERC-8004 Identity Badge](#7-erc-8004-identity-badge) | Built (read-only) | P1 | Indirect | 85% |
 | 8 | [Free /alive Endpoint](#8-free-alive-endpoint) | Missing | P0-CRITICAL | Indirect (viral loop) | 95% |
@@ -30,7 +30,7 @@
 | **Vendors** | The Graph (subgraph hosting), Chainlink (Functions for on-chain compute) |
 | **Time** | 2-3 weeks post-hackathon |
 | **Description** | The composite reputation endpoint (`/api/v2/agent/{addr}/reputation`) currently uses mocked percentile (85.4) and synthetic 30-day history. A subgraph indexing PeerAttestation events provides real aggregate data. Chainlink Functions can compute percentile off-chain and post on-chain for smart contract gating. |
-| **Requirements** | - PeerAttestation deployed (✅ Sepolia `0x4B14c36e...`) - Event signatures verified Graph-compatible (✅ attester, subject, weight, timestamp all present) - Subgraph schema + mappings - Chainlink Functions subscription on Base - API endpoint swap (same response schema) |
+| **Requirements** | - PeerAttestation deployed (✅ Mainnet `0x930dC613...`) - Event signatures verified Graph-compatible (✅ attester, subject, weight, timestamp all present) - Subgraph schema + mappings - Chainlink Functions subscription on Base - API endpoint swap (same response schema) |
 | **Goal** | Real reputation scores backed by indexed on-chain attestation data. Enable smart contract gating on reputation (e.g., "only route to agents with reputation > 70"). |
 | **Predicted Revenue Production** | $5-25/day additional from reputation endpoint queries becoming genuinely useful (currently mocked data limits adoption). Enables premium "Risk Bundle" at $0.04/call. |
 | **Predicted Chance of Success** | 85% — architecture is already layered correctly, no rewrites needed. Risk: subgraph indexing latency or Chainlink Functions cost/reliability. |
@@ -46,7 +46,7 @@
 | **Vendors** | Thirdweb (x402 facilitator, server wallet), Vercel (hosting), Base (settlement) |
 | **Time** | Built — hackathon deliverable |
 | **Description** | External agents pay USDC per-call to access reliability scores, streak analysis, burn history, peer correlation, predictive insights, uptime metrics, liveness proofs, and global network stats. Thirdweb facilitator handles payment settlement on Base. |
-| **Requirements** | - Thirdweb secret key + server wallet (✅) - Vercel deployment (✅) - Indexer feeding real data to endpoints (⚠️ partially mocked) - Base Sepolia for testnet, Base Mainnet for production |
+| **Requirements** | - Thirdweb secret key + server wallet (✅) - Vercel deployment (✅) - Indexer feeding real data to endpoints (⚠️ partially mocked) - Base Mainnet (production) |
 | **Goal** | Primary revenue stream. Breakeven at ~200 agents. 86% margins at 5,000 agents. |
 | **Predicted Revenue Production** | $10/day at 200 agents → $250/day at 5,000 agents |
 | **Predicted Chance of Success** | 90% — built and functional. Risk: adoption speed, x402 client ecosystem maturity. |
@@ -76,9 +76,9 @@
 |-------|-------|
 | **Feature** | 1% infrastructure fee on PULSE burns via wrapper contract |
 | **Vendors** | None (self-deployed Solidity) |
-| **Time** | Built + deployed to Sepolia |
+| **Time** | Built + deployed to Base Mainnet |
 | **Description** | Wrapper contract: 1% to fee wallet, 99% to burn address. Configurable fee rate (100-500 bps). Minimum burn: 100 tokens. Fee wallet PULSE periodically swapped to USDC for ops funding. |
-| **Requirements** | - Contract deployed (✅ Sepolia `0x326a1524...`) - Frontend burn button calls wrapper (⚠️ needs wiring) - User approval flow (`approve(wrapperAddress, amount)`) - Mainnet deployment |
+| **Requirements** | - Contract deployed (✅ Mainnet `0xd38cC332...`) - Frontend burn button calls wrapper (⚠️ needs wiring) - User approval flow (`approve(wrapperAddress, amount)`) - Mainnet deployment |
 | **Goal** | Secondary revenue stream. Fund infrastructure (Vercel, RPC, HeyElsa DeFi panel). |
 | **Predicted Revenue Production** | $0.10/day (pessimistic) to $10/day (optimistic) depending on burn volume. |
 | **Predicted Chance of Success** | 95% — contract built, tested (33/33), deployed. Minimal risk. |
@@ -92,9 +92,9 @@
 |-------|-------|
 | **Feature** | On-chain peer-to-peer reputation via weighted attestations |
 | **Vendors** | None (self-deployed Solidity) |
-| **Time** | Built + deployed to Sepolia |
+| **Time** | Built + deployed to Base Mainnet |
 | **Description** | Agents vouch for each other with positive/negative weighted attestations. Epoch-based rate limiting. Feeds into composite reputation score. |
-| **Requirements** | - Contract deployed (✅ Sepolia `0x4B14c36e...`) - API endpoints built (✅ `/attest`, `/attestations`) - SDK integration (✅ `attestation.ts`) - The Graph indexing (planned post-hackathon) |
+| **Requirements** | - Contract deployed (✅ Mainnet `0x930dC613...`) - API endpoints built (✅ `/attest`, `/attestations`) - SDK integration (✅ `attestation.ts`) - The Graph indexing (planned post-hackathon) |
 | **Goal** | Decentralized trust layer. Agents with peer vouches rank higher in routing decisions. |
 | **Predicted Revenue Production** | Indirect — increases value of reputation endpoint ($0.01/call) and Risk Bundle ($0.04/call). |
 | **Predicted Chance of Success** | 80% — contract + API built. Risk: bootstrapping initial attestation network. |

@@ -11,8 +11,8 @@ Agent Pulse is a liveness signaling protocol: an agent periodically sends a **pu
 
 **Network:** Base Sepolia (chainId **84532**)
 
-- PulseToken: `0x7f24C286872c9594499CD634c7Cc7735551242a2`
-- PulseRegistry: `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
+- PulseToken: `0x21111B39A502335aC7e45c4574Dd083A69258b07`
+- PulseRegistry: `0xe61C615743A02983A46aFF66Db035297e8a43846`
 - API: `https://agent-pulse-nine.vercel.app`
 
 > Important: $PULSE is a **utility token for pulse signals**. Avoid language suggesting financial upside.
@@ -231,12 +231,12 @@ export BASE_SEPOLIA_RPC_URL="https://..."
 
 # alive?
 cast call --rpc-url "$BASE_SEPOLIA_RPC_URL" \
-  0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 \
+  0xe61C615743A02983A46aFF66Db035297e8a43846 \
   "isAlive(address)(bool)" 0xAgent
 
 # status tuple
 cast call --rpc-url "$BASE_SEPOLIA_RPC_URL" \
-  0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 \
+  0xe61C615743A02983A46aFF66Db035297e8a43846 \
   "getAgentStatus(address)(bool,uint256,uint256,uint256)" 0xAgent
 ```
 
@@ -245,13 +245,13 @@ Send pulse (requires ERC20 approval to PulseRegistry first, unless already appro
 ```bash
 # 1) Approve registry to transfer PULSE
 cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
-  0x7f24C286872c9594499CD634c7Cc7735551242a2 \
+  0x21111B39A502335aC7e45c4574Dd083A69258b07 \
   "approve(address,uint256)(bool)" \
-  0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 1000000000000000000
+  0xe61C615743A02983A46aFF66Db035297e8a43846 1000000000000000000
 
 # 2) Pulse (transfers to signal sink and updates streak)
 cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
-  0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 \
+  0xe61C615743A02983A46aFF66Db035297e8a43846 \
   "pulse(uint256)" 1000000000000000000
 ```
 

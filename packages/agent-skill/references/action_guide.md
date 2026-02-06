@@ -349,7 +349,7 @@ These actions are **not** exposed via the public API and must be called directly
 ```bash
 export BASE_SEPOLIA_RPC_URL="https://..."
 export PRIVATE_KEY="0x..."  # owner key
-REGISTRY=0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612
+REGISTRY=0xe61C615743A02983A46aFF66Db035297e8a43846
 
 # Score must be 0-100
 cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
@@ -400,7 +400,7 @@ Sometimes you need to bypass the API and read chain state directly.
 
 ```bash
 export BASE_SEPOLIA_RPC_URL="https://..."
-REGISTRY=0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612
+REGISTRY=0xe61C615743A02983A46aFF66Db035297e8a43846
 
 cast call --rpc-url "$BASE_SEPOLIA_RPC_URL" "$REGISTRY" \
   "isAlive(address)(bool)" 0xAgent

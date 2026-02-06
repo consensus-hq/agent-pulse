@@ -11,8 +11,8 @@
 
 | Contract | Address |
 |----------|---------|
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
+| PulseRegistry | `0xe61C615743A02983A46aFF66Db035297e8a43846` |
+| PulseToken | `0x21111B39A502335aC7e45c4574Dd083A69258b07` |
 | Signal Sink (Burn) | `0x000000000000000000000000000000000000dEaD` |
 | Deployer/Owner | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` |
@@ -66,7 +66,7 @@ All transactions documented from the pulse feed:
 | Address | Role | PULSE Balance | ETH Balance |
 |---------|------|---------------|-------------|
 | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` | Deployer/Owner | 999,999,998.0 PULSE | ~testnet ETH |
-| `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | PulseRegistry | 0 PULSE | 0 ETH |
+| `0xe61C615743A02983A46aFF66Db035297e8a43846` | PulseRegistry | 0 PULSE | 0 ETH |
 | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` | Treasury Safe | 0 PULSE | — |
 | `0x000000000000000000000000000000000000dEaD` | Signal Sink (dead address transfer) | **2.0 PULSE** | 5.515 ETH |
 

@@ -1,6 +1,6 @@
 {
   "PulseRegistry": {
-    "address": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612",
+    "address": "0xe61C615743A02983A46aFF66Db035297e8a43846",
     "abi": [
       {
         "type": "constructor",
@@ -158,7 +158,7 @@
     ]
   },
   "PulseToken": {
-    "address": "0x7f24C286872c9594499CD634c7Cc7735551242a2",
+    "address": "0x21111B39A502335aC7e45c4574Dd083A69258b07",
     "abi": [
       {
         "type": "function",

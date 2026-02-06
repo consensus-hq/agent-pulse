@@ -10,8 +10,8 @@
 
 | Contract | Address |
 |----------|---------|
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
+| PulseRegistry | `0xe61C615743A02983A46aFF66Db035297e8a43846` |
+| PulseToken | `0x21111B39A502335aC7e45c4574Dd083A69258b07` |
 
 ---
 
@@ -19,16 +19,16 @@
 
 ### 1. `pulseToken() → address`
 
-**Expected:** Should return the address of the PulseToken contract (`0x7f24C286872c9594499CD634c7Cc7735551242a2`)
+**Expected:** Should return the address of the PulseToken contract (`0x21111B39A502335aC7e45c4574Dd083A69258b07`)
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "pulseToken()(address)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "pulseToken()(address)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
 ```
-0x7f24C286872c9594499CD634c7Cc7735551242a2
+0x21111B39A502335aC7e45c4574Dd083A69258b07
 ```
 
 **Status:** ✅ PASS - Returns correct token contract address
@@ -41,7 +41,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "pulseToken()(address)" --r
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "signalSink()(address)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "signalSink()(address)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -59,7 +59,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "signalSink()(address)" --r
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "ttlSeconds()(uint256)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "ttlSeconds()(uint256)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -77,7 +77,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "ttlSeconds()(uint256)" --r
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "minPulseAmount()(uint256)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "minPulseAmount()(uint256)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -95,7 +95,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "minPulseAmount()(uint256)"
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "owner()(address)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "owner()(address)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -113,7 +113,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "owner()(address)" --rpc-ur
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "paused()(bool)" --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "paused()(bool)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -131,7 +131,7 @@ false
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "isAlive(address)(bool)" 0x9508752Ba171D37EBb3AA437927458E0a21D1e04 --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "isAlive(address)(bool)" 0x9508752Ba171D37EBb3AA437927458E0a21D1e04 --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -149,7 +149,7 @@ true
 
 **Command:**
 ```bash
-cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "agents(address)(uint64,uint32,uint32,uint8)" 0x9508752Ba171D37EBb3AA437927458E0a21D1e04 --rpc-url https://sepolia.base.org
+cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "agents(address)(uint64,uint32,uint32,uint8)" 0x9508752Ba171D37EBb3AA437927458E0a21D1e04 --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -176,7 +176,7 @@ cast call 0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612 "agents(address)(uint64,uin
 
 **Command:**
 ```bash
-cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "name()(string)" --rpc-url https://sepolia.base.org
+cast call 0x21111B39A502335aC7e45c4574Dd083A69258b07 "name()(string)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -194,7 +194,7 @@ cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "name()(string)" --rpc-url 
 
 **Command:**
 ```bash
-cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "symbol()(string)" --rpc-url https://sepolia.base.org
+cast call 0x21111B39A502335aC7e45c4574Dd083A69258b07 "symbol()(string)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -212,7 +212,7 @@ cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "symbol()(string)" --rpc-ur
 
 **Command:**
 ```bash
-cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "decimals()(uint8)" --rpc-url https://sepolia.base.org
+cast call 0x21111B39A502335aC7e45c4574Dd083A69258b07 "decimals()(uint8)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**
@@ -230,7 +230,7 @@ cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "decimals()(uint8)" --rpc-u
 
 **Command:**
 ```bash
-cast call 0x7f24C286872c9594499CD634c7Cc7735551242a2 "totalSupply()(uint256)" --rpc-url https://sepolia.base.org
+cast call 0x21111B39A502335aC7e45c4574Dd083A69258b07 "totalSupply()(uint256)" --rpc-url https://sepolia.base.org
 ```
 
 **Actual Output:**

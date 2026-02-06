@@ -11,21 +11,21 @@
 ### PulseToken (ERC-20)
 | Item | Value | Verified |
 |------|-------|----------|
-| Address | `0x7f24C286872c9594499CD634c7Cc7735551242a2` | ✅ |
+| Address | `0x21111B39A502335aC7e45c4574Dd083A69258b07` | ✅ |
 | Deploy Tx | [`0xe141435f998222d2aab46f0b24fcbc1497b28408dc00419da341e699dbc9a7cd`](https://sepolia.basescan.org/tx/0xe141435f998222d2aab46f0b24fcbc1497b28408dc00419da341e699dbc9a7cd) | ✅ |
 | Block | 37259998 | ✅ |
 | Gas Used | 1,225,180 | ✅ |
-| Source Verified | [BaseScan ✅](https://sepolia.basescan.org/address/0x7f24C286872c9594499CD634c7Cc7735551242a2#code) | ✅ |
+| Source Verified | [BaseScan ✅](https://sepolia.basescan.org/address/0x21111B39A502335aC7e45c4574Dd083A69258b07#code) | ✅ |
 | Compiler | v0.8.33 | ✅ |
 
 ### PulseRegistry (Core Protocol)
 | Item | Value | Verified |
 |------|-------|----------|
-| Address | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | ✅ |
+| Address | `0xe61C615743A02983A46aFF66Db035297e8a43846` | ✅ |
 | Deploy Tx | [`0x86177a3921d728e8261b3db05190a7e8ef78005ccaeb9d9c3b56e709ef3dac56`](https://sepolia.basescan.org/tx/0x86177a3921d728e8261b3db05190a7e8ef78005ccaeb9d9c3b56e709ef3dac56) | ✅ |
 | Block | 37260003 | ✅ |
 | Gas Used | 1,625,823 | ✅ |
-| Source Verified | [BaseScan ✅](https://sepolia.basescan.org/address/0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612#code) | ✅ |
+| Source Verified | [BaseScan ✅](https://sepolia.basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846#code) | ✅ |
 | Compiler | v0.8.33 | ✅ |
 
 ---
@@ -112,15 +112,15 @@
 | Deployer | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` |
 | Signal Sink (dead address transfer) | `0x000000000000000000000000000000000000dEaD` |
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
+| PulseToken | `0x21111B39A502335aC7e45c4574Dd083A69258b07` |
+| PulseRegistry | `0xe61C615743A02983A46aFF66Db035297e8a43846` |
 
 ---
 
 ## 8. Verification Links (Click to Verify)
 
-- [PulseToken on BaseScan](https://sepolia.basescan.org/address/0x7f24C286872c9594499CD634c7Cc7735551242a2#code)
-- [PulseRegistry on BaseScan](https://sepolia.basescan.org/address/0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612#code)
+- [PulseToken on BaseScan](https://sepolia.basescan.org/address/0x21111B39A502335aC7e45c4574Dd083A69258b07#code)
+- [PulseRegistry on BaseScan](https://sepolia.basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846#code)
 - [Deploy Tx #1 (Token)](https://sepolia.basescan.org/tx/0xe141435f998222d2aab46f0b24fcbc1497b28408dc00419da341e699dbc9a7cd)
 - [Deploy Tx #2 (Registry)](https://sepolia.basescan.org/tx/0x86177a3921d728e8261b3db05190a7e8ef78005ccaeb9d9c3b56e709ef3dac56)
 - [Pulse Tx #1](https://sepolia.basescan.org/tx/0xf152a2f633d7906973d77f2e1f37b1a0f4904d528884f845760004ca881f40c4)

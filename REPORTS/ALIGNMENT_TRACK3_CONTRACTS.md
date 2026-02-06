@@ -60,8 +60,8 @@ This is a legacy file from old plans. Per task spec, it shouldn't exist. **Recom
 | Entity | WALLETS.md Address | Matches Code/Deploys |
 |--------|-------------------|---------------------|
 | Deployer | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` | ✅ |
-| PulseToken (Sepolia) | `0x7f24C286872c9594499CD634c7Cc7735551242a2` | ✅ |
-| PulseRegistry (Sepolia) | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | ✅ |
+| PulseToken (Sepolia) | `0x21111B39A502335aC7e45c4574Dd083A69258b07` | ✅ |
+| PulseRegistry (Sepolia) | `0xe61C615743A02983A46aFF66Db035297e8a43846` | ✅ |
 | HeyElsa Wallet | `0xDb48A285a559F61EF3B3AFbc7ef5D7Ce9FAAAcd6` | ✅ (referenced in MEMORY.md) |
 | Treasury Safe | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` | ✅ (in .env files + LINKS.md) |
 
@@ -118,10 +118,10 @@ This is a legacy file from old plans. Per task spec, it shouldn't exist. **Recom
 
 | Contract | Expected Address | Found In Code | Consistent |
 |----------|-----------------|---------------|------------|
-| PeerAttestation | `0x4B14c36e86fC534E401481Bc1834f0762788aaf5` | `SEPOLIA_DEPLOY_RECEIPT.md`, `POST_HACKATHON_ROADMAP.md` | ✅ |
-| BurnWithFee | `0x326a15247C958E94de93C8E471acA3eC868f58ec` | `SEPOLIA_DEPLOY_RECEIPT.md`, `POST_HACKATHON_ROADMAP.md` | ✅ |
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` | `.env.testnet`, SDK, SKILL.md, LINKS.md, 15+ files | ✅ |
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | `.env.testnet`, SDK, SKILL.md, LINKS.md, 20+ files | ✅ |
+| PeerAttestation | `0x930dC6130b20775E01414a5923e7C66b62FF8d6C` | `SEPOLIA_DEPLOY_RECEIPT.md`, `POST_HACKATHON_ROADMAP.md` | ✅ |
+| BurnWithFee | `0xd38cC332ca9755DE536841f2A248f4585Fb08C1E` | `SEPOLIA_DEPLOY_RECEIPT.md`, `POST_HACKATHON_ROADMAP.md` | ✅ |
+| PulseToken | `0x21111B39A502335aC7e45c4574Dd083A69258b07` | `.env.testnet`, SDK, SKILL.md, LINKS.md, 15+ files | ✅ |
+| PulseRegistry | `0xe61C615743A02983A46aFF66Db035297e8a43846` | `.env.testnet`, SDK, SKILL.md, LINKS.md, 20+ files | ✅ |
 
 **Note:** PeerAttestation and BurnWithFee are only referenced in reports/docs, not yet wired into app `.env` or SDK code. This is expected if they're Phase 2.
 

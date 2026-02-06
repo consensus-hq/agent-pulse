@@ -76,14 +76,15 @@ Paid endpoints return a `402 Payment Required` with x402 challenge details.
 3. Anyone queries `isAlive(agent)` for free — returns liveness + staleness
 4. Paid endpoints provide derivative intelligence (streaks, reliability, predictions)
 
-## Contracts (Base Sepolia)
+## Contracts (Base Mainnet)
 
 | Contract | Address |
 |---|---|
-| PulseToken | `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
-| PulseRegistry | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` |
-| PeerAttestation | `0x4B14c36e86fC534E401481Bc1834f0762788aaf5` |
-| BurnWithFee | `0x326a15247C958E94de93C8E471acA3eC868f58ec` |
+| PULSE Token (Clanker V4) | [`0x21111B39A502335aC7e45c4574Dd083A69258b07`](https://basescan.org/address/0x21111B39A502335aC7e45c4574Dd083A69258b07) |
+| PulseRegistryV2 | [`0xe61C615743A02983A46aFF66Db035297e8a43846`](https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846) |
+| PeerAttestation | [`0x930dC6130b20775E01414a5923e7C66b62FF8d6C`](https://basescan.org/address/0x930dC6130b20775E01414a5923e7C66b62FF8d6C) |
+| BurnWithFee | [`0xd38cC332ca9755DE536841f2A248f4585Fb08C1E`](https://basescan.org/address/0xd38cC332ca9755DE536841f2A248f4585Fb08C1E) |
+| Treasury Safe | [`0xA7940a42c30A7F492Ed578F3aC728c2929103E43`](https://basescan.org/address/0xA7940a42c30A7F492Ed578F3aC728c2929103E43) |
 
 ## Tech Stack
 

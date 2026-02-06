@@ -198,11 +198,11 @@ Additional exports: `isAgentAlive`, `getRegistryTTL`.
 
 | Address | Found In | Should Be Env Var? |
 |---------|----------|-------------------|
-| `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | `x402-gate.ts:26` (as const) | 🔴 YES |
-| `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | `pulse-webhook/route.ts:28` (fallback) | 🟡 Has env fallback |
-| `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | `lib/insight.ts:32` (fallback) | 🟡 Has env fallback |
-| `0x7f24C286872c9594499CD634c7Cc7735551242a2` | `lib/insight.ts:37` (fallback) | 🟡 Has env fallback |
-| `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | `lib/indexer.ts:10` (hardcoded) | 🔴 YES — no env var |
+| `0xe61C615743A02983A46aFF66Db035297e8a43846` | `x402-gate.ts:26` (as const) | 🔴 YES |
+| `0xe61C615743A02983A46aFF66Db035297e8a43846` | `pulse-webhook/route.ts:28` (fallback) | 🟡 Has env fallback |
+| `0xe61C615743A02983A46aFF66Db035297e8a43846` | `lib/insight.ts:32` (fallback) | 🟡 Has env fallback |
+| `0x21111B39A502335aC7e45c4574Dd083A69258b07` | `lib/insight.ts:37` (fallback) | 🟡 Has env fallback |
+| `0xe61C615743A02983A46aFF66Db035297e8a43846` | `lib/indexer.ts:10` (hardcoded) | 🔴 YES — no env var |
 
 **x402-gate.ts** exports `REGISTRY_CONTRACT` as a hardcoded const — should read from `process.env.REGISTRY_CONTRACT` with fallback.
 

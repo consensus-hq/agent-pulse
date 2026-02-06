@@ -93,7 +93,7 @@ Freshness pricing: `calculatePrice()` correctly implements 1.5x (real-time) and 
 ### x402-gate.ts — ✅ V4 ALIGNED
 - Imports from `pricing.ts` (single source of truth)
 - No hardcoded prices
-- Registry contract address matches: `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
+- Registry contract address matches: `0xe61C615743A02983A46aFF66Db035297e8a43846`
 - USDC address correct: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
 - Chain ID: 84532 (Base Sepolia) correct
 
@@ -162,8 +162,8 @@ Freshness pricing: `calculatePrice()` correctly implements 1.5x (real-time) and 
 - Treasury Safe: `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` (Gnosis Safe, 2-of-2) ✅
 - Security rules documented ✅
 - Funding status tracked ✅
-- ⚠️ WALLETS.md lists PulseToken at `0x7f24C286872c9594499CD634c7Cc7735551242a2` and PulseRegistry at `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` — matches spec ✅
-- BurnWithFee (`0x326a15247C958E94de93C8E471acA3eC868f58ec`) and PeerAttestation (`0x4B14c36e86fC534E401481Bc1834f0762788aaf5`) — not listed in WALLETS.md but listed in FEATURE_TRACKER.md ✅
+- ⚠️ WALLETS.md lists PulseToken at `0x21111B39A502335aC7e45c4574Dd083A69258b07` and PulseRegistry at `0xe61C615743A02983A46aFF66Db035297e8a43846` — matches spec ✅
+- BurnWithFee (`0xd38cC332ca9755DE536841f2A248f4585Fb08C1E`) and PeerAttestation (`0x930dC6130b20775E01414a5923e7C66b62FF8d6C`) — not listed in WALLETS.md but listed in FEATURE_TRACKER.md ✅
 
 ---
 
