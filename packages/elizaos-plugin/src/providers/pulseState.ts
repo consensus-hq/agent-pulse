@@ -11,10 +11,11 @@ import {
   type IAgentRuntime,
   type Memory,
   type Provider,
+  type ProviderResult,
   type State,
   elizaLogger,
 } from "@elizaos/core";
-import type { AgentStatus, ProtocolConfig, ProtocolHealth } from "../types.ts";
+import type { AgentStatus, ProtocolConfig, ProtocolHealth } from "../types";
 
 /**
  * Provider name
@@ -36,8 +37,8 @@ const pulseStateProvider: Provider = {
   get: async (
     runtime: IAgentRuntime,
     _message: Memory,
-    state?: State
-  ): Promise<string | null> => {
+    state: State
+  ): Promise<ProviderResult> => {
     try {
       const apiUrl = runtime.getSetting("AGENT_PULSE_API_URL") ?? "https://api.agentpulse.io";
       const agentAddress = runtime.getSetting("AGENT_ADDRESS") as `0x${string}` | undefined;
@@ -51,7 +52,7 @@ const pulseStateProvider: Provider = {
         });
         
         if (healthResponse.ok) {
-          const health: ProtocolHealth = await healthResponse.json();
+          const health = await healthResponse.json() as ProtocolHealth;
           const statusEmoji = health.health === "healthy" ? "✅" : 
                              health.health === "degraded" ? "⚠️" : "❌";
           
@@ -62,7 +63,7 @@ const pulseStateProvider: Provider = {
           );
         }
       } catch (e) {
-        elizaLogger.warn("Failed to fetch protocol health:", e);
+        elizaLogger.warn("Failed to fetch protocol health:", String(e));
       }
 
       // Get agent status if address is configured
@@ -73,7 +74,7 @@ const pulseStateProvider: Provider = {
           });
           
           if (statusResponse.ok) {
-            const status: AgentStatus = await statusResponse.json();
+            const status = await statusResponse.json() as AgentStatus;
             const aliveEmoji = status.alive ? "🟢" : "🔴";
             const timeSince = formatTimeSince(status.lastPulse);
             
@@ -89,7 +90,7 @@ const pulseStateProvider: Provider = {
             }
           }
         } catch (e) {
-          elizaLogger.warn("Failed to fetch agent status:", e);
+          elizaLogger.warn("Failed to fetch agent status:", String(e));
         }
       }
 
@@ -100,26 +101,29 @@ const pulseStateProvider: Provider = {
         });
         
         if (configResponse.ok) {
-          const config: ProtocolConfig = await configResponse.json();
+          const config = await configResponse.json() as ProtocolConfig;
           const ttlHours = config.params.ttlSeconds / 3600;
+          const minPulse = formatAmount(config.params.minPulseAmount);
           
-          sections.push(`TTL: ${ttlHours}h | Min pulse: ${formatAmount(config.params.minPulseAmount)} PULSE`);
+          sections.push(`TTL: ${ttlHours}h | Min pulse: ${minPulse} PULSE`);
 
           if (state) {
             (state as Record<string, unknown>).protocolConfig = config;
           }
         }
       } catch (e) {
-        elizaLogger.warn("Failed to fetch protocol config:", e);
+        elizaLogger.warn("Failed to fetch protocol config:", String(e));
       }
 
-      return sections.length > 0 
+      const text = sections.length > 0 
         ? `Agent Pulse Protocol:\n${sections.join("\n")}` 
         : null;
 
+      return { text: text ?? undefined };
+
     } catch (error) {
-      elizaLogger.error("Error in pulseStateProvider:", error);
-      return null;
+      elizaLogger.error("Error in pulseStateProvider:", String(error));
+      return { text: undefined };
     }
   },
 };
@@ -156,8 +160,9 @@ export function createAgentStatusProvider(
     
     get: async (
       runtime: IAgentRuntime,
-      _message: Memory
-    ): Promise<string | null> => {
+      _message: Memory,
+      _state: State
+    ): Promise<ProviderResult> => {
       try {
         const apiUrl = runtime.getSetting("AGENT_PULSE_API_URL") ?? "https://api.agentpulse.io";
         
@@ -166,19 +171,23 @@ export function createAgentStatusProvider(
         });
         
         if (!response.ok) {
-          return `Agent ${agentAddress.slice(0, 6)}...${agentAddress.slice(-4)}: Not found`;
+          return { 
+            text: `Agent ${agentAddress.slice(0, 6)}...${agentAddress.slice(-4)}: Not found` 
+          };
         }
 
-        const status: AgentStatus = await response.json();
+        const status = await response.json() as AgentStatus;
         const aliveEmoji = status.alive ? "🟢" : "🔴";
         const timeSince = formatTimeSince(status.lastPulse);
         
-        return `${aliveEmoji} ${agentAddress.slice(0, 6)}...${agentAddress.slice(-4)}: ` +
-               `${status.alive ? "Alive" : "Dead"} | 🔥 ${status.streak} | ${timeSince} ago`;
+        return { 
+          text: `${aliveEmoji} ${agentAddress.slice(0, 6)}...${agentAddress.slice(-4)}: ` +
+               `${status.alive ? "Alive" : "Dead"} | 🔥 ${status.streak} | ${timeSince} ago` 
+        };
 
       } catch (error) {
-        elizaLogger.error(`Error fetching status for ${agentAddress}:`, error);
-        return null;
+        elizaLogger.error(`Error fetching status for ${agentAddress}:`, String(error));
+        return { text: undefined };
       }
     },
   };

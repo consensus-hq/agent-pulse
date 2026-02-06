@@ -10,10 +10,11 @@
  */
 
 import { type Plugin } from "@elizaos/core";
-import { agentPulseEnvSchema, type AgentPulseConfig } from "./environment.ts";
-import sendPulseAction from "./actions/sendPulse.ts";
-import getStatusAction, { getConfigAction, getHealthAction } from "./actions/getStatus.ts";
-import pulseStateProvider from "./providers/pulseState.ts";
+import { agentPulseEnvSchema, type AgentPulseConfig } from "./environment";
+import sendPulseAction from "./actions/sendPulse";
+import getStatusAction, { getConfigAction, getHealthAction } from "./actions/getStatus";
+import pulseStateProvider from "./providers/pulseState";
+import { elizaLogger } from "@elizaos/core";
 
 // Re-export types
 export type {
@@ -26,28 +27,28 @@ export type {
   PulsePluginState,
   PulseMemory,
   ApiResponse,
-} from "./types.ts";
+} from "./types";
 
 // Re-export environment
 export { 
   agentPulseEnvSchema, 
   type AgentPulseConfig,
   isValidAddress,
-} from "./environment.ts";
+} from "./environment";
 
 // Re-export actions
-export { SEND_PULSE_ACTION } from "./actions/sendPulse.ts";
+export { SEND_PULSE_ACTION } from "./actions/sendPulse";
 export { 
   GET_STATUS_ACTION, 
   GET_CONFIG_ACTION, 
   GET_HEALTH_ACTION 
-} from "./actions/getStatus.ts";
+} from "./actions/getStatus";
 
 // Re-export providers
 export { 
   PULSE_STATE_PROVIDER,
   createAgentStatusProvider,
-} from "./providers/pulseState.ts";
+} from "./providers/pulseState";
 
 /**
  * Agent Pulse Plugin
@@ -96,7 +97,7 @@ const agentPulsePlugin: Plugin = {
   /**
    * Initialize the plugin
    */
-  init: async (runtime) => {
+  init: async (_config, runtime) => {
     // Validate environment configuration
     const config: AgentPulseConfig = agentPulseEnvSchema.parse({
       AGENT_PULSE_RPC_URL: runtime.getSetting("AGENT_PULSE_RPC_URL"),
@@ -112,18 +113,12 @@ const agentPulsePlugin: Plugin = {
     });
 
     // Log initialization
-    const logger = runtime.getLogger?.() ?? console;
-    logger.log("Agent Pulse plugin initialized");
-    logger.log(`  Network: Base Sepolia (${config.AGENT_PULSE_CHAIN_ID})`);
-    logger.log(`  Registry: ${config.AGENT_PULSE_REGISTRY_ADDRESS}`);
-    logger.log(`  Token: ${config.AGENT_PULSE_TOKEN_ADDRESS}`);
-    logger.log(`  API: ${config.AGENT_PULSE_API_URL}`);
-    logger.log(`  x402: ${config.AGENT_PULSE_X402_ENABLED === "true" ? "enabled" : "disabled"}`);
-
-    return {
-      success: true,
-      message: "Agent Pulse plugin initialized successfully",
-    };
+    elizaLogger.log("Agent Pulse plugin initialized");
+    elizaLogger.log(`  Network: Base Sepolia (${config.AGENT_PULSE_CHAIN_ID})`);
+    elizaLogger.log(`  Registry: ${config.AGENT_PULSE_REGISTRY_ADDRESS}`);
+    elizaLogger.log(`  Token: ${config.AGENT_PULSE_TOKEN_ADDRESS}`);
+    elizaLogger.log(`  API: ${config.AGENT_PULSE_API_URL}`);
+    elizaLogger.log(`  x402: ${config.AGENT_PULSE_X402_ENABLED === "true" ? "enabled" : "disabled"}`);
   },
 };
 
