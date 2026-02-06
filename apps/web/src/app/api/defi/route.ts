@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const action = searchParams.get("action") || "";
 
   if (!action) {
-    return NextResponse.json({ error: "Missing action parameter." }, { status: 400 });
+    return NextResponse.json({ error: "Missing action parameter.", validActions: ["price", "portfolio"] }, { status: 400 });
   }
 
   const endpoint = action === "price" ? "/price" : action === "portfolio" ? "/portfolio" : "";
