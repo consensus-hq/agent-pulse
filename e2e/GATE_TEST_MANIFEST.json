@@ -1,0 +1,49 @@
+{
+  "contractAddress": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612",
+  "chainId": 84532,
+  "network": "base-sepolia",
+  "wallets": [
+    {
+      "name": "pulsed-1",
+      "address": "0x1111111111111111111111111111111111111111",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "isPulsed": true,
+      "implementation": "OpenClaw"
+    },
+    {
+      "name": "pulsed-2",
+      "address": "0x2222222222222222222222222222222222222222",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "isPulsed": true,
+      "implementation": "Eliza"
+    },
+    {
+      "name": "pulsed-3",
+      "address": "0x3333333333333333333333333333333333333333",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "isPulsed": true,
+      "implementation": "SDK"
+    },
+    {
+      "name": "unpulsed-1",
+      "address": "0x4444444444444444444444444444444444444444",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000004",
+      "isPulsed": false,
+      "implementation": "OpenClaw"
+    },
+    {
+      "name": "unpulsed-2",
+      "address": "0x5555555555555555555555555555555555555555",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000005",
+      "isPulsed": false,
+      "implementation": "Eliza"
+    },
+    {
+      "name": "unpulsed-3",
+      "address": "0x6666666666666666666666666666666666666666",
+      "privateKey": "0x0000000000000000000000000000000000000000000000000000000000000006",
+      "isPulsed": false,
+      "implementation": "SDK"
+    }
+  ]
+}

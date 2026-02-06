@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pulse Registry Unreachable Error",
+  "description": "Error returned when the gate cannot communicate with the central Pulse Registry.",
+  "type": "object",
+  "properties": {
+    "error": { "type": "string", "const": "PULSE_REGISTRY_UNREACHABLE" },
+    "message": { "type": "string" },
+    "docs_url": { "type": "string", "format": "uri" },
+    "requester_id": { "type": "string" },
+    "registry_url": { "type": "string", "format": "uri" },
+    "retry_after": { "type": "integer", "description": "Seconds to wait before retrying." }
+  },
+  "required": ["error", "message", "docs_url", "requester_id", "registry_url"]
+}

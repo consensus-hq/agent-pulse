@@ -1,0 +1,45 @@
+{
+  "network": "Base Sepolia",
+  "chainId": 84532,
+  "rpc": "https://sepolia.base.org",
+  "deployer": "0x9508752Ba171D37EBb3AA437927458E0a21D1e04",
+  "deployedAt": "2026-02-06T08:41:00Z",
+  "contracts": {
+    "PeerAttestation": {
+      "address": "0xe64A9eD5b8aE1c4D8F953a9170204842d474f8E0",
+      "txHash": "0x793e77b7fe460ea193bd866c2d9519c2f9229c232128a1bbe99b1913ab44ba7b",
+      "constructorArgs": {
+        "pulseRegistry": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612"
+      },
+      "gasUsed": 988352,
+      "effectiveGasPrice": 1200000,
+      "costWei": 1186022400000,
+      "costEth": "0.0000011860224",
+      "verified": true,
+      "verifier": "sourcify",
+      "verificationJobId": "0a1c5e92-04b8-4ba4-952f-843a0be932d3"
+    },
+    "BurnWithFee": {
+      "address": "0xf266BcE7275BCba4d6899CaCED8580487DEc267a",
+      "txHash": "0xf9ccbb3bf8449525b3185fd81a6f5b78e18160589c79d3d2bc20577994ea6448",
+      "constructorArgs": {
+        "pulseToken": "0x7f24C286872c9594499CD634c7Cc7735551242a2",
+        "feeWallet": "0x9508752Ba171D37EBb3AA437927458E0a21D1e04"
+      },
+      "gasUsed": 642963,
+      "effectiveGasPrice": 1200000,
+      "costWei": 771555600000,
+      "costEth": "0.0000007715556",
+      "verified": true,
+      "verifier": "sourcify",
+      "verificationJobId": "8872bcca-37db-4b45-a17c-4dd3bf08ce7a"
+    }
+  },
+  "existingContracts": {
+    "PulseToken": "0x7f24C286872c9594499CD634c7Cc7735551242a2",
+    "PulseRegistry": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612"
+  },
+  "totalCostWei": 1957578000000,
+  "totalCostEth": "0.000001957578",
+  "budgetUsedPercent": "0.004%"
+}

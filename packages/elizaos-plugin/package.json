@@ -1,7 +1,7 @@
 {
-  "name": "@agent-pulse/elizaos-plugin",
+  "name": "@openclaw/eliza-plugin-pulse",
   "version": "0.1.0",
-  "description": "ElizaOS plugin for Agent Pulse protocol - on-chain liveness signaling",
+  "description": "ElizaOS plugin for Agent Pulse protocol with gate functionality - on-chain liveness signaling",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",

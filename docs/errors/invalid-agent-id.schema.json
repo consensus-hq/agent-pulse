@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Invalid Agent ID Error",
+  "description": "Error returned when the provided Agent ID is not recognized or is malformed.",
+  "type": "object",
+  "properties": {
+    "error": { "type": "string", "const": "INVALID_AGENT_ID" },
+    "message": { "type": "string" },
+    "docs_url": { "type": "string", "format": "uri" },
+    "requester_id": { "type": "string" },
+    "provided_id": { "type": "string" },
+    "validation_regex": { "type": "string" }
+  },
+  "required": ["error", "message", "docs_url", "requester_id", "provided_id"]
+}

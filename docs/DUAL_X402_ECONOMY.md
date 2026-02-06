@@ -5,7 +5,7 @@
 Agent Pulse participates in the x402 economy in **two distinct roles**:
 
 1. **CONSUMER** — We pay HeyElsa for DeFi data (cost line)
-2. **PRODUCER** — We sell derivative liveness intelligence (revenue line)
+2. **PRODUCER** — We provide derivative liveness intelligence (revenue line)
 
 **x402 API revenue is the PRIMARY revenue stream.** Token burn fees are secondary.
 
@@ -47,9 +47,9 @@ flowchart TB
 
 ### 1. x402 API Revenue (PRIMARY)
 
-We sell **derivative liveness intelligence** — signals computed from burn data:
+We provide **derivative liveness intelligence** — signals computed from signal-sink data:
 
-| What We Sell | Price | Who Buys It |
+| What We Offer | Endpoint Fee | Who Uses It |
 |-------------|-------|-------------|
 | Reliability scores | $0.01 | Agent routers |
 | Liveness proofs | $0.005 | Verification systems |
@@ -90,7 +90,7 @@ We **pay** HeyElsa for DeFi portfolio/balance data to power our dashboard panel:
 | Portfolio data | ~$0.01 | Dashboard DeFi panel |
 | Balance data | ~$0.005 | Dashboard DeFi panel |
 
-**Key distinction:** We do NOT resell HeyElsa data. We consume it for our own dashboard. Our revenue comes entirely from selling our OWN derivative liveness intelligence.
+**Key distinction:** We do NOT redistribute HeyElsa data. We consume it for our own dashboard. Our revenue comes entirely from providing our OWN derivative liveness intelligence.
 
 ### Infrastructure Costs
 

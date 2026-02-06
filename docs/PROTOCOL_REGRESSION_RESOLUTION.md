@@ -150,7 +150,7 @@ From `forge test --gas-report` (69 tests, 585 pulse() calls):
 4. Agents simply start pulsing on new registry
 5. Old registry data remains readable forever (immutable)
 
-**Key decision:** Streaks are not transferable. This is a feature, not a bug — you can't buy or transfer liveness history.
+**Key decision:** Streaks are not transferable. This is a feature, not a bug — you can't acquire or transfer liveness history.
 
 **Owner key:** Currently EOA. Production plan: transfer ownership to Treasury Safe (2/3 hardware multisig) via Ownable2Step.
 

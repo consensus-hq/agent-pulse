@@ -143,6 +143,74 @@ export interface PulseMemory extends Memory {
 }
 
 // ============================================================================
+// v2 API Analytics Types
+// ============================================================================
+
+/**
+ * Reliability metrics from v2 /agent/{address}/reliability
+ */
+export interface ReliabilityMetrics {
+  /** Agent's Ethereum address */
+  address: `0x${string}`;
+  /** Overall reliability score (0-100) */
+  reliabilityScore: number;
+  /** Percentage of time agent was alive */
+  uptimePercent: number;
+  /** Variance in pulse interval consistency */
+  jitter: number;
+  /** Predicted failure probability (0-1) */
+  hazardRate: number;
+  /** ISO timestamp of last update */
+  lastUpdated: string;
+}
+
+/**
+ * Liveness proof from v2 /agent/{address}/liveness-proof
+ */
+export interface LivenessProof {
+  /** Agent's Ethereum address */
+  address: `0x${string}`;
+  /** Whether agent has pulsed within TTL */
+  isAlive: boolean;
+  /** ISO timestamp of last pulse */
+  lastPulse: string;
+  /** Seconds since last pulse */
+  staleness: number;
+  /** Signed JWT proof token */
+  proofToken: string;
+}
+
+/**
+ * Global network stats from v2 /network/global-stats
+ */
+export interface GlobalStats {
+  /** Total agents currently alive */
+  totalActiveAgents: number;
+  /** Average pulse streak across network */
+  averageStreak: number;
+  /** Total PULSE transferred to signal sink */
+  networkSignalRate: number;
+  /** Network-wide average reliability */
+  averageReliability: number;
+  /** Overall network health */
+  networkHealth: "healthy" | "degraded" | "unhealthy";
+}
+
+/**
+ * Peer correlation from v2 /network/peer-correlation/{address}
+ */
+export interface PeerCorrelation {
+  /** Agent's Ethereum address */
+  address: `0x${string}`;
+  /** Correlation coefficient (0-1) */
+  peerCorrelation: number;
+  /** Addresses with similar liveness patterns */
+  similarAgents: `0x${string}`[];
+  /** Cluster identifier for grouping */
+  clusterId: string;
+}
+
+// ============================================================================
 // API Response Types
 // ============================================================================
 

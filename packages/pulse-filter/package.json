@@ -1,0 +1,62 @@
+{
+  "name": "@agent-pulse/middleware",
+  "version": "1.0.0",
+  "description": "Middleware for filtering alive agents from the PulseRegistry",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "default": "./dist/middleware.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  },
+  "keywords": [
+    "agent",
+    "pulse",
+    "registry",
+    "ethereum",
+    "viem",
+    "langchain",
+    "autogen",
+    "elizaos",
+    "middleware",
+    "blockchain"
+  ],
+  "author": "Agent Pulse Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/agent-pulse.git",
+    "directory": "packages/pulse-filter"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

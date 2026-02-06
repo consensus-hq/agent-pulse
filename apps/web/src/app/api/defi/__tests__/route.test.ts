@@ -5,6 +5,8 @@ import { NextRequest } from "next/server";
 const mockState = {
   kvGet: vi.fn(),
   kvSet: vi.fn(),
+  kvIncr: vi.fn().mockResolvedValue(1),
+  kvExpire: vi.fn().mockResolvedValue(1),
   signTypedData: vi.fn(),
 };
 
@@ -13,6 +15,13 @@ vi.mock("@vercel/kv", () => ({
   kv: {
     get: (...args: unknown[]) => mockState.kvGet(...args),
     set: (...args: unknown[]) => mockState.kvSet(...args),
+    incr: (...args: unknown[]) => mockState.kvIncr(...args),
+    expire: (...args: unknown[]) => mockState.kvExpire(...args),
+    pipeline: vi.fn(() => ({
+      incr: vi.fn(),
+      expire: vi.fn(),
+      exec: vi.fn().mockResolvedValue([1, true]),
+    })),
   },
 }));
 
@@ -86,7 +95,8 @@ describe("HeyElsa x402 Proxy", () => {
       ));
 
       // Check cache key for ETH
-      const firstCallKey = mockState.kvSet.mock.calls[0][0];
+      const cacheCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:"));
+      const firstCallKey = cacheCall ? cacheCall[0] : "";
       expect(firstCallKey).toContain("0x4200000000000000000000000000000000000006");
 
       vi.clearAllMocks();
@@ -117,7 +127,8 @@ describe("HeyElsa x402 Proxy", () => {
       ));
 
       // Check cache key for USDC - should be different
-      const secondCallKey = mockState.kvSet.mock.calls[0][0];
+      const secondCacheCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:") && call[0].includes("0x8335"));
+      const secondCallKey = secondCacheCall ? secondCacheCall[0] : "";
       expect(secondCallKey).toContain("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
       expect(firstCallKey).not.toBe(secondCallKey);
     });
@@ -148,7 +159,8 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=token_price&address=0x1234567890123456789012345678901234567890&token=0x4200000000000000000000000000000000000006"
       ));
 
-      const firstCallKey = mockState.kvSet.mock.calls[0][0];
+      const firstCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:"));
+      const firstCallKey = firstCall ? firstCall[0] : "";
 
       vi.clearAllMocks();
 
@@ -177,7 +189,8 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=token_price&address=0x1234567890123456789012345678901234567890&token=0x4200000000000000000000000000000000000006"
       ));
 
-      const secondCallKey = mockState.kvSet.mock.calls[0][0];
+      const secondCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:"));
+      const secondCallKey = secondCall ? secondCall[0] : "";
 
       // Both calls should use the same normalized (lowercase) cache key
       expect(firstCallKey).toBe(secondCallKey);
@@ -210,7 +223,8 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=portfolio&address=0x1234567890123456789012345678901234567890"
       ));
 
-      const portfolioKey = mockState.kvSet.mock.calls[0][0];
+      const portfolioCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:portfolio"));
+      const portfolioKey = portfolioCall ? portfolioCall[0] : "";
       expect(portfolioKey).toBe("defi:portfolio:0x1234567890123456789012345678901234567890");
       expect(portfolioKey).not.toContain("token");
 
@@ -241,7 +255,8 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=balances&address=0x1234567890123456789012345678901234567890"
       ));
 
-      const balancesKey = mockState.kvSet.mock.calls[0][0];
+      const balancesCall = mockState.kvSet.mock.calls.find(call => call[0].startsWith("defi:balances"));
+      const balancesKey = balancesCall ? balancesCall[0] : "";
       expect(balancesKey).toBe("defi:balances:0x1234567890123456789012345678901234567890");
       expect(balancesKey).not.toContain("token");
     });
@@ -519,14 +534,14 @@ describe("HeyElsa x402 Proxy", () => {
   });
 
   describe("Input Validation", () => {
-    it("should return 400 for missing action param", async () => {
+    it("should return health check for missing action param", async () => {
       const response = await GET(createRequest(
         "http://localhost:3000/api/defi?address=0x1234567890123456789012345678901234567890"
       ));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body.error).toContain("Missing required parameter: action");
+      expect(body.walletAddress).toBeDefined();
     });
 
     it("should return 400 for invalid action with valid actions list", async () => {

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agent-pulse.io/schemas/openclaw-gate.json",
+  "title": "OpenClaw AgentPulse Gate Configuration",
+  "description": "Schema for the gate block in OpenClaw skill YAML configurations",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether gating is enabled for this skill",
+      "default": false
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["strict", "warn", "log"],
+      "description": "Gating mode: strict (reject dead agents), warn (allow with warning), log (passive telemetry only)",
+      "default": "strict"
+    },
+    "threshold": {
+      "type": "string",
+      "description": "Duration string specifying the maximum time since last pulse (e.g., '24h', '1d', '30m')",
+      "pattern": "^[0-9]+[smhdw]$",
+      "examples": ["24h", "1d", "30m", "7d"]
+    },
+    "rpcUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional RPC URL for AgentPulse SDK connection. Uses default if not specified."
+    },
+    "chainId": {
+      "type": "integer",
+      "description": "Chain ID for the AgentPulse protocol (default: 84532 for Base Sepolia)",
+      "default": 84532
+    },
+    "contracts": {
+      "type": "object",
+      "description": "Optional contract address overrides",
+      "properties": {
+        "pulseToken": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "description": "PULSE token contract address"
+        },
+        "pulseRegistry": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "description": "PulseRegistry contract address"
+        }
+      }
+    }
+  },
+  "required": ["enabled"],
+  "if": {
+    "properties": {
+      "enabled": { "const": true }
+    }
+  },
+  "then": {
+    "required": ["mode", "threshold"]
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "enabled": true,
+      "mode": "strict",
+      "threshold": "24h"
+    },
+    {
+      "enabled": true,
+      "mode": "warn",
+      "threshold": "12h",
+      "chainId": 8453
+    }
+  ]
+}
