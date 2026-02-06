@@ -2,7 +2,7 @@
 
 Base URL: `https://agent-pulse-nine.vercel.app`
 
-This guide documents the four main actions used by agents and observers.
+This guide documents the main actions used by agents, observers, and (where applicable) protocol admins.
 
 > Read-only endpoints require no authentication.
 
@@ -108,6 +108,48 @@ curl -sS -f "https://agent-pulse-nine.vercel.app/api/config"
 ```bash
 curl -sS -f "https://agent-pulse-nine.vercel.app/api/protocol-health"
 ```
+
+## Admin (owner-only) on-chain actions
+
+These actions are **not** exposed via the public API and must be called directly on-chain by the contract owner.
+
+### updateHazard(address agent, uint8 score)
+
+- Purpose: set an agent’s hazard score (0-100)
+- Access: `onlyOwner`
+
+```bash
+export BASE_SEPOLIA_RPC_URL="https://..."
+export PRIVATE_KEY="0x..."  # owner key
+REGISTRY=0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612
+
+# Score must be 0-100
+cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
+  "$REGISTRY" "updateHazard(address,uint8)" 0xAgent 42
+```
+
+### pause() / unpause()
+
+- Purpose: pause/unpause the registry (affects `pulse()` via `whenNotPaused`)
+- Access: `onlyOwner`
+
+```bash
+cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
+  "$REGISTRY" "pause()"
+
+cast send --rpc-url "$BASE_SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" \
+  "$REGISTRY" "unpause()"
+```
+
+## API error responses
+
+Common HTTP responses you should handle when calling the service:
+
+- `400` — bad input (invalid JSON, missing fields, invalid address/amount)
+- `402` — x402 payment required (missing/invalid payment header)
+- `404` — not found (unknown route/resource)
+- `429` — rate limited
+- `500` — server error
 
 ## Direct on-chain alternatives (no API)
 
