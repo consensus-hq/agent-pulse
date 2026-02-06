@@ -26,15 +26,17 @@ const INSIGHT_BASE_URL = process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
   ? INSIGHT_BASE_MAINNET 
   : INSIGHT_BASE_SEPOLIA;
 
-/** Registry contract addresses */
-const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
-  ? process.env.NEXT_PUBLIC_PULSE_REGISTRY_MAINNET || '0x0000000000000000000000000000000000000000'
-  : process.env.NEXT_PUBLIC_PULSE_REGISTRY_SEPOLIA || '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612';
+/** Registry contract addresses — uses shared env var with chain-specific fallbacks */
+const REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS
+  || (process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
+    ? process.env.NEXT_PUBLIC_PULSE_REGISTRY_MAINNET || '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612'
+    : process.env.NEXT_PUBLIC_PULSE_REGISTRY_SEPOLIA || '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612');
 
-/** Token contract addresses */
-const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
-  ? process.env.NEXT_PUBLIC_PULSE_TOKEN_MAINNET || '0x0000000000000000000000000000000000000000'
-  : process.env.NEXT_PUBLIC_PULSE_TOKEN_SEPOLIA || '0x7f24C286872c9594499CD634c7Cc7735551242a2';
+/** Token contract addresses — uses shared env var with chain-specific fallbacks */
+const TOKEN_ADDRESS = process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS
+  || (process.env.NEXT_PUBLIC_CHAIN_ID === '8453'
+    ? process.env.NEXT_PUBLIC_PULSE_TOKEN_MAINNET || '0x7f24C286872c9594499CD634c7Cc7735551242a2'
+    : process.env.NEXT_PUBLIC_PULSE_TOKEN_SEPOLIA || '0x7f24C286872c9594499CD634c7Cc7735551242a2');
 
 /** Signal sink for burn detection */
 const SIGNAL_SINK = '0x000000000000000000000000000000000000dEaD';
