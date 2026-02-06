@@ -68,7 +68,7 @@ All transactions documented from the pulse feed:
 | `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` | Deployer/Owner | 999,999,998.0 PULSE | ~testnet ETH |
 | `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` | PulseRegistry | 0 PULSE | 0 ETH |
 | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` | Treasury Safe | 0 PULSE | — |
-| `0x000000000000000000000000000000000000dEaD` | Signal Sink (burn) | **2.0 PULSE** | 5.515 ETH |
+| `0x000000000000000000000000000000000000dEaD` | Signal Sink (dead address transfer) | **2.0 PULSE** | 5.515 ETH |
 
 ### Burn Verification ✅
 
@@ -78,7 +78,7 @@ All transactions documented from the pulse feed:
 
 The signal sink (`0x...dEaD`) holds exactly 2 PULSE tokens, confirming that:
 1. Each pulse transaction burns exactly `minPulseAmount` (1 PULSE)
-2. The burn mechanism is functioning correctly
+2. The dead address transfer mechanism is functioning correctly
 3. No tokens were lost or redirected
 
 ---
@@ -117,7 +117,7 @@ agents(0x9508...1e04) -> (1770311798, 1, 20489, 0) ✅
 ```
 Initial Supply: 1,000,000,000 PULSE
 Deployer Balance: 999,999,998 PULSE (2 burned)
-Signal Sink Balance: 2 PULSE (verified burn) ✅
+Signal Sink Balance: 2 PULSE (verified dead address transfer) ✅
 Total Accounting: 999,999,998 + 2 = 1,000,000,000 ✅
 ```
 
@@ -132,7 +132,7 @@ Total Accounting: 999,999,998 + 2 = 1,000,000,000 ✅
 | Verify `agents()` for each wallet | Struct data | Correct struct returned | ✅ |
 | Check deployer token balance | ~1B PULSE | 999,999,998 PULSE | ✅ |
 | Check registry token balance | 0 PULSE | 0 PULSE | ✅ |
-| Verify signal sink burn | 2 PULSE | 2 PULSE | ✅ |
+| Verify signal sink transfer | 2 PULSE | 2 PULSE | ✅ |
 | Document all tx hashes | 2 transactions | 2 hashes captured | ✅ |
 
 ---
@@ -160,7 +160,7 @@ Total Accounting: 999,999,998 + 2 = 1,000,000,000 ✅
 
 The Agent Pulse protocol is functioning correctly on Base Sepolia testnet:
 - Pulse transactions are being recorded on-chain
-- Token burns are working correctly
+- Dead address transfers are working correctly
 - State is accurately tracked and queryable
 - Only the deployer wallet has participated in the protocol so far
 

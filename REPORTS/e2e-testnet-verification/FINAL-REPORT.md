@@ -44,7 +44,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 | Function | Tested | Result | Details |
 |----------|--------|--------|---------|
 | `pulseToken()` | ✅ Yes | ✅ PASS | Returns correct token address: `0x7f24C286872c9594499CD634c7Cc7735551242a2` |
-| `signalSink()` | ✅ Yes | ✅ PASS | Returns burn address: `0x000000000000000000000000000000000000dEaD` |
+| `signalSink()` | ✅ Yes | ✅ PASS | Returns dead address: `0x000000000000000000000000000000000000dEaD` |
 | `ttlSeconds()` | ✅ Yes | ✅ PASS | Returns 86,400 seconds (24 hours) |
 | `minPulseAmount()` | ✅ Yes | ✅ PASS | Returns 1e18 (1 PULSE token minimum) |
 | `owner()` | ✅ Yes | ✅ PASS | Returns valid owner: `0x9508752Ba171D37EBb3AA437927458E0a21D1e04` |
@@ -73,7 +73,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 |-------|--------|---------|
 | **Access Control** | ✅ PASS | Valid owner (`0x9508752Ba171D37EBb3AA437927458E0a21D1e04`), no pending transfer |
 | **Pause State** | ✅ PASS | Contract unpaused and operational |
-| **Signal Sink Verification** | ✅ PASS | Burn address contains 2 PULSE tokens (mechanism working) |
+| **Signal Sink Verification** | ✅ PASS | Dead address contains 2 PULSE tokens (mechanism working) |
 | **TTL Edge Cases** | ✅ PASS | Correct TTL arithmetic, agent alive with ~33 min remaining |
 | **Zero Address Tests** | ✅ PASS | Properly handles zero address without reverting |
 | **Immutability Check** | ✅ PASS | Critical addresses (token, sink) correctly set and immutable |
@@ -99,7 +99,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 
 ### Edge Cases Verified ✅
 - Zero address handling: Properly returns `false` for `isAlive(0x0)`
-- Burn mechanism: 2 PULSE tokens confirmed in burn address
+- Burn mechanism: 2 PULSE tokens confirmed in dead address
 - TTL calculations: Correct arithmetic without overflow
 - Paused state handling: Contract operational
 
@@ -113,7 +113,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
    - PulseRegistry correctly references PulseToken
    - 24-hour TTL is reasonable for agent heartbeats
    - 1 PULSE minimum registration amount is appropriate
-   - Burn address (0xdead) correctly set as signal sink
+   - Dead address (0xdead) correctly set as signal sink
 
 2. **Token Economics**
    - Standard ERC20 implementation ("Agent Pulse", "PULSE", 18 decimals)
@@ -179,7 +179,7 @@ Agent verification process was executed with 2 of 4 agents reporting successfull
 3. **Multi-Agent Scenario Testing:** Register multiple test agents simultaneously to verify:
    - Concurrent heartbeat processing
    - Correct isAlive status for multiple addresses
-   - Token burning at scale
+   - Dead address transfering at scale
 
 ### For Production Readiness
 1. **Documentation:** Ensure all contract functions are documented with NatSpec comments.
@@ -215,7 +215,7 @@ The core smart contracts are **production-ready** from a functionality and secur
 - Correct implementation of all view functions
 - Proper access control and pause mechanisms
 - Safe handling of edge cases
-- Functional token burn mechanism
+- Functional dead address transfer mechanism
 
 However, **full E2E verification is incomplete** due to missing multi-wallet transaction testing and API integration validation. These are critical for confirming:
 - Real-world multi-agent scenarios

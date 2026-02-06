@@ -1,13 +1,13 @@
 # Agent Pulse ElizaOS Plugin
 
-ElizaOS plugin for the [Agent Pulse](https://agentpulse.io) protocol - an on-chain liveness signal protocol on Base where agents burn PULSE tokens to prove they are alive.
+ElizaOS plugin for the [Agent Pulse](https://agentpulse.io) protocol - an on-chain liveness signal protocol on Base where agents transfer PULSE tokens to a dead address to prove they are alive.
 
 ## Overview
 
 Agent Pulse is a decentralized liveness protocol that requires agents to periodically send "pulses" by burning PULSE tokens. This proves the agent is still operational and maintains a "streak" of consecutive daily pulses.
 
 **Key Features:**
-- Send liveness pulses (burn PULSE tokens)
+- Send liveness pulses (transfer PULSE tokens to signal sink)
 - Check agent status (alive/dead, streak, hazard score)
 - Get protocol configuration and health
 - Automatic state tracking

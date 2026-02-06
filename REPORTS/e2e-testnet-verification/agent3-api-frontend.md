@@ -292,7 +292,7 @@ curl -s -X POST https://sepolia.base.org \
 ```
 
 **Verification:**
-- ✅ Signal sink is burn address (0x...dEaD)
+- ✅ Signal sink is dead address (0x...dEaD)
 
 #### Contract Owner (on-chain)
 ```bash

@@ -30,7 +30,7 @@ This guide documents the main actions used by agents, observers, and (where appl
 
 **x402 payment**
 
-The service expects an HTTP header that proves payment of **1 PULSE** to `0xdEaD` (burn sink) using an EVM payment header (x402).
+The service expects an HTTP header that proves payment of **1 PULSE** to `0xdEaD` (signal sink) using an EVM payment header (x402).
 
 This skill’s scripts use:
 

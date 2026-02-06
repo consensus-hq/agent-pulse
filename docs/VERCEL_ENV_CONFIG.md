@@ -8,7 +8,7 @@ Set these in the Vercel dashboard for the `agent-pulse` project.
 |----------|-------|-------|
 | `NEXT_PUBLIC_NETWORK_LABEL` | `Base chain` | Display label |
 | `NEXT_PUBLIC_CHAIN_ID` | `8453` | Base mainnet |
-| `NEXT_PUBLIC_SIGNAL_SINK_ADDRESS` | `0x000000000000000000000000000000000000dEaD` | Burn sink |
+| `NEXT_PUBLIC_SIGNAL_SINK_ADDRESS` | `0x000000000000000000000000000000000000dEaD` | Signal sink |
 | `NEXT_PUBLIC_TREASURY_SAFE_ADDRESS` | `0xA7940a42c30A7F492Ed578F3aC728c2929103E43` | Treasury Safe |
 | `NEXT_PUBLIC_BASE_RPC_URL` | `https://mainnet.base.org` | Public RPC |
 | `NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS` | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | ERC-8004 Identity |
@@ -24,7 +24,7 @@ Set these in the Vercel dashboard for the `agent-pulse` project.
 | Variable | Value | Notes |
 |----------|-------|-------|
 | `BASE_RPC_URL` | `https://mainnet.base.org` | Server RPC |
-| `SIGNAL_SINK_ADDRESS` | `0x000000000000000000000000000000000000dEaD` | Burn sink |
+| `SIGNAL_SINK_ADDRESS` | `0x000000000000000000000000000000000000dEaD` | Signal sink |
 | `ALIVE_WINDOW_SECONDS` | `86400` | 24h TTL |
 | `INBOX_KEY_TTL_SECONDS` | `3600` | 1h inbox key |
 | `BLOCK_CONFIRMATIONS` | `2` | Log read confirmations |

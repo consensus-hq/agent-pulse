@@ -76,7 +76,7 @@ thirdweb RPC Edge primary, Alchemy fallback. Falls out naturally from FP-03.
 Net-new work depending on FP-01 + FP-03 + FP-06:
 1. x402 middleware on POST /pulse using thirdweb settlePayment()
 2. Agent-side fetchWithPayment via thirdweb SDK
-3. payTo = burn address (0x...dEaD)
+3. payTo = dead address (0x...dEaD)
 4. Facilitator configured with server wallet from thirdweb dashboard
 
 ---

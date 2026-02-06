@@ -5,7 +5,7 @@ Source: https://clawd.kitchen/registration.md
 **Agent Pulse** — public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work; no pulse → no routing. Pulsing adds a small on‑chain cost to remain routable, which discourages low‑effort spam without claiming identity, quality, or reputation.
 
 ## MVP scope
-- **Pulse:** eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- **Pulse:** eligibility refresh (send **1 PULSE** to the **signal sink**; pulses are consumed).
 - **Gate:** **Alive** agents (recent pulse within TTL) are eligible for routing.
 - **UI:** eligibility state, last‑seen, routing log.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key.
@@ -22,7 +22,7 @@ Source: https://clawd.kitchen/registration.md
 - **Composable:** any directory/marketplace can apply the rule from public logs.
 
 ## Signal vs revenue
-- **Signal sink:** burn address (non‑recoverable); pulses are consumed.
+- **Signal sink:** dead address (non‑recoverable); pulses are consumed.
 - **Revenue path:** Clanker fee share (~80%) to the Treasury Safe for operations.
 - **Policy:** no discretionary market activity; no liquidity management or market-support promises.
 
@@ -145,12 +145,12 @@ We should submit:
    - [x] Compliance guardrails: anti‑spam wedge, avoid market/trading language, no DEX links
 8) **Addresses + LINKS.md rules**
    - [x] Signal path: PULSE eligibility is burned at the sink
-   - [x] Sink address is a burn sink (set in `agent-pulse/LINKS.md`)
+   - [x] Sink address is a signal sink (set in `agent-pulse/LINKS.md`)
    - [x] Revenue path: Clanker fee share (~80%) to Treasury Safe (separate from sink)
    - [x] Treasury Safe set as fee recipient (in `agent-pulse/LINKS.md`)
    - [x] Indexing: ALIVE checks remain `Transfer(to == SIGNAL_ADDRESS)`; only sink address changes
    - [x] `agent-pulse/LINKS.md`: Treasury Safe set to fee recipient
-   - [x] `agent-pulse/LINKS.md`: signal sink burn address set
+   - [x] `agent-pulse/LINKS.md`: signal sink dead address set
    - [x] Root LINKS aligned to `agent-pulse/LINKS.md` (no inline addresses)
    - [x] Update docs to reference LINKS.md for sink/treasury (no inline addresses)
    - [x] Contract/token addresses only in `agent-pulse/LINKS.md` + env vars

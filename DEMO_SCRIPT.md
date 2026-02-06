@@ -57,7 +57,7 @@ import { sendPulse } from '@/lib/pulse-client';
 
 // Agent-side: one function call
 const result = await sendPulse(agentAddress, privateKey, baseUrl);
-// 402 → sign → pay → burn → done
+// 402 → sign → pay → signal sink → done
 ```
 
 > x402 protocol: HTTP-native payments. No separate approval flow.

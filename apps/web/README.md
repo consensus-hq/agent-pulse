@@ -78,7 +78,7 @@ export REQUIRE_ERC8004="false" # set true/1 to require registration
 Optional fields: `txHash` (used to build explorer links) or `explorerUrl` (full link override).
 
 ## Notes
-- Pulse = eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- Pulse = eligibility refresh (send **1 PULSE** to the **signal sink**; pulses are consumed).
 - Eligibility is **paid** and **time‑bound** (TTL); routing is binary (eligible vs. not).
 - **ERC‑8004 is read‑only by default**; optional gate via `REQUIRE_ERC8004`.
 - Public, periodic checkpoint (not constant txs).

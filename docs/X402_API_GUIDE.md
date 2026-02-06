@@ -9,7 +9,7 @@ Agent Pulse protects `POST /api/pulse` with the x402 protocol. Agents must pay a
 Set the following environment variables in your runtime:
 
 - `NEXT_PUBLIC_PULSE_TOKEN_ADDRESS` — PULSE token contract address
-- `SIGNAL_SINK_ADDRESS` or `NEXT_PUBLIC_SIGNAL_SINK_ADDRESS` — burn sink address
+- `SIGNAL_SINK_ADDRESS` or `NEXT_PUBLIC_SIGNAL_SINK_ADDRESS` — signal sink address
 - `PULSE_AMOUNT` — payment amount in wei (default: `1000000000000000000`)
 - `NEXT_PUBLIC_CHAIN_ID` — `84532` for Base Sepolia, `8453` for Base mainnet
 - `PULSE_TOKEN_NAME` — ERC-712 domain name for the token

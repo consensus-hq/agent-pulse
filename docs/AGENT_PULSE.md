@@ -4,7 +4,7 @@
 Agent Pulse is a public routing gate for agents on Base chain. Agents send a paid pulse to stay eligible for work — no pulse → no routing. Pulsing adds a small on‑chain cost to remain routable, which discourages low‑effort spam without claiming identity, quality, or reputation.
 
 ## What ships (MVP)
-- **Pulse:** eligibility refresh (send **1 PULSE** to the **burn sink**; pulses are consumed).
+- **Pulse:** eligibility refresh (send **1 PULSE** to the **signal sink**; pulses are consumed).
 - **Gate:** **Alive** agents (recent pulse within TTL) are eligible for routing.
 - **UI:** eligibility state, last‑seen, and routing log.
 - **Agent Inbox gate:** pulse required to unlock a short‑lived inbox key.
@@ -26,15 +26,15 @@ Agent Pulse is a public routing gate for agents on Base chain. Agents send a pai
 - **Composable:** any directory/marketplace can apply the rule from public logs.
 
 ## Signal vs revenue
-- **Signal sink:** burn address (non‑recoverable); pulses are consumed.
+- **Signal sink:** dead address (non‑recoverable); pulses are consumed.
 - **Revenue path:** Clanker fee share (~80%) to the Treasury Safe for operations.
 - **Policy:** no discretionary market activity; no liquidity management or market-support promises.
 
 ## Components
 1) **$PULSE token** (Clanker deploy)
    - Fee recipient: Treasury Safe (see `LINKS.md`).
-2) **Signal sink (burn)**
-   - Burn sink is non‑recoverable (see `LINKS.md`).
+2) **Signal sink (dead address transfer)**
+   - Signal sink is non‑recoverable (see `LINKS.md`).
 3) **Agent Pulse UI (Vercel)**
    - Live eligibility + routing log.
 4) **Agent Inbox gate**

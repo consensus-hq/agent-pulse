@@ -36,7 +36,7 @@
 | 6 | Multi-user | ✅ Pass | Multiple agents pulsing |
 | 7 | Hazard score | ✅ Pass | Admin hazard updates |
 | 8 | Emergency pause | ✅ Pass | Circuit breaker testing |
-| 9 | Signal sink | ✅ Pass | Token burn verification |
+| 9 | Signal sink | ✅ Pass | Dead address transfer verification |
 | 10 | Stress test | ✅ Pass | Rapid concurrent pulses |
 | 11 | Final liveness | ✅ Pass | End-to-end validation |
 
