@@ -1,25 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createThirdwebClient } from "thirdweb";
 import { facilitator, settlePayment } from "thirdweb/x402";
-import { baseSepolia } from "thirdweb/chains";
+import { baseSepolia as twBaseSepolia, base as twBase } from "thirdweb/chains";
 import { createWalletClient, http, publicActions, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia as viemBaseSepolia } from "viem/chains";
+import { base as viemBase, baseSepolia as viemBaseSepolia } from "viem/chains";
 import { verifyRequestBinding } from "./x402-request-binding";
 import { calculatePrice } from "./pricing";
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION — Chain-aware
 // ============================================
+
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "84532";
+const IS_MAINNET = CHAIN_ID === "8453";
+const NETWORK_EIP155 = IS_MAINNET ? "eip155:8453" : "eip155:84532";
+const VIEM_CHAIN = IS_MAINNET ? viemBase : viemBaseSepolia;
+const TW_CHAIN = IS_MAINNET ? twBase : twBaseSepolia;
 
 const SECRET_KEY = process.env.THIRDWEB_SECRET_KEY;
 const SERVER_WALLET_ADDRESS = process.env.SERVER_WALLET_ADDRESS;
 const SERVER_WALLET_PRIVATE_KEY = process.env.SERVER_WALLET_PRIVATE_KEY;
 const BURN_WITH_FEE_ADDRESS = process.env.NEXT_PUBLIC_BURN_WITH_FEE_ADDRESS;
-// Use a fallback if not set, or throw in production? For now, we'll try to read it.
 
-export const REGISTRY_CONTRACT = "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612" as const;
-export const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
+export const REGISTRY_CONTRACT = (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612") as `0x${string}`;
+
+// USDC addresses per chain
+const USDC_MAINNET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const; // USDC on Base
+const USDC_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const; // USDC on Base Sepolia
+export const USDC_ADDRESS = IS_MAINNET ? USDC_MAINNET : USDC_SEPOLIA;
+
+// Legacy export for backward compat
+export const USDC_BASE_SEPOLIA = USDC_ADDRESS;
 
 // Minimal ABI for BurnWithFee
 const BURN_ABI = parseAbi([
@@ -77,7 +89,7 @@ async function burnPulseBestEffort(requestId: string) {
     const account = privateKeyToAccount(SERVER_WALLET_PRIVATE_KEY as `0x${string}`);
     const client = createWalletClient({
       account,
-      chain: viemBaseSepolia,
+      chain: VIEM_CHAIN,
       transport: http(),
     }).extend(publicActions);
 
@@ -147,7 +159,7 @@ export async function settleX402Payment(
       method: request.method,
       paymentData: token,
       payTo: SERVER_WALLET_ADDRESS!,
-      network: baseSepolia,
+      network: TW_CHAIN,
       price,
       facilitator: getFacilitator(),
     });
@@ -189,7 +201,7 @@ export function create402Response(price: string, resource: string) {
       accepts: [
         {
           scheme: "x402-binding",
-          network: "eip155:84532",
+          network: NETWORK_EIP155,
           maxAmountRequired: price,
           resource,
           description: "USDC payment with request binding required",

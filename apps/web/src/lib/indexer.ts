@@ -1,14 +1,17 @@
 // @ts-nocheck
 import { createPublicClient, http, parseAbiItem, Log } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import { kv } from '@vercel/kv';
 import { IndexerKeys } from './indexer-keys';
 import * as Signals from './signals';
 import { PULSE_REGISTRY_ABI } from '../app/api/abi/route';
 
-// Configuration
-const RPC_URL = 'https://sepolia.base.org';
-const CONTRACT_ADDRESS = '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612';
+// Configuration — chain-aware
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || '84532';
+const IS_MAINNET = CHAIN_ID === '8453';
+const CHAIN = IS_MAINNET ? base : baseSepolia;
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || (IS_MAINNET ? 'https://mainnet.base.org' : 'https://sepolia.base.org');
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612';
 const BATCH_SIZE = 1000n;
 
 export class PulseIndexer {
@@ -16,7 +19,7 @@ export class PulseIndexer {
 
   constructor() {
     this.client = createPublicClient({
-      chain: baseSepolia,
+      chain: CHAIN,
       transport: http(RPC_URL)
     });
   }
