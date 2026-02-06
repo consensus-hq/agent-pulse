@@ -6,6 +6,12 @@ import burnWithFeeAbi from "@/lib/abi-BurnWithFee.json";
 
 export const runtime = 'edge';
 
+// Re-export ABIs for use by other route modules (PRI endpoints, indexer, etc.)
+export const PULSE_REGISTRY_ABI = pulseRegistryAbi;
+export const PULSE_TOKEN_ABI = pulseTokenAbi;
+export const PEER_ATTESTATION_ABI = peerAttestationAbi;
+export const BURN_WITH_FEE_ABI = burnWithFeeAbi;
+
 const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453", 10);
 
 const CONTRACTS = {
