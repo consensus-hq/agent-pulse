@@ -106,27 +106,31 @@ interface PaymentRequirements {
 async function parse402Response(response: Response): Promise<PaymentRequirements> {
   const body = await response.json();
   
-  // Handle different response formats
-  if (body.paymentRequirements) {
-    return body as PaymentRequirements;
-  }
+  // HeyElsa returns { x402Version, error, accepts: [...] }
+  // Each accept has: scheme, network, maxAmountRequired, asset, payTo, maxTimeoutSeconds, extra
+  const accepts = body.accepts || body.paymentRequirements || [];
   
-  // Alternative format from some x402 implementations
+  if (accepts.length === 0 && body.payTo) {
+    // Flat format fallback
+    accepts.push(body);
+  }
+
   return {
-    scheme: body.scheme || "exact",
-    network: body.network || "eip155:8453",
-    maxAmountRequired: body.amount || body.maxAmountRequired || "0",
-    resource: body.resource || "",
-    description: body.description || "",
-    mimeType: body.mimeType || "application/json",
-    paymentRequirements: body.paymentRequirements || [{
-      scheme: body.scheme || "exact",
-      network: body.network || "eip155:8453",
-      requiredAmount: body.amount || "10000",
-      asset: body.asset || USDC_BASE,
-      payTo: body.payTo || body.recipient || "",
-      maxTimeoutSeconds: body.maxTimeoutSeconds || 300,
-    }],
+    scheme: accepts[0]?.scheme || "exact",
+    network: accepts[0]?.network || "base",
+    maxAmountRequired: accepts[0]?.maxAmountRequired || "0",
+    resource: accepts[0]?.resource || "",
+    description: accepts[0]?.description || "",
+    mimeType: accepts[0]?.mimeType || "application/json",
+    paymentRequirements: accepts.map((a: Record<string, unknown>) => ({
+      scheme: (a.scheme as string) || "exact",
+      network: (a.network as string) || "base",
+      requiredAmount: (a.maxAmountRequired as string) || "0",
+      asset: (a.asset as string) || USDC_BASE,
+      payTo: (a.payTo as string) || "",
+      maxTimeoutSeconds: (a.maxTimeoutSeconds as number) || 60,
+      extra: a.extra as Record<string, unknown> | undefined,
+    })),
   };
 }
 
