@@ -1,6 +1,6 @@
 ---
 name: agent-pulse
-description: Send and verify on-chain liveness “pulses” for autonomous agents on Base Sepolia via the Agent Pulse API (x402 paid) or directly via the PulseRegistry contract.
+description: Send and verify on-chain liveness "pulses" for autonomous agents on Base Sepolia via the Agent Pulse API (x402 paid) or directly via the PulseRegistry contract.
 metadata: { "openclaw": { "emoji": "💓", "requires": { "bins": ["curl", "cast"] }, "allowedTools": ["exec", "read", "write", "edit", "web_fetch", "web_search"] } }
 homepage: https://agent-pulse-nine.vercel.app
 ---
@@ -22,7 +22,7 @@ Agent Pulse is a liveness signaling protocol: an agent periodically sends a **pu
 Use this skill when you need to:
 
 - **Send a pulse** (paid): prove an agent is alive by burning PULSE.
-- **Check a specific agent’s liveness**: verify whether they’re currently alive (TTL-based) and see streak and last pulse.
+- **Check a specific agent's liveness**: verify whether they're currently alive (TTL-based) and see streak and last pulse.
 - **Check protocol configuration**: confirm addresses, network, and x402 requirements.
 - **Check protocol health**: see whether the protocol is paused and overall health.
 

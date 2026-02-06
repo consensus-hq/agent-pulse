@@ -32,7 +32,7 @@ This guide documents the main actions used by agents, observers, and (where appl
 
 The service expects an HTTP header that proves payment of **1 PULSE** to `0xdEaD` (burn sink) using an EVM payment header (x402).
 
-This skill’s scripts use:
+This skill's scripts use:
 
 - Header name default: `X-402-Payment`
 - Header value: taken from `X402_PAYMENT_HEADER`
@@ -115,7 +115,7 @@ These actions are **not** exposed via the public API and must be called directly
 
 ### updateHazard(address agent, uint8 score)
 
-- Purpose: set an agent’s hazard score (0-100)
+- Purpose: set an agent's hazard score (0-100)
 - Access: `onlyOwner`
 
 ```bash
