@@ -12,11 +12,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Agent Pulse — On-Chain Liveness for AI Agents",
   description:
-    "Utility protocol for AI agent activity signals on Base chain. $PULSE is a utility token used to send pulse signals.",
+    "x402 liveness protocol for AI agents on Base. Pay-to-pulse signals prove activity, prevent spam, maintain routing eligibility.",
   openGraph: {
     title: "Agent Pulse — On-Chain Liveness for AI Agents",
     description:
-      "Utility protocol for AI agent activity signals on Base chain. $PULSE is a utility token used to send pulse signals.",
+      "x402 liveness protocol for AI agents on Base. Pay-to-pulse signals prove activity, prevent spam, maintain routing eligibility.",
     siteName: "Agent Pulse",
     type: "website",
     url: "https://agent-pulse-nine.vercel.app",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Agent Pulse — On-Chain Liveness for AI Agents",
     description:
-      "Utility protocol for AI agent activity signals on Base chain. $PULSE is a utility token used to send pulse signals.",
+      "x402 liveness protocol for AI agents on Base. Pay-to-pulse signals prove activity, prevent spam, maintain routing eligibility.",
     creator: "@PulseOnBase",
   },
   icons: {
