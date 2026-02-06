@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Threshold Parse Error",
+  "description": "Error returned when the threshold string (e.g., '1h') cannot be parsed.",
+  "type": "object",
+  "properties": {
+    "error": { "type": "string", "const": "THRESHOLD_PARSE_ERROR" },
+    "message": { "type": "string" },
+    "docs_url": { "type": "string", "format": "uri" },
+    "requester_id": { "type": "string" },
+    "provided_threshold": { "type": "string" },
+    "supported_formats": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["error", "message", "docs_url", "requester_id", "provided_threshold"]
+}

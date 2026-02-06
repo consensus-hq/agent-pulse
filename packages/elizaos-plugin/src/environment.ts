@@ -69,6 +69,11 @@ export const agentPulseEnvSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .default("30000"),
+
+  /** x402 payment header for v2 API calls (optional - required for analytics) */
+  AGENT_PULSE_X402_PAYMENT_HEADER: z
+    .string()
+    .optional(),
 });
 
 /**

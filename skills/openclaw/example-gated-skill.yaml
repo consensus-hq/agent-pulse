@@ -1,0 +1,296 @@
+# Example Gated Skill Configuration for OpenClaw
+# 
+# This demonstrates how to configure AgentPulse gating in OpenClaw skills.
+# Three modes are supported: strict, warn, and log.
+
+# =============================================================================
+# MODE 1: STRICT - Reject Dead Agents
+# =============================================================================
+# Use this mode for high-security operations where only proven-alive agents
+# should be allowed to interact with your skill.
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: secure-data-skill
+  description: High-security skill that only accepts requests from live agents
+  version: 1.0.0
+
+spec:
+  # ... other skill configuration ...
+  
+  gate:
+    # Enable gating
+    enabled: true
+    
+    # STRICT MODE: Hard reject if agent is dead
+    # - Incoming requests from dead agents are rejected with 403
+    # - Outgoing requests to dead agents are blocked
+    # - SDK init failures cause skill startup to fail
+    mode: strict
+    
+    # Threshold: Maximum time since last pulse
+    # Agents must have pulsed within this window to be considered alive
+    # Format: <number><unit> where unit is s, m, h, d, or w
+    threshold: 24h
+    
+    # Optional: Chain ID (default: 84532 for Base Sepolia)
+    # Use 8453 for Base Mainnet
+    chainId: 84532
+    
+    # Optional: Custom RPC URL (uses default public RPC if not specified)
+    # rpcUrl: https://your-custom-rpc.example.com
+    
+    # Optional: Custom contract addresses
+    # contracts:
+    #   pulseToken: "0x7f24C286872c9594499CD634c7Cc7735551242a2"
+    #   pulseRegistry: "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612"
+
+  actions:
+    sensitiveOperation:
+      description: "Performs sensitive operation only for live agents"
+      # Gate activates BEFORE this action runs
+      # If requester is dead, action never executes
+      handler: sensitiveOperationHandler
+
+---
+
+# =============================================================================
+# MODE 2: WARN - Allow With Warning
+# =============================================================================
+# Use this mode when you want visibility into agent liveness without blocking
+# operations. Dead agents are logged but allowed to proceed.
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: analytics-skill
+  description: Analytics skill that warns about dead agents but allows all requests
+  version: 1.0.0
+
+spec:
+  gate:
+    enabled: true
+    
+    # WARN MODE: Log warning but proceed
+    # - Dead agents trigger warning logs
+    # - All requests are allowed to proceed
+    # - SDK init failures log warning, skill continues without gating
+    mode: warn
+    
+    # Shorter threshold for analytics - we want to know about agents
+    # that haven't pulsed in the last 12 hours
+    threshold: 12h
+    
+    chainId: 84532
+
+  actions:
+    trackEvent:
+      description: "Tracks events with liveness warnings"
+      # Gate logs warning if requester is dead, then proceeds
+      handler: trackEventHandler
+
+  evaluators:
+    livenessReporter:
+      description: "Reports on agent liveness status"
+      # Can access gate status for reporting
+      handler: livenessReporterHandler
+
+---
+
+# =============================================================================
+# MODE 3: LOG - Passive Telemetry Only
+# =============================================================================
+# Use this mode for pure observability. No enforcement, just data collection
+# about agent liveness for dashboards and analytics.
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: observability-skill
+  description: Pure telemetry skill that monitors agent liveness without enforcement
+  version: 1.0.0
+
+spec:
+  gate:
+    enabled: true
+    
+    # LOG MODE: Passive telemetry only
+    # - No request blocking
+    # - No warnings
+    # - Just logs liveness status for monitoring
+    mode: log
+    
+    # Long threshold for observability - track agents that pulse daily
+    threshold: 25h
+    
+    chainId: 84532
+
+  # Scheduled job to report gate status
+  scheduled:
+    reportLiveness:
+      description: "Periodic liveness status report"
+      interval: 1h
+      handler: reportLivenessHandler
+
+---
+
+# =============================================================================
+# DISABLED - No Gating
+# =============================================================================
+# Use this to completely disable gating.
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: simple-skill
+  description: Simple skill without any gating
+  version: 1.0.0
+
+spec:
+  gate:
+    # Disable gating entirely
+    enabled: false
+    # Other fields are ignored when enabled: false
+
+  actions:
+    simpleAction:
+      description: "Simple action without any liveness checks"
+      handler: simpleHandler
+
+---
+
+# =============================================================================
+# COMPLETE REFERENCE - All Configuration Options
+# =============================================================================
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: reference-skill
+  description: Complete reference configuration
+  version: 1.0.0
+
+spec:
+  gate:
+    # REQUIRED: Enable/disable gating
+    enabled: true
+    
+    # REQUIRED (when enabled=true): Gating mode
+    # Options: strict | warn | log
+    mode: strict
+    
+    # REQUIRED (when enabled=true): Liveness threshold
+    # Format: <number><unit>
+    # Units: s (seconds), m (minutes), h (hours), d (days), w (weeks)
+    # Examples: 30m, 1h, 24h, 1d, 7d
+    threshold: 24h
+    
+    # OPTIONAL: Chain ID
+    # Default: 84532 (Base Sepolia)
+    # Mainnet: 8453 (Base)
+    chainId: 84532
+    
+    # OPTIONAL: Custom RPC URL
+    # If not specified, uses default public RPC for the chain
+    rpcUrl: https://sepolia.base.org
+    
+    # OPTIONAL: Contract address overrides
+    # Uses defaults if not specified
+    contracts:
+      pulseToken: "0x7f24C286872c9594499CD634c7Cc7735551242a2"
+      pulseRegistry: "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612"
+
+  # Actions automatically gated before execution
+  actions:
+    exampleAction:
+      description: "Example action with automatic gating"
+      handler: exampleHandler
+      # Gate checks requester liveness BEFORE handler runs
+
+  # Evaluators can access gate status
+  evaluators:
+    exampleEvaluator:
+      description: "Example evaluator that can query gate status"
+      handler: evaluatorHandler
+
+  # Status endpoint includes gate section
+  status:
+    enabled: true
+    # Response includes:
+    # {
+    #   "gate": {
+    #     "enabled": true,
+    #     "mode": "strict",
+    #     "threshold": "24h",
+    #     "status": "active",
+    #     "lastCheck": 1707254400,
+    #     "stats": {
+    #       "agentsChecked": 42,
+    #       "agentsRejected": 3,
+    #       "incomingChecks": 30,
+    #       "outgoingChecks": 12,
+    #       "sdkErrors": 0,
+    #       "lastCheck": 1707254400
+    #     },
+    #     "config": {
+    #       "chainId": 84532,
+    #       "hasCustomRpc": true,
+    #       "hasCustomContracts": true
+    #     }
+    #   }
+    # }
+
+---
+
+# =============================================================================
+# USE CASE EXAMPLES
+# =============================================================================
+
+# Financial Operations (strict mode)
+# - Only allow transfers from agents that have pulsed within 1 hour
+# - Prevents dead/compromised agents from draining funds
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: treasury-skill
+spec:
+  gate:
+    enabled: true
+    mode: strict
+    threshold: 1h  # Very strict - must be actively pulsing
+
+---
+
+# Social/Messaging (warn mode)
+# - Allow messages from all agents
+# - Warn when receiving from agents that haven't pulsed in 48 hours
+# - Users can see liveness status in UI
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: messaging-skill
+spec:
+  gate:
+    enabled: true
+    mode: warn
+    threshold: 48h
+
+---
+
+# Analytics Dashboard (log mode)
+# - Track agent liveness for network health metrics
+# - No blocking, pure observability
+# - Feeds into network-wide health dashboard
+
+apiVersion: openclaw.io/v1
+kind: Skill
+metadata:
+  name: network-analytics
+spec:
+  gate:
+    enabled: true
+    mode: log
+    threshold: 24h

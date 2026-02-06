@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Gate Initialization Failed Error",
+  "description": "Error returned when the gate system fails to initialize due to configuration or environment issues.",
+  "type": "object",
+  "properties": {
+    "error": { "type": "string", "const": "GATE_INIT_FAILED" },
+    "message": { "type": "string" },
+    "docs_url": { "type": "string", "format": "uri" },
+    "requester_id": { "type": "string" },
+    "config_path": { "type": "string", "description": "Path to the configuration file that failed to load." },
+    "reason": { "type": "string", "description": "Specific reason for initialization failure." }
+  },
+  "required": ["error", "message", "docs_url", "requester_id"]
+}

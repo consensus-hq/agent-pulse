@@ -251,6 +251,63 @@ export const PULSE_TOKEN_ABI = [
   },
 ] as const;
 
+// PeerAttestation ABI
+export const PEER_ATTESTATION_ABI = [
+  {
+    type: "function",
+    name: "attest",
+    inputs: [
+      { name: "agent", type: "address" },
+      { name: "positive", type: "bool" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getAttestationStats",
+    inputs: [{ name: "subject", type: "address" }],
+    outputs: [
+      { name: "positiveWeight", type: "uint256" },
+      { name: "negativeWeight", type: "uint256" },
+      { name: "netScore", type: "int256" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getRemainingAttestations",
+    inputs: [{ name: "attestor", type: "address" }],
+    outputs: [{ name: "remaining", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "canAttest",
+    inputs: [
+      { name: "attestor", type: "address" },
+      { name: "subject", type: "address" },
+    ],
+    outputs: [
+      { name: "canAttest", type: "bool" },
+      { name: "reason", type: "string" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "AttestationSubmitted",
+    anonymous: false,
+    inputs: [
+      { name: "attestor", type: "address", indexed: true },
+      { name: "subject", type: "address", indexed: true },
+      { name: "positive", type: "bool", indexed: false },
+      { name: "weight", type: "uint256", indexed: false },
+      { name: "timestamp", type: "uint256", indexed: false },
+    ],
+  },
+] as const;
+
 export type AbiResponse = {
   chainId?: string;
   contracts: {
