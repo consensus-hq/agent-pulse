@@ -545,19 +545,16 @@
    Auth Status Indicators
    ============================================================================ */
 
-/* Data attribute selectors for agent detection */
-[data-auth-status="connected"] {
-  /* Visual indicator that wallet is connected */
+/* Data attribute selectors for agent detection (scoped to local class) */
+.walletStatus[data-auth-status="connected"] {
   border-color: var(--accent-dim);
 }
 
-[data-auth-status="disconnected"] {
-  /* Visual indicator that wallet is disconnected */
+.walletStatus[data-auth-status="disconnected"] {
   border-color: var(--border);
 }
 
-[data-auth-status="connecting"] {
-  /* Visual indicator that wallet is connecting */
+.walletStatus[data-auth-status="connecting"] {
   border-color: var(--warning);
   opacity: 0.9;
 }
