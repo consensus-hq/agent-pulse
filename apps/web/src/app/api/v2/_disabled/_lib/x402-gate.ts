@@ -20,8 +20,8 @@ import {
 // CONFIGURATION
 // ============================================
 
-export const REGISTRY_CONTRACT = (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0xe61C615743A02983A46aFF66Db035297e8a43846") as `0x${string}`;
-export const CHAIN_ID = 84532; // Base Sepolia
+export const REGISTRY_CONTRACT = (process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "") as `0x${string}`;
+export const CHAIN_ID = parseInt(process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453", 10);
 export const USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
 
 // ============================================
