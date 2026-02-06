@@ -111,22 +111,35 @@ export default function DefiPanel() {
 
   const fetchSwapQuote = useCallback(async () => {
     if (!isConnected || !address) return;
-    
+
     setSwapLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/defi/swap?address=${address}&fromToken=USDC&toToken=PULSE&amount=100`);
+      // Fetch price to calculate swap quote
+      const response = await fetch(`/api/defi?action=price&address=${address}`);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
       }
-      
+
+      // Calculate mock swap quote based on price (100 USDC → PULSE)
+      const usdcAmount = 100;
+      const pulsePrice = parseFloat(data.price || "0");
+      const pulseAmount = pulsePrice > 0 ? (usdcAmount / pulsePrice).toFixed(4) : "0";
+
       setDefiData(prev => ({
         ...prev,
         pulsePrice: data.price ?? prev?.pulsePrice,
-        swapQuote: data.swapQuote,
+        swapQuote: {
+          fromToken: "USDC",
+          fromAmount: usdcAmount.toString(),
+          toToken: "PULSE",
+          toAmount: pulseAmount,
+          exchangeRate: pulsePrice > 0 ? `1 PULSE = $${pulsePrice.toFixed(6)}` : "N/A",
+          slippage: "0.5%",
+        },
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch swap quote");
