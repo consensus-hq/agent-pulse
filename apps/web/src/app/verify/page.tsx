@@ -91,10 +91,10 @@ const getNetworkConfig = (mode: NetworkMode): NetworkConfig => {
   switch (mode) {
     case "testnet":
       return {
-        rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || (process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? "https://mainnet.base.org" : "https://sepolia.base.org"),
+        rpcUrl: process.env.NEXT_PUBLIC_TESTNET_RPC_URL || "https://sepolia.base.org",
         registryAddress: (process.env.NEXT_PUBLIC_TESTNET_REGISTRY_ADDRESS as Address) || null,
         tokenAddress: (process.env.NEXT_PUBLIC_TESTNET_TOKEN_ADDRESS as Address) || null,
-        explorerBase: process.env.NEXT_PUBLIC_CHAIN_ID === "8453" ? "https://basescan.org/tx/" : "https://sepolia.basescan.org/tx/",
+        explorerBase: "https://sepolia.basescan.org/tx/",
         label: "Base Sepolia Testnet",
         logUrl: process.env.NEXT_PUBLIC_VERIFY_LOG_TESTNET_URL || null,
       };
