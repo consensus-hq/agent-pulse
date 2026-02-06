@@ -99,7 +99,7 @@ Check if an agent is alive. **No payment required.**
 #### Request
 
 ```bash
-curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x7f24C286.../alive
+curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x9508752B.../alive
 ```
 
 #### Response `200 OK`

@@ -16,7 +16,7 @@ export type { FilterOptions, FilterResult } from './index.js';
  * 
  * const aliveFilterTool = new LangChainTool({
  *   threshold: 3600, // 1 hour
- *   registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+ *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
  *   rpcUrl: 'https://sepolia.base.org',
  * });
  * ```
@@ -77,7 +77,7 @@ Returns an array of addresses that are currently alive and within the threshold.
  * 
  * const autoGenTool = new AutoGenTool({
  *   threshold: 3600,
- *   registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+ *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
  *   rpcUrl: 'https://sepolia.base.org',
  * });
  * 
@@ -154,7 +154,7 @@ export class AutoGenTool {
  * 
  * const elizaAction = new ElizaAction({
  *   threshold: 3600,
- *   registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+ *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
  *   rpcUrl: 'https://sepolia.base.org',
  * });
  * 
@@ -245,7 +245,7 @@ export class ElizaAction {
  * 
  * const filter = createFilter({
  *   threshold: 3600,
- *   registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+ *   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
  *   rpcUrl: 'https://sepolia.base.org',
  * });
  * 

@@ -3,7 +3,7 @@ import { kv } from "@vercel/kv";
 import { getAgentState, setAgentState } from "@/app/lib/kv";
 import { readAgentStatus, readTTL } from "@/app/lib/chain";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 // ============================================================================
 // Configuration

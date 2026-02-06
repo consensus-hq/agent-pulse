@@ -17,7 +17,7 @@ const result = await filterAlive(
   ['0x1234...', '0x5678...'],
   {
     threshold: 3600, // 1 hour in seconds
-    registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+    registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
     rpcUrl: 'https://sepolia.base.org',
   }
 );
@@ -44,7 +44,7 @@ import { filterAlive, isAgentAlive, getRegistryTTL } from '@agent-pulse/middlewa
 // Filter multiple agents
 const result = await filterAlive(agentAddresses, {
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
@@ -54,13 +54,13 @@ console.log(result.errors);    // Any validation errors
 
 // Check single agent
 const status = await isAgentAlive(agentAddress, {
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
 // Get registry TTL
 const ttl = await getRegistryTTL({
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 ```
@@ -72,7 +72,7 @@ import { LangChainTool } from '@agent-pulse/middleware';
 
 const aliveFilterTool = new LangChainTool({
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
@@ -89,7 +89,7 @@ import { AutoGenTool } from '@agent-pulse/middleware';
 
 const autoGenTool = new AutoGenTool({
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
@@ -109,7 +109,7 @@ import { ElizaAction } from '@agent-pulse/middleware';
 
 const elizaAction = new ElizaAction({
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
@@ -127,7 +127,7 @@ import { createFilter } from '@agent-pulse/middleware';
 
 const filter = createFilter({
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 });
 
@@ -236,7 +236,7 @@ Get the TTL (time-to-live) configured in the registry.
 ## Contract Addresses
 
 ### Base Sepolia (Testnet)
-- **PulseRegistry**: `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
+- **PulseRegistry**: `0xe61C615743A02983A46aFF66Db035297e8a43846`
 - **RPC**: `https://sepolia.base.org`
 
 ## License

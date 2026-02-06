@@ -28,13 +28,13 @@ export const agentPulseEnvSchema = z.object({
   AGENT_PULSE_TOKEN_ADDRESS: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/)
-    .default("0x7f24C286872c9594499CD634c7Cc7735551242a2"),
+    .default("0x21111B39A502335aC7e45c4574Dd083A69258b07"),
 
   /** PulseRegistry contract address (Base Sepolia) */
   AGENT_PULSE_REGISTRY_ADDRESS: z
     .string()
     .regex(/^0x[a-fA-F0-9]{40}$/)
-    .default("0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612"),
+    .default("0xe61C615743A02983A46aFF66Db035297e8a43846"),
 
   /** Default pulse amount in wei (1 PULSE = 1e18) */
   AGENT_PULSE_DEFAULT_AMOUNT: z

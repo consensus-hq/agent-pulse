@@ -16,7 +16,7 @@ import { createPublicClient } from 'viem';
 
 const TEST_OPTIONS: FilterOptions = {
   threshold: 3600,
-  registryAddress: '0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612',
+  registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
   rpcUrl: 'https://sepolia.base.org',
 };
 

@@ -19,7 +19,7 @@ const IS_MAINNET = CHAIN_ID === "8453";
 const CHAIN: Chain = IS_MAINNET ? base : baseSepolia;
 const DEFAULT_RPC = IS_MAINNET ? "https://mainnet.base.org" : "https://sepolia.base.org";
 
-const PULSE_REGISTRY = process.env.NEXT_PUBLIC_PULSE_REGISTRY || process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612";
+const PULSE_REGISTRY = process.env.NEXT_PUBLIC_PULSE_REGISTRY || process.env.NEXT_PUBLIC_PULSE_REGISTRY_ADDRESS || "0xe61C615743A02983A46aFF66Db035297e8a43846";
 const TTL_SECONDS = 86400; // 24 hours
 
 const REGISTRY_ABI = [

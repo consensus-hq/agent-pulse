@@ -4,7 +4,7 @@ import { checkKVHealth, getPauseState } from "@/app/lib/kv";
 import { readPauseState } from "@/app/lib/chain";
 import { getPulseEvents } from "@/app/lib/insight";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 // ============================================================================
 // Configuration

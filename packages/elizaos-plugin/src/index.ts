@@ -149,7 +149,7 @@ const baseActions = [
  *     "mode": "strict",
  *     "threshold": "24h"
  *   },
- *   "contractAddress": "0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612",
+ *   "contractAddress": "0xe61C615743A02983A46aFF66Db035297e8a43846",
  *   "chainId": 84532
  * }
  * ```

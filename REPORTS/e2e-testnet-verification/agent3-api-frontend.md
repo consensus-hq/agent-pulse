@@ -245,8 +245,8 @@ curl -s "https://agent-pulse-nine.vercel.app" | grep -o '<title>.*</title>'
 ## 4. On-Chain Verification
 
 ### 4.1 Contract Addresses (from LINKS.md)
-- **PulseRegistry (Base Sepolia):** `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612`
-- **PulseToken (Base Sepolia):** `0x7f24C286872c9594499CD634c7Cc7735551242a2`
+- **PulseRegistry (Base Sepolia):** `0xe61C615743A02983A46aFF66Db035297e8a43846`
+- **PulseToken (Base Sepolia):** `0x21111B39A502335aC7e45c4574Dd083A69258b07`
 - **Deployer:** `0x9508752Ba171D37EBb3AA437927458E0a21D1e04`
 - **Chain ID:** 84532
 
@@ -257,7 +257,7 @@ curl -s "https://agent-pulse-nine.vercel.app" | grep -o '<title>.*</title>'
 ```bash
 curl -s -X POST https://sepolia.base.org \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612","data":"0xb0686331..."},"latest"],"id":1}'
+  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xe61C615743A02983A46aFF66Db035297e8a43846","data":"0xb0686331..."},"latest"],"id":1}'
 ```
 
 **Response:**
@@ -279,7 +279,7 @@ curl -s -X POST https://sepolia.base.org \
 # signalSink() call
 curl -s -X POST https://sepolia.base.org \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612","data":"0x6ba35cdf"},"latest"],"id":1}'
+  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xe61C615743A02983A46aFF66Db035297e8a43846","data":"0x6ba35cdf"},"latest"],"id":1}'
 ```
 
 **Response:**
@@ -299,7 +299,7 @@ curl -s -X POST https://sepolia.base.org \
 # owner() call
 curl -s -X POST https://sepolia.base.org \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612","data":"0x8da5cb5b"},"latest"],"id":1}'
+  -d '{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xe61C615743A02983A46aFF66Db035297e8a43846","data":"0x8da5cb5b"},"latest"],"id":1}'
 ```
 
 **Response:**

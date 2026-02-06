@@ -80,8 +80,8 @@ console.log(`Active Agents: ${stats.activeAgents}`);
 
 ## Protocol Details
 
-- **Registry**: `0x2C802988c16Fae08bf04656fe93aDFA9a5bA8612` (Base Sepolia)
-- **PULSE Token**: `0x7f24C286872c9594499CD634c7Cc7735551242a2` (Base Sepolia)
+- **Registry**: `0xe61C615743A02983A46aFF66Db035297e8a43846` (Base Sepolia)
+- **PULSE Token**: `0x21111B39A502335aC7e45c4574Dd083A69258b07` (Base Sepolia)
 - **API Base**: `https://agent-pulse-nine.vercel.app`
 
 ## License
