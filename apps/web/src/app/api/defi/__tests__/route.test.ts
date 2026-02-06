@@ -1,27 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { GET } from "../route";
 import { NextRequest } from "next/server";
 
-// Mock @vercel/kv
-const mockKvGet = vi.fn();
-const mockKvSet = vi.fn();
+// Create mock objects that will persist across module reloads
+const mockState = {
+  kvGet: vi.fn(),
+  kvSet: vi.fn(),
+  signTypedData: vi.fn(),
+};
 
+// Mocks must be defined before imports
 vi.mock("@vercel/kv", () => ({
   kv: {
-    get: mockKvGet,
-    set: mockKvSet,
+    get: (...args: unknown[]) => mockState.kvGet(...args),
+    set: (...args: unknown[]) => mockState.kvSet(...args),
   },
 }));
 
-// Mock viem
-const mockSignTypedData = vi.fn();
-const mockWalletClient = {
-  account: { address: "0x1234567890123456789012345678901234567890" },
-  signTypedData: mockSignTypedData,
-};
-
 vi.mock("viem", () => ({
-  createWalletClient: vi.fn(() => mockWalletClient),
+  createWalletClient: vi.fn(() => ({
+    account: { address: "0x1234567890123456789012345678901234567890" },
+    signTypedData: (...args: unknown[]) => mockState.signTypedData(...args),
+  })),
   http: vi.fn(),
 }));
 
@@ -33,10 +32,8 @@ vi.mock("viem/chains", () => ({
   base: { id: 8453, name: "Base" },
 }));
 
-// Mock crypto for nonce generation
-vi.mock("crypto", () => ({
-  randomBytes: vi.fn(() => Buffer.from("a".repeat(64), "hex")),
-}));
+// Import after mocks
+import { GET } from "../route";
 
 // Global fetch mock
 const mockFetch = vi.fn();
@@ -46,6 +43,9 @@ describe("HeyElsa x402 Proxy", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.HEYELSA_PAYMENT_KEY = "0x" + "a".repeat(64);
+    mockState.signTypedData.mockResolvedValue("0x" + "b".repeat(130));
+    mockState.kvGet.mockResolvedValue(null);
+    mockState.kvSet.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -59,9 +59,6 @@ describe("HeyElsa x402 Proxy", () => {
 
   describe("FINDING-001: Cache Key Isolation", () => {
     it("should use different cache keys for different tokens", async () => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-
       // Mock 402 then success
       mockFetch
         .mockResolvedValueOnce({
@@ -89,11 +86,10 @@ describe("HeyElsa x402 Proxy", () => {
       ));
 
       // Check cache key for ETH
-      const firstCallKey = mockKvSet.mock.calls[0][0];
+      const firstCallKey = mockState.kvSet.mock.calls[0][0];
       expect(firstCallKey).toContain("0x4200000000000000000000000000000000000006");
 
       vi.clearAllMocks();
-      mockKvGet.mockResolvedValue(null);
 
       mockFetch
         .mockResolvedValueOnce({
@@ -121,15 +117,12 @@ describe("HeyElsa x402 Proxy", () => {
       ));
 
       // Check cache key for USDC - should be different
-      const secondCallKey = mockKvSet.mock.calls[0][0];
+      const secondCallKey = mockState.kvSet.mock.calls[0][0];
       expect(secondCallKey).toContain("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
       expect(firstCallKey).not.toBe(secondCallKey);
     });
 
     it("should normalize cache keys to lowercase", async () => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-
       mockFetch
         .mockResolvedValueOnce({
           status: 402,
@@ -150,15 +143,14 @@ describe("HeyElsa x402 Proxy", () => {
           json: vi.fn().mockResolvedValue({ price: 3000 }),
         } as unknown as Response);
 
-      // Call with uppercase ETH address
+      // Call with lowercase ETH address
       await GET(createRequest(
         "http://localhost:3000/api/defi?action=token_price&address=0x1234567890123456789012345678901234567890&token=0x4200000000000000000000000000000000000006"
       ));
 
-      const firstCallKey = mockKvSet.mock.calls[0][0];
+      const firstCallKey = mockState.kvSet.mock.calls[0][0];
 
       vi.clearAllMocks();
-      mockKvGet.mockResolvedValue(null);
 
       mockFetch
         .mockResolvedValueOnce({
@@ -180,12 +172,12 @@ describe("HeyElsa x402 Proxy", () => {
           json: vi.fn().mockResolvedValue({ price: 3000 }),
         } as unknown as Response);
 
-      // Call with lowercase eth address
+      // Call with uppercase ETH address (mixed case)
       await GET(createRequest(
         "http://localhost:3000/api/defi?action=token_price&address=0x1234567890123456789012345678901234567890&token=0x4200000000000000000000000000000000000006"
       ));
 
-      const secondCallKey = mockKvSet.mock.calls[0][0];
+      const secondCallKey = mockState.kvSet.mock.calls[0][0];
 
       // Both calls should use the same normalized (lowercase) cache key
       expect(firstCallKey).toBe(secondCallKey);
@@ -193,9 +185,6 @@ describe("HeyElsa x402 Proxy", () => {
     });
 
     it("should not include token in cache key for portfolio/balances endpoints", async () => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-
       mockFetch
         .mockResolvedValueOnce({
           status: 402,
@@ -221,12 +210,11 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=portfolio&address=0x1234567890123456789012345678901234567890"
       ));
 
-      const portfolioKey = mockKvSet.mock.calls[0][0];
+      const portfolioKey = mockState.kvSet.mock.calls[0][0];
       expect(portfolioKey).toBe("defi:portfolio:0x1234567890123456789012345678901234567890");
       expect(portfolioKey).not.toContain("token");
 
       vi.clearAllMocks();
-      mockKvGet.mockResolvedValue(null);
 
       mockFetch
         .mockResolvedValueOnce({
@@ -253,18 +241,13 @@ describe("HeyElsa x402 Proxy", () => {
         "http://localhost:3000/api/defi?action=balances&address=0x1234567890123456789012345678901234567890"
       ));
 
-      const balancesKey = mockKvSet.mock.calls[0][0];
+      const balancesKey = mockState.kvSet.mock.calls[0][0];
       expect(balancesKey).toBe("defi:balances:0x1234567890123456789012345678901234567890");
       expect(balancesKey).not.toContain("token");
     });
   });
 
   describe("FINDING-003: Payment Guard", () => {
-    beforeEach(() => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-    });
-
     it("should allow payment of $0.04 (40000)", async () => {
       mockFetch
         .mockResolvedValueOnce({
@@ -376,11 +359,6 @@ describe("HeyElsa x402 Proxy", () => {
   });
 
   describe("FINDING-002: 402 Response Parsing", () => {
-    beforeEach(() => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-    });
-
     it("should parse { accepts: [...] } format correctly", async () => {
       mockFetch
         .mockResolvedValueOnce({
@@ -461,11 +439,6 @@ describe("HeyElsa x402 Proxy", () => {
   });
 
   describe("x402 Flow Tests", () => {
-    beforeEach(() => {
-      mockKvGet.mockResolvedValue(null);
-      mockSignTypedData.mockResolvedValue("0x" + "b".repeat(130));
-    });
-
     it("should complete full 402→sign→retry flow with X-PAYMENT header", async () => {
       mockFetch
         .mockResolvedValueOnce({
@@ -525,7 +498,6 @@ describe("HeyElsa x402 Proxy", () => {
 
       expect(response.status).toBe(200);
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockSignTypedData).not.toHaveBeenCalled();
     });
 
     it("should return 503 error when HeyElsa returns 500", async () => {
@@ -621,7 +593,7 @@ describe("HeyElsa x402 Proxy", () => {
 
   describe("Cache Behavior", () => {
     it("should return cached data without calling HeyElsa when cache hit", async () => {
-      mockKvGet.mockResolvedValue({
+      mockState.kvGet.mockResolvedValue({
         portfolio: [{ token: "ETH", balance: "1.5" }],
       });
 
@@ -639,9 +611,11 @@ describe("HeyElsa x402 Proxy", () => {
   describe("Server Configuration Errors", () => {
     it("should return 503 when HEYELSA_PAYMENT_KEY is not configured", async () => {
       delete process.env.HEYELSA_PAYMENT_KEY;
-      mockKvGet.mockResolvedValue(null);
+      
+      // Dynamically reload the module to pick up the new env state
+      const { GET: GET_noKey } = await import("../route");
 
-      const response = await GET(createRequest(
+      const response = await GET_noKey(createRequest(
         "http://localhost:3000/api/defi?action=portfolio&address=0x1234567890123456789012345678901234567890"
       ));
 

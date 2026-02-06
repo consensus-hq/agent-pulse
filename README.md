@@ -112,6 +112,30 @@ Proxy to HeyElsa DeFi API. Params: `action` (`price`/`portfolio`), plus action-s
 curl "https://agent-pulse-nine.vercel.app/api/defi?action=price&token=PULSE"
 ```
 
+---
+
+## HeyElsa x402 DeFi Integration
+
+Agent Pulse proxies HeyElsa DeFi data via a **server-side x402 micropayment flow** — no wallet popups for users.
+
+- **What:** Server-side proxy pays HeyElsa for DeFi data (portfolio, balances, token prices)
+- **How:** Dedicated payment wallet signs EIP-3009 USDC transfers on Base
+- **Cost:** ~$0.01/call, cached 60s, rate-limited per IP
+- **Setup:** Set `HEYELSA_PAYMENT_KEY` env var, fund wallet with USDC on Base
+- **Benefits:** Zero cost to end users, zero wallet popups, seamless UX
+
+### Architecture
+
+```mermaid
+flowchart LR
+    User["User Browser"] -->|GET /api/defi| API["/api/defi"]
+    API --> Cache["KV Cache check"]
+    Cache -->|hit| Return1["Return cached"]
+    Cache -->|miss| Pay["x402 payment"]
+    Pay --> HeyElsa["HeyElsa API"]
+    HeyElsa --> Cache2["Cache + return"]
+```
+
 ### Other Endpoints
 
 | Endpoint | Method | Description |

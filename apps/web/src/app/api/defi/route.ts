@@ -15,6 +15,8 @@ import { base } from "viem/chains";
  * Security:
  * - HEYELSA_PAYMENT_KEY is server-side only (no NEXT_PUBLIC_ prefix)
  * - Max payment guard: rejects 402 asking for > $0.10 per call
+ * - Rate limiting: 10 req/min, 100 req/hour per IP
+ * - Daily budget cap: $1.00 USDC max spend
  * - Logs payment amounts for monitoring
  * 
  * Endpoints (VERA-003):
@@ -22,6 +24,15 @@ import { base } from "viem/chains";
  * - balances: POST /api/get_balances ($0.005)
  * - token_price: POST /api/get_token_price ($0.002)
  */
+
+// ============================================
+// RATE LIMITING & BUDGET CONSTANTS (WARD)
+// ============================================
+const RATE_LIMIT_PER_MINUTE = 10;
+const RATE_LIMIT_PER_HOUR = 100;
+const DAILY_BUDGET_USDC_ATOMIC = 1000000n; // $1.00 USDC (6 decimals)
+const RATE_LIMIT_TTL_MINUTES = 60; // 1 minute window
+const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
 
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -60,9 +71,143 @@ const VALID_ACTIONS: Record<string, { endpoint: string; cost: string }> = {
   token_price: { endpoint: "/api/get_token_price", cost: "$0.002" },
 };
 
-/**
- * Create wallet client from private key
- */
+// ============================================
+// RATE LIMITING UTILITIES (WARD)
+// ============================================
+
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  return (request as unknown as { ip?: string }).ip || "unknown";
+}
+
+function getTimeBuckets(): { minuteBucket: string; hourBucket: string; dateKey: string } {
+  const now = new Date();
+  const minuteBucket = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+  const hourBucket = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}`;
+  const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return { minuteBucket, hourBucket, dateKey };
+}
+
+async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number; limitType?: "minute" | "hour" }> {
+  const { minuteBucket, hourBucket } = getTimeBuckets();
+  const minuteKey = `ratelimit:${ip}:${minuteBucket}`;
+  const hourKey = `ratelimit:${ip}:${hourBucket}`;
+
+  const minuteCount = await kv.get<number>(minuteKey) || 0;
+  if (minuteCount >= RATE_LIMIT_PER_MINUTE) {
+    return { allowed: false, remaining: 0, limitType: "minute" };
+  }
+
+  const hourCount = await kv.get<number>(hourKey) || 0;
+  if (hourCount >= RATE_LIMIT_PER_HOUR) {
+    return { allowed: false, remaining: 0, limitType: "hour" };
+  }
+
+  const remaining = Math.min(
+    RATE_LIMIT_PER_MINUTE - minuteCount,
+    RATE_LIMIT_PER_HOUR - hourCount
+  );
+
+  return { allowed: true, remaining };
+}
+
+async function incrementRateLimit(ip: string): Promise<void> {
+  const { minuteBucket, hourBucket } = getTimeBuckets();
+  const minuteKey = `ratelimit:${ip}:${minuteBucket}`;
+  const hourKey = `ratelimit:${ip}:${hourBucket}`;
+
+  const pipeline = kv.pipeline();
+  pipeline.incr(minuteKey);
+  pipeline.incr(hourKey);
+  pipeline.expire(minuteKey, RATE_LIMIT_TTL_MINUTES);
+  pipeline.expire(hourKey, RATE_LIMIT_TTL_HOURS);
+  await pipeline.exec();
+}
+
+async function trackRateLimitRejection(): Promise<void> {
+  const { dateKey } = getTimeBuckets();
+  const key = `stats:daily:${dateKey}:rateLimitRejections`;
+  await kv.incr(key);
+  await kv.expire(key, 86400);
+}
+
+// ============================================
+// BUDGET & SPENDING UTILITIES (WARD)
+// ============================================
+
+async function getDailySpend(): Promise<bigint> {
+  const { dateKey } = getTimeBuckets();
+  const key = `budget:daily:${dateKey}`;
+  const spend = await kv.get<string>(key);
+  return spend ? BigInt(spend) : 0n;
+}
+
+async function addToDailySpend(amount: bigint): Promise<void> {
+  const { dateKey } = getTimeBuckets();
+  const key = `budget:daily:${dateKey}`;
+  const current = await getDailySpend();
+  const newTotal = current + amount;
+  await kv.set(key, newTotal.toString(), { ex: 86400 });
+}
+
+async function isBudgetExceeded(): Promise<boolean> {
+  const spend = await getDailySpend();
+  return spend >= DAILY_BUDGET_USDC_ATOMIC;
+}
+
+function logBudgetAlert(spend: bigint): void {
+  console.error(`[WARD] DAILY BUDGET EXCEEDED: $${Number(spend) / 1_000_000} USDC spent. Blocking new HeyElsa calls.`);
+}
+
+// ============================================
+// CACHE STATS UTILITIES (WARD)
+// ============================================
+
+async function trackCacheHit(): Promise<void> {
+  const { dateKey } = getTimeBuckets();
+  const key = `stats:daily:${dateKey}:cacheHits`;
+  await kv.incr(key);
+  await kv.expire(key, 86400);
+}
+
+async function trackCacheMiss(): Promise<void> {
+  const { dateKey } = getTimeBuckets();
+  const key = `stats:daily:${dateKey}:cacheMisses`;
+  await kv.incr(key);
+  await kv.expire(key, 86400);
+}
+
+async function getCacheHitRate(): Promise<{ hits: number; misses: number; rate: number }> {
+  const { dateKey } = getTimeBuckets();
+  const hitsKey = `stats:daily:${dateKey}:cacheHits`;
+  const missesKey = `stats:daily:${dateKey}:cacheMisses`;
+
+  const [rawHits, rawMisses] = await Promise.all([
+    kv.get<number>(hitsKey),
+    kv.get<number>(missesKey),
+  ]);
+
+  const hits = rawHits ?? 0;
+  const misses = rawMisses ?? 0;
+  const total = hits + misses;
+  const rate = total > 0 ? Math.round((hits / total) * 100) : 0;
+
+  return { hits, misses, rate };
+}
+
+async function getRateLimitRejections(): Promise<number> {
+  const { dateKey } = getTimeBuckets();
+  const key = `stats:daily:${dateKey}:rateLimitRejections`;
+  return await kv.get<number>(key) || 0;
+}
+
+// ============================================
+// WALLET & PAYMENT UTILITIES
+// ============================================
+
 function getPaymentWallet() {
   const privateKey = process.env.HEYELSA_PAYMENT_KEY;
   
@@ -70,9 +215,7 @@ function getPaymentWallet() {
     throw new Error("HEYELSA_PAYMENT_KEY not configured");
   }
 
-  // Ensure key has 0x prefix
   const formattedKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
-  
   const account = privateKeyToAccount(formattedKey as Hex);
   
   return createWalletClient({
@@ -82,9 +225,6 @@ function getPaymentWallet() {
   });
 }
 
-/**
- * Parse 402 response to get payment requirements
- */
 interface PaymentRequirements {
   scheme: string;
   network: string;
@@ -105,13 +245,9 @@ interface PaymentRequirements {
 
 async function parse402Response(response: Response): Promise<PaymentRequirements> {
   const body = await response.json();
-  
-  // HeyElsa returns { x402Version, error, accepts: [...] }
-  // Each accept has: scheme, network, maxAmountRequired, asset, payTo, maxTimeoutSeconds, extra
   const accepts = body.accepts || body.paymentRequirements || [];
   
   if (accepts.length === 0 && body.payTo) {
-    // Flat format fallback
     accepts.push(body);
   }
 
@@ -134,23 +270,18 @@ async function parse402Response(response: Response): Promise<PaymentRequirements
   };
 }
 
-/**
- * Create EIP-3009 payment signature
- */
 async function createPaymentSignature(
   wallet: ReturnType<typeof getPaymentWallet>,
   paymentReq: PaymentRequirements["paymentRequirements"][0]
 ): Promise<string> {
   const amount = BigInt(paymentReq.requiredAmount);
   
-  // Security guard: reject if amount exceeds max
   if (amount > MAX_PAYMENT_PER_CALL) {
     throw new Error(
       `Payment amount ${amount} exceeds max allowed ${MAX_PAYMENT_PER_CALL} ($0.05 USDC)`
     );
   }
 
-  // Generate nonce (random 32 bytes)
   const { randomBytes } = await import("crypto");
   const nonce = ("0x" + randomBytes(32).toString("hex")) as Hex;
   
@@ -167,7 +298,6 @@ async function createPaymentSignature(
     nonce,
   };
 
-  // Sign EIP-712 typed data
   const signature = await wallet.signTypedData({
     domain: getUSDCDomain(),
     types: TRANSFER_WITH_AUTHORIZATION_TYPES,
@@ -175,8 +305,6 @@ async function createPaymentSignature(
     message,
   });
 
-  // Build X-PAYMENT payload (base64 encoded JSON)
-  // Format matches verified working flow against HeyElsa production
   const payload = {
     x402Version: 1,
     scheme: "exact",
@@ -197,9 +325,6 @@ async function createPaymentSignature(
   return Buffer.from(JSON.stringify(payload)).toString("base64");
 }
 
-/**
- * Make request to HeyElsa with automatic 402 handling
- */
 async function fetchWithPayment(
   endpoint: string,
   body: Record<string, unknown>
@@ -207,7 +332,6 @@ async function fetchWithPayment(
   const wallet = getPaymentWallet();
   const url = `${HEYELSA_BASE_URL}${endpoint}`;
 
-  // First attempt
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -217,22 +341,17 @@ async function fetchWithPayment(
     body: JSON.stringify(body),
   });
 
-  // If not 402, return as-is
   if (response.status !== 402) {
     return response;
   }
 
-  // Parse 402 response
   const paymentReq = await parse402Response(response);
-  
-  // Get first payment requirement (should be USDC on Base)
   const requirement = paymentReq.paymentRequirements?.[0];
   
   if (!requirement) {
     throw new Error("No payment requirements in 402 response");
   }
 
-  // Log payment for monitoring
   console.log(`[HeyElsa x402] Payment required:`, {
     endpoint,
     amount: requirement.requiredAmount,
@@ -240,10 +359,12 @@ async function fetchWithPayment(
     payer: wallet.account.address,
   });
 
-  // Create payment signature
   const paymentHeader = await createPaymentSignature(wallet, requirement);
 
-  // Retry with payment header
+  // Track spending (WARD)
+  const paymentAmount = BigInt(requirement.requiredAmount);
+  await addToDailySpend(paymentAmount);
+
   return fetch(url, {
     method: "POST",
     headers: {
@@ -255,24 +376,68 @@ async function fetchWithPayment(
   });
 }
 
-/**
- * Validate Ethereum address
- */
 function isValidAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-/**
- * GET /api/defi?action=portfolio|balances|token_price&address=0x...
- */
-export async function GET(request: NextRequest) {
+// ============================================
+// HEALTH CHECK HANDLER (WARD)
+// ============================================
+
+async function handleHealthCheck(): Promise<NextResponse> {
+  try {
+    const wallet = getPaymentWallet();
+    const spend = await getDailySpend();
+    const { hits, misses, rate } = await getCacheHitRate();
+    const rejections = await getRateLimitRejections();
+
+    return NextResponse.json({
+      walletAddress: wallet.account.address,
+      totalSpentToday: {
+        atomic: spend.toString(),
+        usd: Number(spend) / 1_000_000,
+      },
+      cacheHitRate: {
+        hits,
+        misses,
+        percentage: rate,
+      },
+      rateLimitRejectionsToday: rejections,
+      budget: {
+        maxDaily: Number(DAILY_BUDGET_USDC_ATOMIC) / 1_000_000,
+        remaining: Math.max(0, Number(DAILY_BUDGET_USDC_ATOMIC - spend) / 1_000_000),
+        exceeded: spend >= DAILY_BUDGET_USDC_ATOMIC,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      { 
+        error: "Health check failed", 
+        message,
+        walletAddress: null,
+        totalSpentToday: null,
+        cacheHitRate: null,
+        rateLimitRejectionsToday: null,
+      },
+      { status: 503 }
+    );
+  }
+}
+
+// ============================================
+// MAIN DEFI REQUEST HANDLER
+// ============================================
+
+async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
+  const clientIP = getClientIP(request);
+
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const address = searchParams.get("address");
-    const tokenAddress = searchParams.get("token"); // For token_price action
+    const tokenAddress = searchParams.get("token");
 
-    // Validate parameters
     if (!action) {
       return NextResponse.json(
         { error: "Missing required parameter: action" },
@@ -287,7 +452,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate action
     const actionConfig = VALID_ACTIONS[action];
     if (!actionConfig) {
       return NextResponse.json(
@@ -299,7 +463,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check KV cache first (include token for token_price to avoid cross-token cache hits)
+    // CACHE CHECK FIRST (before rate limiting)
     const cacheKey = action === "token_price" 
       ? `defi:${action}:${(tokenAddress || address).toLowerCase()}`
       : `defi:${action}:${address.toLowerCase()}`;
@@ -307,6 +471,7 @@ export async function GET(request: NextRequest) {
     
     if (cached) {
       console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
+      await trackCacheHit();
       return NextResponse.json({
         ...cached,
         _cached: true,
@@ -314,10 +479,49 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build request body based on action
+    // RATE LIMIT CHECK (only for cache misses)
+    const rateLimit = await checkRateLimit(clientIP);
+    if (!rateLimit.allowed) {
+      await trackRateLimitRejection();
+      console.log(`[WARD] Rate limit exceeded for ${clientIP} (${rateLimit.limitType})`);
+      return NextResponse.json(
+        { 
+          error: "Rate limit exceeded", 
+          message: `Limit: ${rateLimit.limitType === "minute" ? RATE_LIMIT_PER_MINUTE + "/min" : RATE_LIMIT_PER_HOUR + "/hour"}. Please slow down.`,
+          retryAfter: rateLimit.limitType === "minute" ? 60 : 3600
+        },
+        { 
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(rateLimit.limitType === "minute" ? RATE_LIMIT_PER_MINUTE : RATE_LIMIT_PER_HOUR),
+            "X-RateLimit-Remaining": "0",
+            "Retry-After": String(rateLimit.limitType === "minute" ? 60 : 3600),
+          }
+        }
+      );
+    }
+
+    // BUDGET CHECK (only for cache misses)
+    const budgetExceeded = await isBudgetExceeded();
+    if (budgetExceeded) {
+      const spend = await getDailySpend();
+      logBudgetAlert(spend);
+      return NextResponse.json(
+        { 
+          error: "Service temporarily unavailable", 
+          message: "Daily spending limit reached. Please try again tomorrow.",
+          budgetExceeded: true
+        },
+        { status: 503 }
+      );
+    }
+
+    // Increment rate limit counter (cache miss + budget OK)
+    await incrementRateLimit(clientIP);
+    await trackCacheMiss();
+
     const requestBody: Record<string, unknown> = {};
 
-    // token_price uses token_address+chain, not wallet_address (VERA-003)
     if (action === "token_price") {
       if (!tokenAddress || !isValidAddress(tokenAddress)) {
         return NextResponse.json(
@@ -331,7 +535,6 @@ export async function GET(request: NextRequest) {
       requestBody.wallet_address = address;
     }
 
-    // Fetch from HeyElsa with payment
     console.log(`[HeyElsa x402] Fetching ${action} for ${address}`);
     
     const response = await fetchWithPayment(actionConfig.endpoint, requestBody);
@@ -352,7 +555,6 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
 
-    // Cache successful response
     await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
     console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
 
@@ -367,7 +569,6 @@ export async function GET(request: NextRequest) {
     
     const message = error instanceof Error ? error.message : "Unknown error";
     
-    // Specific error for payment key issues
     if (message.includes("HEYELSA_PAYMENT_KEY")) {
       return NextResponse.json(
         { error: "Server configuration error: Payment wallet not configured" },
@@ -375,7 +576,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Specific error for payment too high
     if (message.includes("exceeds max allowed")) {
       return NextResponse.json(
         { error: "Payment rejected: Amount exceeds safety limit ($0.05 max)" },
@@ -390,9 +590,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * Health check endpoint
- */
+// ============================================
+// API ROUTE EXPORTS
+// ============================================
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  
+  if (!searchParams.has("action")) {
+    return handleHealthCheck();
+  }
+
+  return handleDefiRequest(request);
+}
+
 export async function HEAD() {
   return new NextResponse(null, { status: 200 });
 }
