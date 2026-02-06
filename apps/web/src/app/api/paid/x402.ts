@@ -1,57 +1,11 @@
-import { createThirdwebClient } from "thirdweb";
-import { facilitator, settlePayment } from "thirdweb/x402";
-import { base } from "thirdweb/chains";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * x402 Payment Gate - Shared Helper for Paid API Endpoints
  * 
- * This module provides thirdweb x402 integration for payment-gated endpoints.
- * External agents pay USDC to access these endpoints.
- * 
- * Architecture:
- * - /api/defi/*     → FREE (app pays HeyElsa via hot wallet)
- * - /api/paid/*     → PAID (external agents pay us via x402)
+ * Returns proper 402 challenges. Settlement TBD post-hackathon
+ * when thirdweb ships their x402 module.
  */
-
-// ============================================
-// THIRDWEB CLIENT SETUP (lazy — no throws at import time)
-// ============================================
-
-function getSecretKey(): string {
-  const key = process.env.THIRDWEB_SECRET_KEY;
-  if (!key) throw new Error("THIRDWEB_SECRET_KEY is required for x402 payments");
-  return key;
-}
-
-function getServerWalletAddress(): string {
-  const addr = process.env.SERVER_WALLET_ADDRESS;
-  if (!addr) throw new Error("SERVER_WALLET_ADDRESS is required for x402 payments");
-  return addr;
-}
-
-let _client: ReturnType<typeof createThirdwebClient> | null = null;
-function getClient() {
-  if (!_client) _client = createThirdwebClient({ secretKey: getSecretKey() });
-  return _client;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _facilitator: any = null;
-function getFacilitator() {
-  if (!_facilitator) {
-    _facilitator = facilitator({
-      client: getClient(),
-      serverWalletAddress: getServerWalletAddress(),
-    });
-  }
-  return _facilitator;
-}
-
-// Backward-compat named exports (lazy)
-export const thirdwebClient = new Proxy({} as ReturnType<typeof createThirdwebClient>, {
-  get: (_target, prop) => (getClient() as Record<string | symbol, unknown>)[prop],
-});
 
 // ============================================
 // PRICE CONFIGURATION
@@ -66,7 +20,7 @@ export const PRICES = {
 export type PaidEndpoint = keyof typeof PRICES;
 
 // ============================================
-// PAYMENT SETTLEMENT WRAPPER
+// PAYMENT RESULT TYPE
 // ============================================
 
 export interface PaymentResult {
@@ -79,9 +33,12 @@ export interface PaymentResult {
   error?: string;
 }
 
-/**
- * Settle x402 payment from request headers
- */
+const SERVER_WALLET_ADDRESS = process.env.SERVER_WALLET_ADDRESS || "0x9508752Ba171D37EBb3AA437927458E0a21D1e04";
+
+// ============================================
+// PAYMENT SETTLEMENT
+// ============================================
+
 export async function settleX402Payment(
   request: NextRequest,
   price: string
@@ -99,39 +56,12 @@ export async function settleX402Payment(
     };
   }
 
-  try {
-    const result = await settlePayment({
-      resourceUrl: request.url,
-      method: request.method,
-      paymentData,
-      payTo: getServerWalletAddress(),
-      network: base,
-      price,
-      facilitator: getFacilitator(),
-    });
-
-    if (result.status === 200) {
-      return {
-        status: 200,
-        payment: {
-          payer: result.paymentReceipt?.payer || "unknown",
-          amount: price,
-          timestamp: new Date().toISOString(),
-        },
-      };
-    }
-
-    return {
-      status: result.status,
-      error: "Payment settlement failed",
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return {
-      status: 500,
-      error: `Payment settlement error: ${message}`,
-    };
-  }
+  // TODO: Integrate thirdweb x402 settlement when available
+  // For now, return 402 — settlement not yet wired
+  return {
+    status: 402,
+    error: "x402 payment settlement not yet available. Payment data received but cannot be verified.",
+  };
 }
 
 /**
@@ -149,9 +79,22 @@ export function withPayment<T>(
         {
           error: paymentResult.error || "Payment required",
           paymentRequired: true,
+          accepts: [
+            {
+              scheme: "exact",
+              network: "base",
+              maxAmountRequired: price,
+              resource: request.url,
+              description: "USDC payment required to access this resource",
+              mimeType: "application/json",
+              payTo: SERVER_WALLET_ADDRESS,
+              asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+              maxTimeoutSeconds: 300,
+            },
+          ],
         },
         {
-          status: paymentResult.status,
+          status: 402,
           headers: {
             "X-Payment-Required": price,
           },
@@ -163,10 +106,9 @@ export function withPayment<T>(
   };
 }
 
-// ============================================
-// 402 CHALLENGE RESPONSE
-// ============================================
-
+/**
+ * Generate a 402 Payment Required response with x402 requirements
+ */
 export function create402Response(price: string, resource: string): NextResponse {
   return NextResponse.json(
     {
@@ -179,8 +121,8 @@ export function create402Response(price: string, resource: string): NextResponse
           resource,
           description: "USDC payment required to access this resource",
           mimeType: "application/json",
-          payTo: getServerWalletAddress(),
-          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+          payTo: SERVER_WALLET_ADDRESS,
+          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           maxTimeoutSeconds: 300,
         },
       ],
