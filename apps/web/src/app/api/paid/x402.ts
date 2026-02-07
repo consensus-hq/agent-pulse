@@ -42,7 +42,7 @@ const SERVER_WALLET_ADDRESS = process.env.SERVER_WALLET_ADDRESS || "0xA7940a42c3
 
 export async function settleX402Payment(
   request: NextRequest,
-  price: string
+  _price: string
 ): Promise<PaymentResult> {
   const paymentData =
     request.headers.get("x-payment") ||
