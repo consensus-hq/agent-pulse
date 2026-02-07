@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autogen-pulse"
+version = "0.1.0"
+description = "Agent Pulse liveness filter for Microsoft AutoGen agents"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Agent Pulse" }]
+keywords = ["autogen", "agent", "web3", "base", "liveness"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+]
+
+# No hard dependency on AutoGen itself; keep this package lightweight.
+dependencies = []
+
+[project.urls]
+Homepage = "https://agent-pulse-nine.vercel.app"
+Repository = "https://github.com/agent-pulse/agent-pulse"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
