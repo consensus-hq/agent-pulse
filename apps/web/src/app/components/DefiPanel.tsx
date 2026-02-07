@@ -6,21 +6,37 @@ import { base } from "viem/chains";
 import styles from "../page.module.css";
 
 /**
- * Portfolio data from HeyElsa
+ * Portfolio data from HeyElsa (matches actual API response shape)
  */
 interface HeyElsaPortfolio {
+  success?: boolean;
   wallet_address: string;
-  total_value_usd: string;
-  chains: string[];
+  network?: string;
+  total_value_usd?: string;
+  chains?: string[];
   portfolio: {
     balances: Array<{
-      symbol: string;
-      name: string;
-      address: string;
+      /** HeyElsa uses 'asset' for token symbol */
+      asset: string;
+      /** Legacy: some responses include symbol */
+      symbol?: string;
       chain: string;
-      balance: string;
-      priceUSD: string;
-      valueUSD: string;
+      balance: number | string;
+      balance_usd: number | string;
+      logo_url?: string | null;
+      is_trash?: boolean;
+      token_metadata?: {
+        symbol: string;
+        address: string;
+        chain: string;
+        decimals: number;
+        price_usd: number;
+      };
+      /** Legacy fields for backward compat */
+      name?: string;
+      address?: string;
+      priceUSD?: string;
+      valueUSD?: string;
     }>;
     defi_positions?: unknown[];
     staking_positions?: unknown[];
@@ -186,9 +202,13 @@ export default function DefiPanel() {
 
   const errorDisplay = getErrorDisplay(error);
 
-  // Format portfolio value
-  const portfolioValue = data?.total_value_usd
-    ? `$${parseFloat(data.total_value_usd).toLocaleString("en-US", {
+  // Format portfolio value — compute from balances if total not provided
+  const computedTotal = data?.portfolio?.balances
+    ? data.portfolio.balances.reduce((sum, t) => sum + Number(t.balance_usd || t.valueUSD || 0), 0)
+    : 0;
+  const totalUsd = data?.total_value_usd ? parseFloat(data.total_value_usd) : computedTotal;
+  const portfolioValue = totalUsd > 0
+    ? `$${totalUsd.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
@@ -372,7 +392,7 @@ export default function DefiPanel() {
                 >
                   {portfolioValue}
                 </p>
-                {data.chains && data.chains.length > 0 && (
+                {(data.chains?.length || data.network) && (
                   <p
                     style={{
                       fontSize: "0.8rem",
@@ -380,7 +400,9 @@ export default function DefiPanel() {
                       marginTop: "4px",
                     }}
                   >
-                    Across {data.chains.join(", ")}
+                    {data.chains?.length
+                      ? `Across ${data.chains.join(", ")}`
+                      : `Network: ${data.network}`}
                   </p>
                 )}
               </div>
@@ -401,56 +423,64 @@ export default function DefiPanel() {
                         gap: "8px",
                       }}
                     >
-                      {data.portfolio.balances.map((token) => (
-                        <div
-                          key={token.address || token.symbol}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "12px",
-                            backgroundColor: "rgba(255, 255, 255, 0.03)",
-                            borderRadius: "6px",
-                          }}
-                        >
-                          <div>
-                            <p style={{ fontWeight: 500 }}>{token.symbol}</p>
-                            <p
+                      {data.portfolio.balances
+                        .filter((t) => !t.is_trash)
+                        .map((token) => {
+                          const sym = token.asset || token.symbol || token.token_metadata?.symbol || "?";
+                          const addr = token.token_metadata?.address || token.address || "";
+                          const bal = Number(token.balance || 0);
+                          const valUsd = Number(token.balance_usd || token.valueUSD || 0);
+                          const priceUsd = token.token_metadata?.price_usd ?? parseFloat(token.priceUSD || "0");
+                          const logoUrl = token.logo_url;
+                          return (
+                            <div
+                              key={addr || sym}
                               style={{
-                                fontSize: "0.8rem",
-                                color: "#888",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "12px",
+                                backgroundColor: "rgba(255, 255, 255, 0.03)",
+                                borderRadius: "6px",
                               }}
                             >
-                              {parseFloat(token.balance).toLocaleString(
-                                "en-US",
-                                {
-                                  maximumFractionDigits: 6,
-                                }
-                              )}{" "}
-                              {token.symbol}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "right" }}>
-                            <p style={{ fontWeight: 500 }}>
-                              ${parseFloat(token.valueUSD || "0").toLocaleString("en-US", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </p>
-                            <p
-                              style={{
-                                fontSize: "0.8rem",
-                                color: "#888",
-                              }}
-                            >
-                              @ ${parseFloat(token.priceUSD || "0").toLocaleString("en-US", {
-                                minimumFractionDigits: 4,
-                                maximumFractionDigits: 6,
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {logoUrl && (
+                                  <img
+                                    src={logoUrl}
+                                    alt={sym}
+                                    width={24}
+                                    height={24}
+                                    style={{ borderRadius: "50%" }}
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                )}
+                                <div>
+                                  <p style={{ fontWeight: 500 }}>{sym}</p>
+                                  <p style={{ fontSize: "0.8rem", color: "#888" }}>
+                                    {bal.toLocaleString("en-US", { maximumFractionDigits: 4 })} {sym}
+                                  </p>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <p style={{ fontWeight: 500 }}>
+                                  ${valUsd.toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </p>
+                                {priceUsd > 0 && (
+                                  <p style={{ fontSize: "0.8rem", color: "#888" }}>
+                                    @ ${priceUsd.toLocaleString("en-US", {
+                                      minimumFractionDigits: 4,
+                                      maximumFractionDigits: 6,
+                                    })}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                     </div>
                   </div>
                 )}
