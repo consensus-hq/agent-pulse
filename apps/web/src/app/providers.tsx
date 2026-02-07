@@ -11,6 +11,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { base, baseSepolia } from "wagmi/chains";
+import { ThirdwebProvider } from "thirdweb/react";
 import { publicEnv } from "./lib/env.public";
 
 const IS_MAINNET = publicEnv.chainId === "8453";
@@ -64,20 +65,22 @@ export default function Providers({
   const [queryClient] = useState(() => new QueryClient());
 
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: "#4ade80",
-            accentColorForeground: "#0a0f0a",
-            borderRadius: "small",
-            fontStack: "system",
-            overlayBlur: "small",
-          })}
-        >
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <ThirdwebProvider>
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitProvider
+            theme={darkTheme({
+              accentColor: "#4ade80",
+              accentColorForeground: "#0a0f0a",
+              borderRadius: "small",
+              fontStack: "system",
+              overlayBlur: "small",
+            })}
+          >
+            {children}
+          </RainbowKitProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ThirdwebProvider>
   );
 }
