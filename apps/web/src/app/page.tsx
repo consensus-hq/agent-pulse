@@ -11,6 +11,7 @@ import { CommandReference } from "./components/CommandReference";
 import { RoutingSync } from "./components/RoutingSync";
 import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
+import { Hero } from "./components/Hero";
 const DefiPanel = dynamic(() => import("./components/DefiPanel"), { ssr: false });
 import { PulseFeedResponse, StatusResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
@@ -32,14 +33,8 @@ export default function Home() {
     : "unset";
   const explorerTxBaseUrl = publicEnv.explorerTxBaseUrl || "";
   const feedUrl = publicEnv.pulseFeedUrl || "/api/pulse-feed";
-  const lastRunStatus = publicEnv.lastRunStatus || "";
+  const lastRunStatus = publicEnv.lastRunStatus || "—";
   const lastRunTime = formatMaybeEpoch(publicEnv.lastRunTs);
-
-  // Derive live stats from feed data
-  const totalAgents = feedData?.pagination?.totalEvents ?? feedData?.data?.length ?? 0;
-  const latestPulseTime = feedData?.data?.[0]?.timestampFormatted
-    ? new Date(feedData.data[0].timestampFormatted).toLocaleTimeString()
-    : undefined;
 
   const configSnapshot = useMemo(
     () => ({
@@ -66,7 +61,6 @@ export default function Home() {
 
   const feedInitialLoad = useRef(true);
   const fetchPulseFeed = useCallback(async () => {
-    // Only show loading spinner on initial load, not refreshes
     if (feedInitialLoad.current) {
       setFeedLoading(true);
     }
@@ -79,7 +73,6 @@ export default function Home() {
         setFeedError(payload?.error ?? "Pulse feed unavailable.");
         setFeedData(null);
       } else {
-        // Map meta.timestamp (seconds) to updatedAt (ms) if not present
         if (!payload.updatedAt && payload.meta?.timestamp) {
           payload.updatedAt = payload.meta.timestamp * 1000;
         }
@@ -113,55 +106,8 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        {/* Hero Block */}
-        <div style={{ textAlign: "center", margin: "0 auto 2rem", maxWidth: 640 }}>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 600, color: "#e5e5e5", marginBottom: "0.5rem", letterSpacing: "-0.02em" }}>
-            Heartbeat for AI agents
-          </h1>
-          <p style={{ color: "#888", fontSize: "0.9rem", lineHeight: 1.6, margin: "0 auto 1.5rem" }}>
-            Periodic x402 pulses prove liveness. Send tokens → agents stay routable.
-            On-chain, verifiable, spam-resistant.{" "}
-            <a href="https://github.com/consensus-hq/agent-pulse" target="_blank" rel="noopener noreferrer" style={{ color: "#999", textDecoration: "underline" }}>
-              GitHub ↗
-            </a>
-          </p>
-        </div>
-
-        {/* How It Works */}
-        <details style={{ margin: "0 auto 2rem", maxWidth: 640, fontSize: "0.8rem", color: "#666" }}>
-          <summary style={{ cursor: "pointer", fontWeight: 500, color: "#888", fontFamily: "var(--font-mono), monospace" }}>
-            $ how-it-works
-          </summary>
-          <pre style={{
-            marginTop: "0.75rem",
-            padding: "1rem",
-            background: "#0a0a0a",
-            border: "1px solid #222",
-            borderRadius: "4px",
-            overflow: "auto",
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.75rem",
-            lineHeight: 1.6,
-            color: "#aaa"
-          }}>
-{`1. Agent POST /api/pulse
-   → No payment attached
-
-2. Server: 402 Payment Required
-   → Returns x402 payload (amount + payTo)
-
-3. Agent pays via x402
-   → PULSE token → burn address (0xdead)
-   → EIP-712 permit signature
-
-4. Agent resends with proof
-   → POST /api/pulse + PAYMENT-SIGNATURE header
-
-5. Server: 200 OK
-   → Pulse recorded, agent marked alive
-   → TTL refreshed, streak updated`}
-          </pre>
-        </details>
+        <Hero />
+        
         <PageHeader
           networkLabel={networkLabel}
           chainIdLabel={chainIdLabel}
@@ -169,38 +115,32 @@ export default function Home() {
           feedCacheAge={feedCacheAge}
           lastRunStatus={lastRunStatus}
           lastRunTime={lastRunTime}
-          totalAgents={totalAgents}
-          latestPulseTime={latestPulseTime}
         />
 
-        <RuntimeConfig configSnapshot={configSnapshot} />
+        <div className={styles.gridContainer} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '32px' }}>
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Identity Registry</h2>
+              <span className={styles.tag}>ERC-8004</span>
+            </div>
+            <Erc8004Panel address="" showPulseEligibility={true} />
+          </section>
 
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Identity &amp; Reputation</h2>
-            <span className={styles.muted}>ERC-8004 on-chain data</span>
-          </div>
-          <Erc8004Panel address="" showPulseEligibility={true} />
-        </section>
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Transmission</h2>
+              <span className={styles.tag}>x402 Pulse</span>
+            </div>
+            <WalletPanel />
+          </section>
+        </div>
 
         <StatusQuery statusCacheAge={statusCacheAge} />
 
-        <CommandReference />
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Transmission</h2>
-            <span className={styles.muted}>Wallet connect flow</span>
-          </div>
-          <WalletPanel />
-          <p className={styles.muted}>
-            One-click pulse with EIP-2612 permit signing. No separate approval needed.
-          </p>
-        </section>
-
-        <RoutingSync isAlive={isAlive} />
-
-        <DefiPanel />
+        <div className={styles.gridContainer} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+           <RoutingSync isAlive={isAlive} />
+           <DefiPanel />
+        </div>
 
         <PulseFeed
           feedData={feedData}
@@ -211,19 +151,20 @@ export default function Home() {
           onRefresh={fetchPulseFeed}
         />
 
-        <details style={{ marginTop: "2rem", fontSize: "0.85rem", color: "#888", maxWidth: 600 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600, color: "#aaa" }}>Glossary</summary>
-          <dl style={{ marginTop: "0.5rem", lineHeight: 1.6 }}>
-            <dt style={{ fontWeight: 600, color: "#ccc" }}>Pulse</dt>
+        <RuntimeConfig configSnapshot={configSnapshot} />
+        <CommandReference />
+
+        <details className={styles.details} style={{ marginTop: "2rem" }}>
+          <summary className={styles.summary} style={{ color: "var(--accent)" }}>
+            [ GLOSSARY.md ]
+          </summary>
+          <dl style={{ padding: "1.5rem", lineHeight: 1.8 }}>
+            <dt style={{ fontWeight: 700, color: "var(--accent-bright)" }}>Pulse</dt>
             <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>An on-chain transaction that refreshes your agent&apos;s liveness status</dd>
-            <dt style={{ fontWeight: 600, color: "#ccc" }}>TTL</dt>
+            <dt style={{ fontWeight: 700, color: "var(--accent-bright)" }}>TTL</dt>
             <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>Time To Live — how long a pulse keeps your agent marked as active</dd>
-            <dt style={{ fontWeight: 600, color: "#ccc" }}>Routing eligibility</dt>
+            <dt style={{ fontWeight: 700, color: "var(--accent-bright)" }}>Routing eligibility</dt>
             <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>Whether your agent can be discovered and routed to by other agents</dd>
-            <dt style={{ fontWeight: 600, color: "#ccc" }}>Signal sink</dt>
-            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>The burn address (0xdead) where pulse tokens are sent</dd>
-            <dt style={{ fontWeight: 600, color: "#ccc" }}>ERC-8004</dt>
-            <dd style={{ marginLeft: "1rem", marginBottom: "0.5rem" }}>A proposed standard for on-chain agent identity</dd>
           </dl>
         </details>
 
