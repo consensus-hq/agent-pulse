@@ -120,16 +120,14 @@ async function fetchWithRetry(
   const maxAttempts = 1 + retries;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+    try {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: { Accept: "application/json" },
       });
-
-      clearTimeout(timer);
 
       // Don't retry client errors (4xx) — only server errors
       if (response.ok || (response.status >= 400 && response.status < 500)) {
@@ -140,6 +138,8 @@ async function fetchWithRetry(
       lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
     } catch (err) {
       lastError = err;
+    } finally {
+      clearTimeout(timer);
     }
 
     // Wait before retrying (exponential back-off capped at 4× base delay)

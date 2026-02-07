@@ -1,18 +1,21 @@
 {
   "name": "@agent-pulse/middleware",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight liveness filter for Agent Pulse — check if on-chain agents are alive using just fetch()",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./middleware": {
       "types": "./dist/middleware.d.ts",
-      "import": "./dist/middleware.js"
+      "import": "./dist/middleware.js",
+      "require": "./dist/middleware.cjs"
     }
   },
   "files": [
@@ -21,13 +24,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build:esm": "tsc -p tsconfig.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build": "npm run build:esm && npm run build:cjs && node scripts/cjs-to-dist.mjs",
+    "dev": "tsc -p tsconfig.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:live": "PULSE_LIVE_TEST=1 vitest run",
-    "lint": "tsc --noEmit",
-    "clean": "rm -rf dist",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist dist-cjs",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
