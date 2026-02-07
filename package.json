@@ -1,6 +1,6 @@
 {
   "name": "agent-pulse",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@9.15.9",
   "version": "1.0.0",
   "description": "[![Tests](https://img.shields.io/badge/tests-65%2F65%20passing-success)](./packages/contracts/test) [![Audit](https://img.shields.io/badge/security-audited-blue)](./REPORTS) [![License](https://img.shields.io/badge/license-Apache--2.0-green)](./LICENSE) [![Base](https://img.shields.io/badge/base-L2-blue)](https://base.org)",
   "main": "index.js",
