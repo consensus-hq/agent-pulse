@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { x402Gate, PRICES, isValidAddress, normalizeAddress, CACHE_TTLS } from "../../../_lib/x402-gate";
 import { readAgentStatus, readTTL } from "@/app/lib/chain";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 /**
  * Uptime Metrics Endpoint
