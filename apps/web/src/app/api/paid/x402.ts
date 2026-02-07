@@ -315,7 +315,21 @@ export function withPaymentGate<T>(
         );
       }
 
-      // Payment verified — run handler
+      // Payment verified — settle BEFORE returning data
+      const settlement = await settleWithFacilitator(parsed, price, request.url);
+
+      if (!settlement.success) {
+        console.error("[x402] Settlement failed:", settlement.error);
+        return NextResponse.json(
+          {
+            error: "Payment settlement failed — funds were not collected",
+            detail: settlement.error,
+            paymentRequired: true,
+          },
+          { status: 402 },
+        );
+      }
+
       const payment: PaymentInfo = {
         payer: verification.payer,
         amount: price.atomic,
@@ -323,16 +337,7 @@ export function withPaymentGate<T>(
         method: "x402",
       };
 
-      const response = await handler(request, payment);
-
-      // Settle payment after successful response (fire-and-forget)
-      if (response.status < 400) {
-        settleWithFacilitator(parsed, price, request.url).catch((err) => {
-          console.error("[x402] Background settlement error:", err);
-        });
-      }
-
-      return response;
+      return handler(request, payment);
     }
 
     // ── 3. No auth provided → 402 challenge ────────────────────

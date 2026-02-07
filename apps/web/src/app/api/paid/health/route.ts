@@ -97,8 +97,9 @@ async function checkHeyElsaConnection(): Promise<"connected" | "disconnected"> {
       body: JSON.stringify({ token_address: "0x0000000000000000000000000000000000000000" }),
       signal: AbortSignal.timeout(5000),
     });
-    // 402 = reachable and responding correctly
-    return res.status === 402 ? "connected" : "connected";
+    // 402 = reachable and responding correctly (x402 payment required)
+    // Any other status means the endpoint isn't behaving as expected
+    return res.status === 402 ? "connected" : "disconnected";
   } catch {
     return "disconnected";
   }
