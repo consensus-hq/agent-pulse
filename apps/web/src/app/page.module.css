@@ -123,6 +123,11 @@
   font-weight: 500;
 }
 
+.codeBlockWrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .codeBlockHero {
   padding: 1.25rem;
   margin: 0;
@@ -131,6 +136,20 @@
   color: var(--accent-bright);
   text-align: left;
   overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.codeBlock {
+  padding: 1.25rem;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--accent-bright);
+  text-align: left;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Sections */
