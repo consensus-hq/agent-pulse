@@ -24,8 +24,6 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
   const isConnectedMatch = Boolean(connectedAddress)
     && statusAddress.trim().toLowerCase() === normalizedConnected;
 
-  const isAlive = Boolean(statusData?.isAlive);
-
   const handleStatusQuery = useCallback(async () => {
     const trimmed = statusAddress.trim();
     setStatusError("");
@@ -33,29 +31,22 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
     setStatusPayload("");
 
     if (!trimmed) {
-      setStatusError("Address required.");
-      setStatusPayload("// Enter a wallet address to query status.");
+      setStatusError("AGENT ADDRESS REQUIRED");
       return;
     }
 
     setStatusLoading(true);
     try {
-      const response = await fetch(`/api/status/${trimmed}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(`/api/status/${trimmed}`, { cache: "no-store" });
       const payload = (await response.json()) as StatusResponse;
       setStatusPayload(JSON.stringify(payload, null, 2));
       if (!response.ok) {
-        setStatusError(payload?.error ?? "Status query failed.");
-        setStatusData(null);
+        setStatusError(payload?.error ?? "QUERY FAILED");
       } else {
         setStatusData(payload);
       }
     } catch {
-      const errorPayload = { error: "Network error" };
-      setStatusPayload(JSON.stringify(errorPayload, null, 2));
-      setStatusError("Network error.");
-      setStatusData(null);
+      setStatusError("NETWORK_TIMEOUT");
     } finally {
       setStatusLoading(false);
     }
@@ -64,60 +55,60 @@ export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>Status query</h2>
-        <span className={styles.muted}>
-          Cache age: {statusCacheAge !== null ? `${statusCacheAge}s` : "—"}
-        </span>
-      </div>
-      <div className={styles.row}>
-        <input
-          className={styles.input}
-          placeholder="0x..."
-          value={statusAddress}
-          onChange={(event) => setStatusAddress(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              void handleStatusQuery();
-            }
-          }}
-          aria-label="Agent wallet address"
-        />
-        <button
-          className={styles.button}
-          type="button"
-          onClick={() => void handleStatusQuery()}
-          disabled={statusLoading}
-        >
-          {statusLoading ? "Querying…" : "Query"}
-        </button>
+        <h2 className={styles.sectionTitle}>Agent Lookup</h2>
         <span className={styles.muted}>
           TTL: {statusData?.ttlSeconds ? `${statusData.ttlSeconds}s` : "—"}
         </span>
-        <span className={styles.muted}>
-          Alive: {statusData ? (statusData.isAlive ? "yes" : "no") : "—"}
-        </span>
       </div>
-      {statusError ? (
-        <p className={styles.error}>{statusError}</p>
-      ) : null}
-      <pre className={styles.output} aria-live="polite" role="status">
-        {statusPayload || "// Status payload will appear here."}
-      </pre>
-      <p className={styles.muted}>
-        Updated at: {formatMs(statusData?.updatedAt)} | Last pulse: {formatUnix(statusData?.lastPulseAt)}
-      </p>
-      {isConnectedMatch ? (
-        <p className={styles.muted}>
-          Pulse signal (connected): {connectedStatus.loading
-            ? "loading…"
-            : connectedStatus.isAlive === null
-            ? "unknown"
-            : connectedStatus.isAlive
-            ? "alive"
-            : "stale"} | Streak: {connectedStatus.streak ?? "—"} | Hazard: {connectedStatus.hazardScore ?? "—"} | Last pulse: {formatUnix(connectedStatus.lastPulseAt ?? undefined)}
-        </p>
-      ) : null}
+      
+      <div className={styles.row}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--accent)', fontSize: '12px' }}>$</span>
+          <input
+            className={styles.input}
+            style={{ paddingLeft: '28px' }}
+            placeholder="Agent wallet address (0x...)"
+            value={statusAddress}
+            onChange={(e) => setStatusAddress(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void handleStatusQuery()}
+          />
+        </div>
+        <button
+          className={styles.button}
+          onClick={() => void handleStatusQuery()}
+          disabled={statusLoading}
+        >
+          {statusLoading ? "BUSY..." : "QUERY"}
+        </button>
+      </div>
+
+      {statusError && <p className={styles.error} style={{ margin: '8px 0' }}>!! ERROR: {statusError}</p>}
+      
+      <div style={{ position: 'relative' }}>
+        <pre className={styles.output} style={{ minHeight: '100px', border: '1px solid var(--accent-dim)', background: '#050805' }}>
+          {statusPayload || "// WAITING FOR INPUT..."}
+        </pre>
+        {statusData && (
+          <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+             <span className={statusData.isAlive ? styles.successText : styles.error} style={{ fontSize: '10px', fontWeight: 800 }}>
+               [{statusData.isAlive ? "ONLINE" : "OFFLINE"}]
+             </span>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.row} style={{ justifyContent: 'space-between', fontSize: '10px' }}>
+        <span className={styles.muted}>CACHE_AGE: {statusCacheAge ?? 0}s</span>
+        <span className={styles.muted}>LAST_PULSE: {formatUnix(statusData?.lastPulseAt)}</span>
+      </div>
+
+      {isConnectedMatch && !connectedStatus.loading && (
+        <div style={{ marginTop: '1rem', padding: '12px', border: '1px solid var(--accent-muted)', borderRadius: '4px', background: 'rgba(74, 222, 128, 0.05)' }}>
+           <p className={styles.muted} style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)' }}>
+             OWNER VIEW: STREAK={connectedStatus.streak} | HAZARD={connectedStatus.hazardScore || 0}
+           </p>
+        </div>
+      )}
     </section>
   );
 }

@@ -27,8 +27,10 @@ const SERVER_WALLET_ADDRESS =
   process.env.SERVER_WALLET_ADDRESS || "0xA7940a42c30A7F492Ed578F3aC728c2929103E43";
 
 /** x402 facilitator URL for payment verification & settlement */
+const USE_THIRDWEB = process.env.USE_THIRDWEB_FACILITATOR === "true";
 const FACILITATOR_URL =
-  process.env.X402_FACILITATOR_URL || "https://x402.org/facilitator";
+  process.env.X402_FACILITATOR_URL ||
+  (USE_THIRDWEB ? "https://api.thirdweb.com/v1/payments/x402" : "https://x402.org/facilitator");
 
 /** Bypass key for development / hackathon demo access */
 const BYPASS_KEY = process.env.PAID_API_BYPASS_KEY;

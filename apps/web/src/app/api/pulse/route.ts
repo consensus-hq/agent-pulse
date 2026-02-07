@@ -69,145 +69,192 @@ const handler = async (request: NextRequest): Promise<NextResponse> => {
 };
 
 // ============================================
-// x402 PAYMENT MIDDLEWARE SETUP
+// LAZY LOADER FOR PAYMENT MIDDLEWARE
 // ============================================
 
-let postHandler: (req: NextRequest) => Promise<NextResponse>;
+// Cache the handler to avoid re-importing on every request
+let cachedPostHandler: ((req: NextRequest) => Promise<NextResponse>) | null = null;
 
-if (X402_CONFIGURED && USE_THIRDWEB_FACILITATOR) {
-  // ---- MAINNET PATH: Thirdweb SDK facilitator ----
-  // Uses thirdweb/x402 settlePayment() — no HTTP facilitator URL needed
-  const { createThirdwebClient } = await import("thirdweb");
-  const { facilitator: createFacilitator, settlePayment } = await import("thirdweb/x402");
-  const { base } = await import("thirdweb/chains");
+async function getPostHandler(): Promise<(req: NextRequest) => Promise<NextResponse>> {
+  if (cachedPostHandler) return cachedPostHandler;
 
-  const thirdwebClient = createThirdwebClient({ secretKey: THIRDWEB_SECRET_KEY });
-  const thirdwebFacilitator = createFacilitator({
-    client: thirdwebClient,
-    serverWalletAddress: SIGNAL_SINK_ADDRESS,
-  });
+  if (!X402_CONFIGURED) {
+    cachedPostHandler = handler;
+    return handler;
+  }
 
-  postHandler = async (req: NextRequest): Promise<NextResponse> => {
-    // Extract payment header (standard x402 header names)
-    const paymentData =
-      req.headers.get("PAYMENT-SIGNATURE") ||
-      req.headers.get("X-PAYMENT") ||
-      req.headers.get("x-402-payment");
+  if (USE_THIRDWEB_FACILITATOR) {
+    // ---- MAINNET PATH: Thirdweb SDK facilitator ----
+    // Uses thirdweb/x402 settlePayment() — no HTTP facilitator URL needed
+    try {
+      const { createThirdwebClient } = await import("thirdweb");
+      const { facilitator: createFacilitator, settlePayment } = await import("thirdweb/x402");
+      const { base } = await import("thirdweb/chains");
 
-    if (!paymentData) {
-      // Return 402 with payment requirements
-      return NextResponse.json(
-        {
-          x402Version: 1,
-          error: "Payment required",
-          accepts: [
+      const thirdwebClient = createThirdwebClient({ secretKey: THIRDWEB_SECRET_KEY });
+      const thirdwebFacilitator = createFacilitator({
+        client: thirdwebClient,
+        serverWalletAddress: SIGNAL_SINK_ADDRESS,
+      });
+
+      cachedPostHandler = async (req: NextRequest): Promise<NextResponse> => {
+        // Extract payment header (standard x402 header names)
+        const paymentData =
+          req.headers.get("PAYMENT-SIGNATURE") ||
+          req.headers.get("X-PAYMENT") ||
+          req.headers.get("x-402-payment");
+
+        if (!paymentData) {
+          // Return 402 with payment requirements
+          return NextResponse.json(
             {
-              scheme: "exact",
-              network: NETWORK,
-              maxAmountRequired: PULSE_AMOUNT,
+              x402Version: 1,
+              error: "Payment required",
+              accepts: [
+                {
+                  scheme: "exact",
+                  network: NETWORK,
+                  maxAmountRequired: PULSE_AMOUNT,
+                  asset: PULSE_TOKEN_ADDRESS,
+                  payTo: SIGNAL_SINK_ADDRESS,
+                  maxTimeoutSeconds: 300,
+                  extra: {
+                    name: PULSE_TOKEN_NAME,
+                    version: PULSE_TOKEN_VERSION,
+                  },
+                },
+              ],
+              description: "Submit an Agent Pulse signal.",
+            },
+            { status: 402 },
+          );
+        }
+
+        try {
+          const result = await settlePayment({
+            paymentData,
+            payTo: SIGNAL_SINK_ADDRESS,
+            network: base,
+            price: PULSE_AMOUNT,
+            facilitator: thirdwebFacilitator,
+            resourceUrl: req.url,
+            method: "POST",
+          });
+
+          if (result.status === 200) {
+            return handler(req);
+          }
+
+          return NextResponse.json(
+            result.responseBody ?? { error: "Payment verification failed" },
+            {
+              status: result.status,
+              headers: result.responseHeaders
+                ? Object.fromEntries(
+                    Object.entries(result.responseHeaders).filter(
+                      (entry): entry is [string, string] => typeof entry[1] === "string"
+                    )
+                  )
+                : undefined,
+            },
+          );
+        } catch (err) {
+          console.error("[x402 Thirdweb] Settlement error:", err);
+          return NextResponse.json(
+            { error: "Payment settlement failed", message: err instanceof Error ? err.message : "Unknown error" },
+            { status: 500 },
+          );
+        }
+      };
+    } catch (err) {
+      console.error("[x402] Failed to load Thirdweb SDK:", err);
+      // Fallback to error response if import fails
+      cachedPostHandler = async () => NextResponse.json(
+        { error: "Internal Server Error: Failed to load payment module (Thirdweb)", details: String(err) },
+        { status: 500 }
+      );
+    }
+  } else if (FACILITATOR_URL) {
+    // ---- TESTNET PATH: HTTP facilitator (x402.org) ----
+    try {
+      const { withX402: paymentMiddleware } = await import("@x402/next");
+      const { HTTPFacilitatorClient, x402ResourceServer } = await import("@x402/core/server");
+      const { registerExactEvmScheme } = await import("@x402/evm/exact/server");
+
+      const createAuthHeaders = async (): Promise<{
+        verify: Record<string, string>;
+        settle: Record<string, string>;
+        supported: Record<string, string>;
+      }> => {
+        const headers: Record<string, string> = {};
+        if (THIRDWEB_SECRET_KEY) {
+          headers["x-secret-key"] = THIRDWEB_SECRET_KEY;
+        } else if (THIRDWEB_CLIENT_ID) {
+          headers["x-client-id"] = THIRDWEB_CLIENT_ID;
+        }
+        return { verify: headers, settle: headers, supported: headers };
+      };
+
+      const facilitatorClient = new HTTPFacilitatorClient({
+        url: FACILITATOR_URL,
+        createAuthHeaders,
+      });
+
+      registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
+        networks: [NETWORK],
+      });
+
+      const resourceServer = new x402ResourceServer(facilitatorClient);
+      
+      // Re-register to be safe or just use the instance
+      registerExactEvmScheme(resourceServer, {
+        networks: [NETWORK],
+      });
+
+      cachedPostHandler = paymentMiddleware(
+        handler,
+        {
+          accepts: {
+            scheme: "exact",
+            network: NETWORK,
+            payTo: SIGNAL_SINK_ADDRESS,
+            price: {
+              amount: PULSE_AMOUNT,
               asset: PULSE_TOKEN_ADDRESS,
-              payTo: SIGNAL_SINK_ADDRESS,
-              maxTimeoutSeconds: 300,
               extra: {
                 name: PULSE_TOKEN_NAME,
                 version: PULSE_TOKEN_VERSION,
               },
             },
-          ],
+          },
           description: "Submit an Agent Pulse signal.",
         },
-        { status: 402 },
-      );
-    }
-
-    try {
-      const result = await settlePayment({
-        paymentData,
-        payTo: SIGNAL_SINK_ADDRESS,
-        network: base,
-        price: PULSE_AMOUNT,
-        facilitator: thirdwebFacilitator,
-        resourceUrl: req.url,
-        method: "POST",
-      });
-
-      if (result.status === 200) {
-        return handler(req);
-      }
-
-      return NextResponse.json(
-        result.responseBody ?? { error: "Payment verification failed" },
-        {
-          status: result.status,
-          headers: result.responseHeaders
-            ? Object.fromEntries(
-                Object.entries(result.responseHeaders).filter(
-                  (entry): entry is [string, string] => typeof entry[1] === "string"
-                )
-              )
-            : undefined,
-        },
-      );
+        resourceServer,
+      ) as unknown as (req: NextRequest) => Promise<NextResponse>;
     } catch (err) {
-      console.error("[x402 Thirdweb] Settlement error:", err);
-      return NextResponse.json(
-        { error: "Payment settlement failed", message: err instanceof Error ? err.message : "Unknown error" },
-        { status: 500 },
+      console.error("[x402] Failed to load @x402 SDK:", err);
+      cachedPostHandler = async () => NextResponse.json(
+        { error: "Internal Server Error: Failed to load payment module (@x402)", details: String(err) },
+        { status: 500 }
       );
     }
-  };
-} else if (X402_CONFIGURED && FACILITATOR_URL) {
-  // ---- TESTNET PATH: HTTP facilitator (x402.org) ----
-  const { withX402: paymentMiddleware } = await import("@x402/next");
-  const { HTTPFacilitatorClient, x402ResourceServer } = await import("@x402/core/server");
-  const { registerExactEvmScheme } = await import("@x402/evm/exact/server");
+  } else {
+    // ---- UNCONFIGURED: return 503 ----
+    cachedPostHandler = handler;
+  }
 
-  const createAuthHeaders = async (): Promise<{
-    verify: Record<string, string>;
-    settle: Record<string, string>;
-    supported: Record<string, string>;
-  }> => {
-    const headers: Record<string, string> = {};
-    if (THIRDWEB_SECRET_KEY) {
-      headers["x-secret-key"] = THIRDWEB_SECRET_KEY;
-    } else if (THIRDWEB_CLIENT_ID) {
-      headers["x-client-id"] = THIRDWEB_CLIENT_ID;
-    }
-    return { verify: headers, settle: headers, supported: headers };
-  };
-
-  const facilitatorClient = new HTTPFacilitatorClient({
-    url: FACILITATOR_URL,
-    createAuthHeaders,
-  });
-
-  const resourceServer = registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
-    networks: [NETWORK],
-  });
-
-  postHandler = paymentMiddleware(
-    handler,
-    {
-      accepts: {
-        scheme: "exact",
-        network: NETWORK,
-        payTo: SIGNAL_SINK_ADDRESS,
-        price: {
-          amount: PULSE_AMOUNT,
-          asset: PULSE_TOKEN_ADDRESS,
-          extra: {
-            name: PULSE_TOKEN_NAME,
-            version: PULSE_TOKEN_VERSION,
-          },
-        },
-      },
-      description: "Submit an Agent Pulse signal.",
-    },
-    resourceServer,
-  ) as unknown as (req: NextRequest) => Promise<NextResponse>;
-} else {
-  // ---- UNCONFIGURED: return 503 ----
-  postHandler = handler;
+  return cachedPostHandler!;
 }
 
-export const POST = postHandler;
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  try {
+    const handler = await getPostHandler();
+    return handler(req);
+  } catch (err) {
+    console.error("[x402] Critical route error:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: String(err) },
+      { status: 500 }
+    );
+  }
+}

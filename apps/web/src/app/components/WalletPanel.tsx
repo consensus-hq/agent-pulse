@@ -17,26 +17,24 @@ const shortenAddress = (address?: string) => {
 const formatTokenAmount = (value: bigint, decimals: number) => {
   if (!value) return "0";
   const formatted = formatUnits(value, decimals);
-  if (!formatted.includes(".")) return formatted;
   const [whole, fraction] = formatted.split(".");
-  const trimmed = fraction.slice(0, 4).replace(/0+$/, "");
+  const trimmed = fraction?.slice(0, 4).replace(/0+$/, "") || "";
   return trimmed ? `${whole}.${trimmed}` : whole;
 };
 
 const formatUnix = (seconds?: number | null) => {
-  if (!seconds) return "—";
+  if (!seconds) return "NEVER";
   const date = new Date(seconds * 1000);
-  return Number.isNaN(date.getTime()) ? "—" : date.toISOString();
+  return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 export default function WalletPanel() {
-  const { address, isConnected, isConnecting, isDisconnected, connectError } = useWallet();
+  const { address, isConnected, isConnecting } = useWallet();
   const {
     status,
     error,
     approvalMethod,
     approve,
-    pulse,
     sendPulseAuto,
     allowance,
     balance,
@@ -44,231 +42,102 @@ export default function WalletPanel() {
     decimals,
     symbol,
     needsApproval,
-    hasConfig,
     isReady,
     isPending,
     allowanceLoading,
     balanceLoading,
   } = usePulse();
+  
   const agentStatus = useAgentStatus(address);
   const { addToken, added: tokenAdded } = useAddToken();
-
-  const walletConnectEnabled = Boolean(publicEnv.walletConnectProjectId);
-
-  const balanceLabel = balanceLoading
-    ? "Loading…"
-    : `${formatTokenAmount(balance, decimals)} ${symbol}`;
-  const allowanceLabel = allowanceLoading
-    ? "Loading…"
-    : `${formatTokenAmount(allowance, decimals)} ${symbol}`;
-  const minPulseLabel = minPulseAmount
-    ? `${formatTokenAmount(minPulseAmount, decimals)} ${symbol}`
-    : "—";
 
   const canPulse = isReady && minPulseAmount > 0n && !isPending;
 
   const pulseSignalLabel = agentStatus.loading
-    ? "loading…"
+    ? "LOADING"
     : agentStatus.isAlive === null
-    ? "unknown"
+    ? "UNKNOWN"
     : agentStatus.isAlive
-    ? "alive"
-    : "stale";
-
-  const statusMessage = (() => {
-    if (status === "signing") return "Sign permit in wallet…";
-    if (status === "approving") return approvalMethod === "permit"
-      ? "Submitting permit…"
-      : "Approval pending…";
-    if (status === "approved") return "Approved — sending pulse…";
-    if (status === "pulsing") return "Pulse pending…";
-    if (status === "confirmed") return "Pulse confirmed.";
-    if (status === "error") return error || "Transaction failed.";
-    return "";
-  })();
-
-  const statusTone = status === "error"
-    ? styles.statusError
-    : status === "approved" || status === "confirmed"
-    ? styles.statusSuccess
-    : status === "signing" || status === "approving" || status === "pulsing"
-    ? styles.statusPending
-    : "";
-
-  // Determine auth status for data attribute
-  const authStatus = isConnected ? "connected" : "disconnected";
+    ? "ACTIVE"
+    : "INACTIVE";
 
   return (
-    <div 
-      className={styles.walletPanel}
-      data-auth-status={authStatus}
-      data-wallet-address={address || ""}
-    >
-      <div className={styles.walletHeader}>
-        <span className={styles.tag}>Wallet link</span>
-        <ConnectButton.Custom>
-          {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
-            const ready = mounted;
-            const connected = ready && account && chain;
-
-            return (
-              <div
-                {...(!ready && {
-                  "aria-hidden": true,
-                  style: { opacity: 0, pointerEvents: "none", userSelect: "none" },
-                })}
-              >
-                {(() => {
-                  if (!connected) {
-                    return (
-                      <button onClick={openConnectModal} type="button" className={styles.button}>
-                        Authenticate
-                      </button>
-                    );
-                  }
-                  if (chain.unsupported) {
-                    return (
-                      <button onClick={openChainModal} type="button" className={styles.button}>
-                        Wrong network
-                      </button>
-                    );
-                  }
-                  return (
-                    <button onClick={openAccountModal} type="button" className={styles.buttonGhost}>
-                      {shortenAddress(account.address)}
-                    </button>
-                  );
-                })()}
-              </div>
-            );
-          }}
-        </ConnectButton.Custom>
+    <div className={styles.walletPanel}>
+      <div className={styles.walletHeader} style={{ marginBottom: '1rem' }}>
+        <div className={styles.tag}>Network Node</div>
+        <ConnectButton showBalance={false} chainStatus="none" />
       </div>
 
-      {!walletConnectEnabled ? (
-        <p className={styles.muted}>
-          WalletConnect project ID missing. Injected wallets only.
-        </p>
-      ) : null}
-
-      {!hasConfig ? (
-        <p className={styles.error}>Pulse contract addresses not configured.</p>
-      ) : null}
-
-      {isConnected ? (
-        <>
-          <div className={styles.walletStats}>
-            <div>
-              <p className={styles.walletLabel}>Connected address</p>
-              <p className={styles.walletValue}>{shortenAddress(address)}</p>
-            </div>
-            <div>
-              <p className={styles.walletLabel}>PULSE balance</p>
-              <p className={styles.walletValue}>{balanceLabel}</p>
-            </div>
-            <div>
-              <p className={styles.walletLabel}>Allowance</p>
-              <p className={styles.walletValue}>{allowanceLabel}</p>
-            </div>
-            <div>
-              <p className={styles.walletLabel}>Pulse signal</p>
-              <p className={styles.walletValue}>{pulseSignalLabel}</p>
-            </div>
-            <div>
-              <p className={styles.walletLabel}>Streak</p>
-              <p className={styles.walletValue}>
-                {agentStatus.streak ?? "—"}
-              </p>
-            </div>
-            <div>
-              <p className={styles.walletLabel}>Last pulse</p>
-              <p className={styles.walletValue}>
-                {formatUnix(agentStatus.lastPulseAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className={styles.row}>
-            <button
-              className={styles.button}
-              type="button"
-              onClick={() => void sendPulseAuto()}
-              disabled={!canPulse}
-            >
-              {needsApproval ? "Sign & Pulse" : "Send pulse"}
-            </button>
-            {needsApproval && (
-              <button
-                className={styles.buttonGhost}
-                type="button"
-                onClick={() => void approve()}
-                disabled={!isReady || isPending}
-                title="Use a standard ERC-20 approval transaction instead of EIP-2612 permit"
-              >
-                Approve (tx)
-              </button>
-            )}
-            <span className={styles.muted}>Min pulse: {minPulseLabel}</span>
-          </div>
-
-          <div className={styles.row}>
-            <button
-              className={styles.buttonGhost}
-              type="button"
-              onClick={() => void addToken()}
-              disabled={tokenAdded}
-              title="Add PULSE token to your wallet"
-            >
-              {tokenAdded ? "✓ Added to wallet" : "＋ Add PULSE to wallet"}
-            </button>
-          </div>
-
-          {statusMessage ? (
-            <div className={styles.statusRow}>
-              {(status === "signing" || status === "approving" || status === "pulsing") && (
-                <span className={styles.spinner} aria-hidden="true" />
-              )}
-              {(status === "approved" || status === "confirmed") && (
-                <span className={styles.checkmark} aria-hidden="true">
-                  ✓
-                </span>
-              )}
-              <span className={statusTone}>{statusMessage}</span>
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <div className={styles.walletStats} data-auth-status={isConnecting ? "connecting" : "disconnected"}>
-          <div>
-            <p className={styles.walletLabel}>Status</p>
-            <p className={styles.walletValue}>
-              {isConnecting ? (
-                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span className={styles.spinner} />
-                  Connecting wallet…
-                </span>
-              ) : connectError ? (
-                <span style={{ color: "var(--error)" }}>Connection failed</span>
-              ) : (
-                <span style={{ color: "var(--muted)" }}>Disconnected</span>
-              )}
-            </p>
-          </div>
-          {connectError && (
-            <div>
-              <p className={styles.walletLabel}>Error</p>
-              <p className={styles.walletValue} style={{ color: "var(--error)", fontSize: "11px" }}>
-                {connectError.message || "Failed to connect wallet"}
-              </p>
-            </div>
-          )}
-          <div>
-            <p className={styles.walletLabel}>Action required</p>
-            <p className={styles.walletValue}>
-              Click <strong>Authenticate</strong> to connect your wallet
+      {!isConnected ? (
+        <div className={styles.walletStats} style={{ borderStyle: 'dashed', opacity: 0.7 }}>
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1rem' }}>
+            <p className={styles.muted}>AUTHENTICATION REQUIRED</p>
+            <p className={styles.dim} style={{ fontSize: '11px', marginTop: '4px' }}>
+              Connect wallet to broadcast liveness pulse
             </p>
           </div>
         </div>
+      ) : (
+        <>
+          <div className={styles.walletStats}>
+            <div>
+              <p className={styles.walletLabel}>Identity</p>
+              <p className={styles.walletValue} style={{ color: 'var(--accent)' }}>{shortenAddress(address)}</p>
+            </div>
+            <div>
+              <p className={styles.walletLabel}>Liveness</p>
+              <p className={`${styles.walletValue} ${agentStatus.isAlive ? styles.successText : styles.muted}`}>
+                {pulseSignalLabel}
+              </p>
+            </div>
+            <div>
+              <p className={styles.walletLabel}>Balance</p>
+              <p className={styles.walletValue}>
+                {balanceLoading ? "..." : `${formatTokenAmount(balance, decimals)} ${symbol}`}
+              </p>
+            </div>
+            <div>
+              <p className={styles.walletLabel}>Streak</p>
+              <p className={styles.walletValue}>{agentStatus.streak ?? 0} days</p>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button
+              className={styles.button}
+              style={{ width: '100%', padding: '14px', fontSize: '14px' }}
+              onClick={() => void sendPulseAuto()}
+              disabled={!canPulse}
+            >
+              {isPending ? <span className={styles.spinner} /> : (needsApproval ? "Sign & Broadcast Pulse" : "Broadcast Pulse")}
+            </button>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className={styles.muted} style={{ fontSize: '10px' }}>
+                COST: {formatTokenAmount(minPulseAmount, decimals)} {symbol}
+              </span>
+              <button
+                className={styles.link}
+                style={{ fontSize: '10px', background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={() => void addToken()}
+                disabled={tokenAdded}
+              >
+                {tokenAdded ? "✓ IN WALLET" : "+ ADD TO WALLET"}
+              </button>
+            </div>
+          </div>
+
+          {(status === "signing" || status === "approving" || status === "approved" || status === "pulsing") && (
+            <div className={styles.statusRow} style={{ marginTop: '12px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+               <span className={styles.spinner} />
+               <span className={styles.muted} style={{ fontSize: '11px', textTransform: 'uppercase' }}>
+                 {status === "signing" ? "Requesting Signature..." : "Broadcasting Pulse..."}
+               </span>
+            </div>
+          )}
+          
+          {error && <p className={styles.error} style={{ marginTop: '8px' }}>!! {error}</p>}
+        </>
       )}
     </div>
   );
