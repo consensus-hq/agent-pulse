@@ -111,7 +111,7 @@ export async function GET(
     const pauseResult = await readPauseState();
     rpcHealthy = pauseResult !== null;
     rpcLatencyMs = Date.now() - rpcStartTime;
-  } catch (error) {
+  } catch {
     rpcHealthy = false;
     rpcLatencyMs = Date.now() - rpcStartTime;
   }
