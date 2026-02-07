@@ -22,7 +22,7 @@ const WETH  = '0x4200000000000000000000000000000000000006';
 const SWAP_WRAPPER = '0x21e99b325d53fe3d574ac948b9cb1519da03e518';
 const UNIVERSAL_ROUTER = '0x6ff5693b99212da76ad316178a184ab56d299b43';
 const POOL_MANAGER = '0x498581fF718922c3f8e6A244956aF099B2652b2b';
-const RPC = 'https://base-mainnet.g.alchemy.com/v2/3WU_yDRSxtj3kGD_YydFu';
+const RPC = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
 
 // Pool key components (from Clanker V4 deployment)
 const fee = 8388608; // 0x800000 = dynamic fee flag (Clanker V4)
