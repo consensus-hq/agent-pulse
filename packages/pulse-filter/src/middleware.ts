@@ -41,7 +41,24 @@ export interface PulseGuardRejection {
   error: "AGENT_HAS_NO_PULSE";
   message: string;
   address: string;
+  /** How to get a pulse — the viral onboarding path. */
+  fix: {
+    install: string;
+    npm: string;
+    github: string;
+    docs: string;
+  };
   docs: string;
+}
+
+/** Information passed to the `onAlert` callback. */
+export interface RejectionAlertInfo {
+  address: string;
+  rejectedAt: string;
+  reason: string;
+  path?: string;
+  lastPulse: number;
+  fix: PulseGuardRejection["fix"];
 }
 
 /** Options for the `pulseGuard` middleware. */
@@ -83,11 +100,52 @@ export interface PulseGuardOptions extends PulseFilterOptions {
     next: NextFunction,
     info: { address: string; status?: AliveResponse },
   ) => void;
+
+  /**
+   * Callback fired on every rejection — use for logging, webhooks, or
+   * alerting the rejected agent's operator. Fire-and-forget.
+   */
+  onAlert?: (info: RejectionAlertInfo) => void | Promise<void>;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
+
+/** The standard fix payload included in every rejection. */
+const FIX_PAYLOAD: PulseGuardRejection["fix"] = {
+  install: "npm install @agent-pulse/middleware",
+  npm: "https://www.npmjs.com/package/@agent-pulse/middleware",
+  github: "https://github.com/consensus-hq/agent-pulse",
+  docs: "https://agentpulse.xyz",
+};
+
+/**
+ * Fire the `onAlert` callback (fire-and-forget, errors swallowed).
+ */
+function fireAlert(
+  onAlert: PulseGuardOptions["onAlert"],
+  address: string,
+  status: AliveResponse,
+  req: MiddlewareRequest,
+): void {
+  if (!onAlert) return;
+  try {
+    const info: RejectionAlertInfo = {
+      address,
+      rejectedAt: new Date().toISOString(),
+      reason: status.lastPulseTimestamp > 0
+        ? `Pulse expired (last: ${new Date(status.lastPulseTimestamp * 1000).toISOString()})`
+        : "Agent has never pulsed",
+      path: (req as unknown as Record<string, unknown>).url as string | undefined,
+      lastPulse: status.lastPulseTimestamp,
+      fix: FIX_PAYLOAD,
+    };
+    Promise.resolve(onAlert(info)).catch(() => { /* swallow */ });
+  } catch {
+    /* swallow sync errors */
+  }
+}
 
 /**
  * Extract the agent address from the request.
@@ -207,19 +265,22 @@ export function pulseGuard(
           return;
         }
 
-        // Dead agent
+        // Dead agent — send viral "Missing Link" rejection
         if (onRejected) {
           onRejected(req, res, next, { address, status });
+          fireAlert(options?.onAlert, address, status, req);
           return;
         }
 
         const rejection: PulseGuardRejection = {
           error: "AGENT_HAS_NO_PULSE",
-          message: `Agent ${address} is not alive. Last pulse: ${status.lastPulseTimestamp > 0 ? new Date(status.lastPulseTimestamp * 1000).toISOString() : "never"}.`,
+          message: `Agent ${address} has no pulse. Send a pulse on Base to prove liveness. Last pulse: ${status.lastPulseTimestamp > 0 ? new Date(status.lastPulseTimestamp * 1000).toISOString() : "never"}.`,
           address,
+          fix: FIX_PAYLOAD,
           docs: "https://agentpulse.xyz",
         };
         res.status(403).json(rejection);
+        fireAlert(options?.onAlert, address, status, req);
       })
       .catch((err: unknown) => {
         // Network / API error — fail open with a warning header so callers

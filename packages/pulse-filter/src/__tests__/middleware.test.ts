@@ -234,7 +234,7 @@ describe("pulseGuard", () => {
   });
 
   describe("dead agent", () => {
-    it("returns 403 for dead agent", async () => {
+    it("returns 403 with fix instructions for dead agent", async () => {
       mockFetch.mockResolvedValueOnce(
         jsonResponse(makeAliveResponse({ isAlive: false })),
       );
@@ -247,7 +247,11 @@ describe("pulseGuard", () => {
       mw(req, res, next);
       await vi.waitFor(() => expect(res.statusCode).toBe(403));
 
-      expect((res.body as Record<string, unknown>).error).toBe("AGENT_HAS_NO_PULSE");
+      const body = res.body as Record<string, unknown>;
+      expect(body.error).toBe("AGENT_HAS_NO_PULSE");
+      expect(body.fix).toBeDefined();
+      expect((body.fix as Record<string, string>).install).toBe("npm install @agent-pulse/middleware");
+      expect((body.fix as Record<string, string>).npm).toContain("npmjs.com");
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -265,6 +269,34 @@ describe("pulseGuard", () => {
       await vi.waitFor(() => expect(res.statusCode).toBe(403));
 
       expect(next).not.toHaveBeenCalled();
+    });
+
+    it("fires onAlert callback on rejection", async () => {
+      mockFetch.mockResolvedValueOnce(
+        jsonResponse(makeAliveResponse({ isAlive: false, lastPulseTimestamp: 0 })),
+      );
+
+      const onAlert = vi.fn();
+      const mw = pulseGuard({ onAlert, retries: 0, retryDelayMs: 10 });
+      const req = mockReq({ headers: { "x-agent-address": VALID_ADDR } });
+      const res = mockRes();
+      const next = vi.fn();
+
+      mw(req, res, next);
+      await vi.waitFor(() => expect(res.statusCode).toBe(403));
+      // Give fire-and-forget a tick
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(onAlert).toHaveBeenCalledOnce();
+      expect(onAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          address: VALID_ADDR,
+          reason: "Agent has never pulsed",
+          fix: expect.objectContaining({
+            install: "npm install @agent-pulse/middleware",
+          }),
+        }),
+      );
     });
 
     it("calls custom onRejected handler", async () => {
