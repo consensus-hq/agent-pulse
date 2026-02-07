@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import { withPaymentGate, PRICES } from "../../x402";
