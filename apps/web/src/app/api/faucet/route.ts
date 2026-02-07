@@ -253,3 +253,4 @@ export async function GET(): Promise<NextResponse> {
     return jsonError("Failed to fetch faucet stats", 500);
   }
 }
+
