@@ -143,7 +143,18 @@ app.listen(3000);
 1. Extracts the agent address from (in order): **header** → **query param** → **body field**
 2. Calls the Agent Pulse API to check liveness
 3. **Alive** → attaches `pulseStatus` to `req` and calls `next()`
-4. **Dead** → responds with `403 { error: "AGENT_HAS_NO_PULSE", message: "...", address: "0x..." }`
+4. **Dead** → responds with `403` and a "Missing Link" payload:
+   `{
+     error: "AGENT_HAS_NO_PULSE",
+     message: "...",
+     address: "0x...",
+     fix: {
+       install: "npm install @agent-pulse/middleware",
+       npm: "https://www.npmjs.com/package/@agent-pulse/middleware",
+       github: "https://github.com/consensus-hq/agent-pulse",
+       docs: "https://agentpulse.xyz"
+     }
+   }`
 5. **API error** → fails **open** (calls `next()` with `X-Pulse-Warning` header)
 
 ### Middleware Options
@@ -157,6 +168,7 @@ Extends `PulseFilterOptions` with:
 | `bodyField` | `string` | `"agentAddress"` | JSON body field name |
 | `allowMissing` | `boolean` | `false` | If `true`, pass through when no address found (instead of 400) |
 | `onRejected` | `function` | — | Custom handler for dead agents (receives `req, res, next, { address, status }`) |
+| `onAlert` | `function` | — | Fire-and-forget callback invoked on every rejection (use for logging/webhooks/alerting). Errors are swallowed. |
 
 ## LangChain Tool Example
 
