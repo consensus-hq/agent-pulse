@@ -1,18 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
-import { withPayment, PRICES } from "../x402";
-import { getPaymentWallet } from "../../defi/route";
+import { withPaymentGate, PRICES } from "../x402";
+import { getPaymentWallet, HEYELSA_BASE_URL } from "../../defi/route";
 
 /**
  * Paid Health Check Endpoint
- * 
- * Price: $0.001 per call
- * 
+ *
+ * Price: $0.001 per call (USDC on Base)
+ *
  * Returns system health metrics including:
  * - Hot wallet status and address
  * - Daily spending metrics
  * - Cache hit rates
+ * - HeyElsa API connectivity
  * - Service availability
+ *
+ * Access modes:
+ * - x402 payment via X-PAYMENT header
+ * - API key bypass via X-API-KEY header (matches PAID_API_BYPASS_KEY env)
  */
 
 interface HealthData {
@@ -35,12 +40,13 @@ interface HealthData {
   } | null;
   services: {
     kv: "connected" | "disconnected";
-    heylsa: "connected" | "disconnected" | "unknown";
+    heyelsa: "connected" | "disconnected" | "unknown";
   };
   _payment: {
     payer: string;
     amount: string;
     timestamp: string;
+    method: string;
   };
 }
 
@@ -80,7 +86,23 @@ async function checkKVConnection(): Promise<"connected" | "disconnected"> {
   }
 }
 
-export const GET = withPayment<HealthData>(PRICES.health, async (request, payment) => {
+async function checkHeyElsaConnection(): Promise<"connected" | "disconnected"> {
+  try {
+    // HeyElsa returns 402 for valid endpoints (which means it's reachable)
+    const res = await fetch(`${HEYELSA_BASE_URL}/api/get_token_price`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_address: "0x0000000000000000000000000000000000000000" }),
+      signal: AbortSignal.timeout(5000),
+    });
+    // 402 = reachable and responding correctly
+    return res.status === 402 ? "connected" : "connected";
+  } catch {
+    return "disconnected";
+  }
+}
+
+export const GET = withPaymentGate<HealthData>(PRICES.health, async (request, payment) => {
   try {
     // Check wallet status
     let wallet: HealthData["wallet"] = null;
@@ -109,13 +131,16 @@ export const GET = withPayment<HealthData>(PRICES.health, async (request, paymen
     const cache = { hits, misses, hitRate: rate };
 
     // Check services
-    const kvStatus = await checkKVConnection();
-    
+    const [kvStatus, heyElsaStatus] = await Promise.all([
+      checkKVConnection(),
+      checkHeyElsaConnection(),
+    ]);
+
     // Determine overall health
     let status: HealthData["status"] = "healthy";
     if (kvStatus === "disconnected" || !wallet) {
       status = "unhealthy";
-    } else if (budget.exceeded || cache.hitRate < 50) {
+    } else if (budget.exceeded || heyElsaStatus === "disconnected") {
       status = "degraded";
     }
 
@@ -127,19 +152,19 @@ export const GET = withPayment<HealthData>(PRICES.health, async (request, paymen
       cache,
       services: {
         kv: kvStatus,
-        heylsa: "unknown",
+        heyelsa: heyElsaStatus,
       },
       _payment: {
         payer: payment.payer,
         amount: payment.amount,
         timestamp: payment.timestamp,
+        method: payment.method,
       },
     });
   } catch (error) {
     console.error("[Paid Health] Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    
-    // Return degraded status rather than error
+
     return NextResponse.json({
       status: "unhealthy" as const,
       timestamp: new Date().toISOString(),
@@ -148,13 +173,14 @@ export const GET = withPayment<HealthData>(PRICES.health, async (request, paymen
       cache: null,
       services: {
         kv: "disconnected",
-        heylsa: "unknown",
+        heyelsa: "unknown",
       },
       error: message,
       _payment: {
         payer: payment.payer,
         amount: payment.amount,
         timestamp: payment.timestamp,
+        method: payment.method,
       },
     });
   }
