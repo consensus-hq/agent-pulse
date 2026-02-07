@@ -272,17 +272,24 @@ export class InsightError extends Error {
 // ============================================================================
 
 /**
- * Get the thirdweb client ID from environment
+ * Get the thirdweb auth headers for Insight API requests.
+ * Prefers secret key (server-side) over client ID (browser-side).
+ * Secret key is required for server-side requests (edge/serverless)
+ * because client ID + domain restrictions only work for browser origins.
  */
-function getClientId(): string {
-  const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
-  if (!clientId) {
-    throw new InsightError(
-      'MISSING_CLIENT_ID',
-      'NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable not set'
-    );
+function getInsightAuthHeaders(): Record<string, string> {
+  const secretKey = process.env.THIRDWEB_SECRET_KEY;
+  if (secretKey) {
+    return { 'x-secret-key': secretKey };
   }
-  return clientId;
+  const clientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
+  if (clientId) {
+    return { 'x-client-id': clientId };
+  }
+  throw new InsightError(
+    'MISSING_CLIENT_ID',
+    'Neither THIRDWEB_SECRET_KEY nor NEXT_PUBLIC_THIRDWEB_CLIENT_ID environment variable is set'
+  );
 }
 
 /**
@@ -292,7 +299,7 @@ async function insightRequest<T>(
   endpoint: string,
   params?: Record<string, string | number | undefined>
 ): Promise<InsightPaginatedResponse<T>> {
-  const clientId = getClientId();
+  const authHeaders = getInsightAuthHeaders();
   
   // Build URL with query params
   const url = new URL(`${INSIGHT_BASE_URL}${endpoint}`);
@@ -312,7 +319,7 @@ async function insightRequest<T>(
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'x-client-id': clientId,
+        ...authHeaders,
         'Accept': 'application/json',
       },
     });
@@ -641,7 +648,7 @@ export async function getPulseEventsForAgents(
  */
 export async function checkInsightHealth(): Promise<boolean> {
   try {
-    await getClientId();
+    getInsightAuthHeaders();
     // Make a lightweight request to verify connectivity
     await getPulseEvents({ limit: 1 });
     return true;
