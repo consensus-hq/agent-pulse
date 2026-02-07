@@ -5,7 +5,7 @@ const VALID_ADDRESS = "0x9508752Ba171D37EBb3AA437927458E0a21D1e04";
 test.describe("Agent Pulse Smoke Tests", () => {
   test("homepage loads with correct title", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Routing eligibility console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Liveness protocol" })).toBeVisible();
   });
 
   test("status query section is visible", async ({ page }) => {
@@ -48,11 +48,11 @@ test.describe("Agent Pulse Smoke Tests", () => {
     await expect(page.locator("text=error")).toBeVisible();
   });
 
-  test("network indicator shows testnet chain", async ({ page }) => {
+  test("network indicator shows mainnet chain", async ({ page }) => {
     await page.goto("/");
-    // Check for chain ID in page content
+    // Check for Base mainnet chain ID in page content
     const pageContent = await page.content();
-    expect(pageContent).toContain("84532");
+    expect(pageContent).toContain("8453");
   });
 
   test("runtime config shows walletConnect configured", async ({ page }) => {
@@ -126,7 +126,7 @@ test.describe("Agent Pulse API Smoke Tests", () => {
 
     const paymentOption = data.accepts[0];
     expect(paymentOption).toHaveProperty("scheme", "exact");
-    expect(paymentOption).toHaveProperty("network", "base");
+    expect(paymentOption).toHaveProperty("network", "eip155:8453");
     expect(paymentOption).toHaveProperty("maxAmountRequired");
     expect(paymentOption).toHaveProperty("payTo");
     expect(paymentOption).toHaveProperty("asset");
@@ -139,7 +139,8 @@ test.describe("Agent Pulse API Smoke Tests", () => {
     const data = await response.json();
     expect(data).toHaveProperty("error");
     expect(data).toHaveProperty("paymentRequired", true);
-    expect(data.accepts[0].maxAmountRequired).toBe("$0.02");
+    // maxAmountRequired is in atomic USDC (6 decimals): "20000" = $0.02
+    expect(data.accepts[0]).toHaveProperty("maxAmountRequired", "20000");
   });
 
   test("v2 alive returns 400 for invalid address", async ({ request }) => {

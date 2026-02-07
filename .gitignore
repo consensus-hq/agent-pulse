@@ -20,3 +20,6 @@ shared/
 # Seed wallet keys (contain private keys)
 scripts/.seed-keys-*
 scripts/seed-wallets-*
+
+# CJS build intermediates
+dist-cjs/
