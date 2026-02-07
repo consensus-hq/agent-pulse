@@ -42,6 +42,7 @@ function mockInsightAgents(count: number) {
     amount: 1000000000000000000n,
     timestamp: 1770311798,
     streak: 1,
+    totalBurned: 0n,
     blockNumber: 37271755,
     transactionHash: "0xabc",
     logIndex: i,
@@ -304,9 +305,9 @@ describe("GET /api/protocol-health", () => {
       // 3 events but only 2 unique agents (agent 0 appears twice)
       vi.mocked(getPulseEvents).mockResolvedValue({
         data: [
-          { agent: "0x000a", amount: 1n, timestamp: 1, streak: 1, blockNumber: 1, transactionHash: "0x1", logIndex: 0 },
-          { agent: "0x000b", amount: 1n, timestamp: 2, streak: 1, blockNumber: 2, transactionHash: "0x2", logIndex: 0 },
-          { agent: "0x000a", amount: 1n, timestamp: 3, streak: 2, blockNumber: 3, transactionHash: "0x3", logIndex: 0 },
+          { agent: "0x000a", amount: 1n, timestamp: 1, streak: 1, totalBurned: 0n, blockNumber: 1, transactionHash: "0x1", logIndex: 0 },
+          { agent: "0x000b", amount: 1n, timestamp: 2, streak: 1, totalBurned: 0n, blockNumber: 2, transactionHash: "0x2", logIndex: 0 },
+          { agent: "0x000a", amount: 1n, timestamp: 3, streak: 2, totalBurned: 0n, blockNumber: 3, transactionHash: "0x3", logIndex: 0 },
         ],
         meta: { totalEvents: 3, page: 1, limit: 100, totalPages: 1, hasNextPage: false },
       });
