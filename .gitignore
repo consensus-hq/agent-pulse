@@ -16,3 +16,7 @@ shared/
 .env.vercel-prod
 # Root-level contracts artifacts only
 /contracts/
+
+# Seed wallet keys (contain private keys)
+scripts/.seed-keys-*
+scripts/seed-wallets-*
