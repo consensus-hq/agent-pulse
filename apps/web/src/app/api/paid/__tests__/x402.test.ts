@@ -14,8 +14,8 @@ const mockFetch = vi.fn<
 // Helper to dynamically import x402 with fresh env var evaluation
 async function importX402() {
   vi.resetModules();
-  const module = await import("../x402");
-  return module;
+  const x402Module = await import("../x402");
+  return x402Module;
 }
 
 beforeEach(() => {
