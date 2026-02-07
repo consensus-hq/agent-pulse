@@ -1,7 +1,5 @@
 "use client";
 
-import { StatusResponse } from "../lib/types";
-import { formatMs, formatUnix } from "../lib/format";
 import styles from "../page.module.css";
 
 interface PageHeaderProps {
@@ -11,40 +9,45 @@ interface PageHeaderProps {
   feedCacheAge: number | null;
   lastRunStatus: string;
   lastRunTime: string;
+  totalAgents?: number;
+  latestPulseTime?: string;
 }
 
 export function PageHeader({
   networkLabel,
   chainIdLabel,
-  feedCacheHeader,
   feedCacheAge,
-  lastRunStatus,
-  lastRunTime,
+  totalAgents,
+  latestPulseTime,
 }: PageHeaderProps) {
   return (
     <header className={styles.header}>
       <div>
-        <p className={styles.kicker}>Agent Pulse debug console</p>
-        <h1 className={styles.title}>Routing eligibility console</h1>
+        <p className={styles.kicker}>Agent Pulse</p>
+        <h1 className={styles.title}>Liveness protocol</h1>
         <p className={styles.subtitle}>
-          Base chain routing gate. Pulse = paid eligibility refresh.
-          No pulse → no routing.
+          On-chain heartbeat for AI agents on Base.
+          Pulse to stay routable. No pulse → no routing.
         </p>
       </div>
       <div className={styles.statusBar}>
-        <span className={styles.tag}>Live feed</span>
+        <span className={styles.tag}>Live</span>
         <span className={styles.muted}>
           Network: {networkLabel} (chain {chainIdLabel || "—"})
         </span>
+        {totalAgents !== undefined && totalAgents > 0 && (
+          <span className={styles.muted}>
+            Agents: {totalAgents}
+          </span>
+        )}
         <span className={styles.muted}>
-          Cache: {feedCacheHeader || "—"}
+          Feed: {feedCacheAge !== null ? `${feedCacheAge}s ago` : "loading…"}
         </span>
-        <span className={styles.muted}>
-          Feed age: {feedCacheAge !== null ? `${feedCacheAge}s` : "—"}
-        </span>
-        <span className={styles.muted}>
-          Last run: {lastRunStatus} @ {lastRunTime}
-        </span>
+        {latestPulseTime && (
+          <span className={styles.muted}>
+            Latest pulse: {latestPulseTime}
+          </span>
+        )}
       </div>
     </header>
   );
