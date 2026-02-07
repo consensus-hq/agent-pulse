@@ -73,7 +73,7 @@ function getEnvVar(name, required = true) {
 }
 
 const PRIVATE_KEY = getEnvVar('PRIVATE_KEY');
-const RPC_URL = getEnvVar('RPC_URL') || 'https://mainnet.base.org';
+const RPC_URL = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
 
 const account = privateKeyToAccount(PRIVATE_KEY.startsWith('0x') ? PRIVATE_KEY : `0x${PRIVATE_KEY}`);
 

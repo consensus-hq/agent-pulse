@@ -8,16 +8,16 @@ import fs from 'fs';
 import path from 'path';
 
 // --- Configuration ---
-const RPC_URL = "https://base-mainnet.g.alchemy.com/v2/3WU_yDRSxtj3kGD_YydFu";
+const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const PULSE_ADDRESS = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
 const WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
 const UNIVERSAL_ROUTER = "0x6ff5693b99212da76ad316178a184ab56d299b43";
 const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 
 // Clanker V4 Pool Details
-const POOL_FEE = 10000; // 1%
-const POOL_TICK_SPACING = 60; // Common for Clanker
-const POOL_HOOK = "0x8e5caf64e13d1fb4a931b4184fab74ecb1f909b6e0100e7e5df51e3d58932c5a";
+const POOL_FEE = 8388608; // Dynamic fee flag 0x800000
+const POOL_TICK_SPACING = 200; // Clanker V4 pool
+const POOL_HOOK = "0xb429d62f8f3bffb98cdb9569533ea23bf0ba28cc"; // Clanker dynamic fee hook address
 
 // Base Addresses for V4
 const POOL_MANAGER = "0x498581ff718922c3f8e6a244956af099b2652b2b";

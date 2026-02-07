@@ -41,7 +41,7 @@ import { base } from 'viem/chains';
 import * as fs from 'node:fs';
 
 // ============ CONFIG (Base mainnet) ============
-const RPC = 'https://base-mainnet.g.alchemy.com/v2/3WU_yDRSxtj3kGD_YydFu';
+const RPC = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
 
 const PULSE = '0x21111B39A502335aC7e45c4574Dd083A69258b07';
 const WETH = '0x4200000000000000000000000000000000000006';
