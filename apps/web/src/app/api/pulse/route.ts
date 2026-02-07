@@ -200,14 +200,7 @@ async function getPostHandler(): Promise<(req: NextRequest) => Promise<NextRespo
         createAuthHeaders,
       });
 
-      registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
-        networks: [NETWORK],
-      });
-
-      const resourceServer = new x402ResourceServer(facilitatorClient);
-      
-      // Re-register to be safe or just use the instance
-      registerExactEvmScheme(resourceServer, {
+      const resourceServer = registerExactEvmScheme(new x402ResourceServer(facilitatorClient), {
         networks: [NETWORK],
       });
 
