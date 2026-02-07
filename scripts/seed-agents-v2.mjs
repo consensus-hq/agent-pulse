@@ -7,7 +7,7 @@ import { execSync } from "child_process";
 import { randomBytes } from "crypto";
 import fs from "fs";
 
-const RPC = process.env.RPC_URL || "https://base-mainnet.g.alchemy.com/v2/3WU_yDRSxtj3kGD_YydFu";
+const RPC = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const PULSE = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
 const REGISTRY = "0xe61C615743A02983A46aFF66Db035297e8a43846";
 const DEPLOYER_KEY = process.env.PRIVATE_KEY;
