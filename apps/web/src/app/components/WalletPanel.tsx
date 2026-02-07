@@ -55,6 +55,8 @@ export default function WalletPanel() {
 
   const pulseSignalLabel = agentStatus.loading
     ? "LOADING"
+    : agentStatus.isAlive === null
+    ? "UNKNOWN"
     : agentStatus.isAlive
     ? "ACTIVE"
     : "INACTIVE";
@@ -125,7 +127,7 @@ export default function WalletPanel() {
             </div>
           </div>
 
-          {status && status !== "confirmed" && (
+          {(status === "signing" || status === "approving" || status === "approved" || status === "pulsing") && (
             <div className={styles.statusRow} style={{ marginTop: '12px', padding: '8px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
                <span className={styles.spinner} />
                <span className={styles.muted} style={{ fontSize: '11px', textTransform: 'uppercase' }}>

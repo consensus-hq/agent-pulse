@@ -411,3 +411,23 @@
   font-weight: 600;
   color: var(--text);
 }
+
+/* Utility classes */
+.successText { color: var(--accent); }
+
+/* Status row */
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pulse glow animation for new feed items */
+@keyframes pulseGlow {
+  0% { background: rgba(74, 222, 128, 0.2); }
+  100% { background: transparent; }
+}
+
+.pulseGlow {
+  animation: pulseGlow 2s ease-out;
+}

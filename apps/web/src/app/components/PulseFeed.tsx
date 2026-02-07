@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatUnits } from "viem";
 import { PulseFeedResponse } from "../lib/types";
 import { formatMs, formatUnix, shortenHash } from "../lib/format";
 import styles from "../page.module.css";
@@ -74,17 +75,14 @@ export function PulseFeed({
             
             return (
               <div 
-                className={styles.feedRow} 
                 key={`${pulse.agent}-${index}`}
-                style={{
-                  animation: index === 0 ? 'pulseGlow 2s ease-out' : 'none'
-                }}
+                className={`${styles.feedRow} ${index === 0 ? styles.pulseGlow : ''}`}
               >
                 <span className={styles.mono} title={pulse.agent}>
                   {pulse.agent.slice(0, 8)}...{pulse.agent.slice(-6)}
                 </span>
                 <span style={{ color: 'var(--accent-bright)', fontWeight: 600 }}>
-                  {pulse.amount}
+                  {formatUnits(BigInt(pulse.amount), 18)}
                 </span>
                 <span style={{ color: 'var(--warning)' }}>
                   {pulse.streak}🔥
@@ -104,13 +102,6 @@ export function PulseFeed({
           })
         )}
       </div>
-      
-      <style jsx>{`
-        @keyframes pulseGlow {
-          0% { background: rgba(74, 222, 128, 0.2); }
-          100% { background: transparent; }
-        }
-      `}</style>
     </section>
   );
 }
