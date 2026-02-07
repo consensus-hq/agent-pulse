@@ -1063,8 +1063,9 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       "/docs": {
         get: {
           summary: "API Documentation",
-          description: "Returns this OpenAPI 3.1.0 JSON specification",
+          description: "Returns this OpenAPI 3.1.0 JSON specification. Interactive docs available at /docs.",
           operationId: "getApiDocs",
+          tags: ["Status"],
           responses: {
             "200": {
               description: "OpenAPI specification",
@@ -1080,6 +1081,205 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
                 },
               },
             },
+          },
+        },
+      },
+      "/v2/agent/{address}/alive": {
+        get: {
+          summary: "Check agent liveness (FREE)",
+          description: "Binary liveness check — the GTM wedge. Returns whether an agent is alive on-chain, its streak, staleness, and TTL. No payment required.",
+          operationId: "v2GetAgentAlive",
+          tags: ["V2 Liveness"],
+          parameters: [
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              description: "Ethereum address of the agent (0x...)",
+              schema: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liveness check result",
+              headers: {
+                "Cache-Control": { schema: { type: "string" } },
+                "Access-Control-Allow-Origin": { schema: { type: "string" } },
+              },
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      address: { type: "string", description: "Lowercased agent address" },
+                      isAlive: { type: "boolean", description: "Whether the agent is currently alive on-chain" },
+                      lastPulseTimestamp: { type: "integer", description: "Unix timestamp of last pulse" },
+                      streak: { type: "integer", description: "Current consecutive pulse streak" },
+                      staleness: { type: "number", description: "Seconds since last pulse (Infinity if never pulsed)" },
+                      ttl: { type: "integer", description: "Protocol TTL in seconds (86400)" },
+                      checkedAt: { type: "string", format: "date-time", description: "ISO 8601 timestamp of this check" },
+                      note: { type: "string", description: "Present when agent is not found in registry" },
+                    },
+                    required: ["address", "isAlive", "lastPulseTimestamp", "streak", "staleness", "ttl", "checkedAt"],
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Invalid Ethereum address",
+              content: {
+                "application/json": {
+                  schema: { type: "object", properties: { error: { type: "string" } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/v2/agent/{address}/reliability": {
+        get: {
+          summary: "Agent reliability metrics (PAID — $0.01)",
+          description: "Returns computed reliability metrics: reliability score (0-100), uptime percentage, jitter, and hazard rate. Requires x402 payment in USDC.",
+          operationId: "v2GetAgentReliability",
+          tags: ["V2 Analytics"],
+          parameters: [
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              description: "Ethereum address of the agent",
+              schema: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Reliability metrics (after x402 payment)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      agent: { type: "string" },
+                      reliabilityScore: { type: "integer", minimum: 0, maximum: 100, description: "Reliability score 0-100" },
+                      uptimePercent: { type: "number", description: "Uptime as a percentage" },
+                      jitter: { type: "number", description: "Pulse regularity metric (lower = better)" },
+                      hazardRate: { type: "integer", minimum: 0, maximum: 100, description: "On-chain hazard score" },
+                      lastUpdated: { type: "string", format: "date-time" },
+                      _tier: { type: "string", enum: ["free", "paid"] },
+                      _cached: { type: "boolean" },
+                      _payment: { "$ref": "#/components/schemas/PaymentMeta" },
+                    },
+                    required: ["agent", "reliabilityScore", "uptimePercent", "jitter", "hazardRate", "lastUpdated"],
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid agent address" },
+            "402": {
+              description: "Payment required. Read X-PAYMENT-REQUIRED header for payment details.",
+              headers: {
+                "X-PAYMENT-REQUIRED": { description: "Payment amount and details", schema: { type: "string" } },
+              },
+            },
+            "429": { description: "Rate limit exceeded (60 req/min free tier)" },
+          },
+        },
+      },
+      "/v2/agent/{address}/streak-analysis": {
+        get: {
+          summary: "Streak analysis (PAID — $0.008)",
+          description: "Deep streak analysis: current/max streak, consistency grade (A-F), time to break, and next pulse deadline. Requires x402 payment.",
+          operationId: "v2GetAgentStreakAnalysis",
+          tags: ["V2 Analytics"],
+          parameters: [
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              description: "Ethereum address of the agent",
+              schema: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Streak analysis data",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      agent: { type: "string" },
+                      currentStreak: { type: "integer", description: "Current consecutive streak" },
+                      maxStreak: { type: "integer", description: "Estimated maximum streak" },
+                      streakConsistency: { type: "integer", minimum: 0, maximum: 100, description: "Consistency score" },
+                      consistencyGrade: { type: "string", enum: ["A", "B", "C", "D", "F"], description: "Letter grade" },
+                      timeToBreak: { type: ["integer", "null"], description: "Seconds until streak breaks (null if dead)" },
+                      lastPulseAt: { type: "integer", description: "Unix timestamp of last pulse" },
+                      nextPulseDeadline: { type: "integer", description: "Unix timestamp for next pulse deadline" },
+                      _tier: { type: "string", enum: ["free", "paid"] },
+                      _payment: { "$ref": "#/components/schemas/PaymentMeta" },
+                    },
+                    required: ["agent", "currentStreak", "maxStreak", "streakConsistency", "consistencyGrade", "timeToBreak", "lastPulseAt", "nextPulseDeadline"],
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid agent address" },
+            "402": { description: "Payment required (x402 challenge)" },
+            "429": { description: "Rate limit exceeded" },
+          },
+        },
+      },
+      "/v2/agent/{address}/uptime-metrics": {
+        get: {
+          summary: "Uptime metrics (PAID — $0.01)",
+          description: "Detailed uptime metrics: uptime percentage, downtime events, average downtime, and observation window. Requires x402 payment.",
+          operationId: "v2GetAgentUptimeMetrics",
+          tags: ["V2 Analytics"],
+          parameters: [
+            {
+              name: "address",
+              in: "path",
+              required: true,
+              description: "Ethereum address of the agent",
+              schema: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Uptime metrics",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      address: { type: "string" },
+                      uptimePercent: { type: "number", description: "Uptime as a percentage" },
+                      downtimeEvents: { type: "integer", description: "Number of downtime events" },
+                      averageDowntime: { type: "integer", description: "Average downtime in seconds" },
+                      totalUptime: { type: "integer", description: "Total uptime in seconds" },
+                      totalDowntime: { type: "integer", description: "Total downtime in seconds" },
+                      lastDowntime: { type: "integer", description: "Unix timestamp of last downtime" },
+                      metricsPeriod: {
+                        type: "object",
+                        properties: {
+                          from: { type: "integer", description: "Observation window start" },
+                          to: { type: "integer", description: "Observation window end" },
+                        },
+                        required: ["from", "to"],
+                      },
+                      _tier: { type: "string", enum: ["free", "paid"] },
+                      _payment: { "$ref": "#/components/schemas/PaymentMeta" },
+                    },
+                    required: ["address", "uptimePercent", "downtimeEvents", "averageDowntime", "totalUptime", "totalDowntime", "metricsPeriod"],
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid Ethereum address" },
+            "402": { description: "Payment required (x402 challenge)" },
+            "404": { description: "Agent not found" },
+            "429": { description: "Rate limit exceeded" },
           },
         },
       },
@@ -1108,7 +1308,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   // Validate JSON is valid before returning
   try {
     JSON.stringify(openApiSpec);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to generate OpenAPI spec" },
       { status: 500 }
