@@ -32,8 +32,14 @@ export default function Home() {
     : "unset";
   const explorerTxBaseUrl = publicEnv.explorerTxBaseUrl || "";
   const feedUrl = publicEnv.pulseFeedUrl || "/api/pulse-feed";
-  const lastRunStatus = publicEnv.lastRunStatus || "—";
+  const lastRunStatus = publicEnv.lastRunStatus || "";
   const lastRunTime = formatMaybeEpoch(publicEnv.lastRunTs);
+
+  // Derive live stats from feed data
+  const totalAgents = feedData?.pagination?.totalEvents ?? feedData?.data?.length ?? 0;
+  const latestPulseTime = feedData?.data?.[0]?.timestampFormatted
+    ? new Date(feedData.data[0].timestampFormatted).toLocaleTimeString()
+    : undefined;
 
   const configSnapshot = useMemo(
     () => ({
@@ -163,6 +169,8 @@ export default function Home() {
           feedCacheAge={feedCacheAge}
           lastRunStatus={lastRunStatus}
           lastRunTime={lastRunTime}
+          totalAgents={totalAgents}
+          latestPulseTime={latestPulseTime}
         />
 
         <RuntimeConfig configSnapshot={configSnapshot} />
