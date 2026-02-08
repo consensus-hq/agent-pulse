@@ -70,7 +70,6 @@ const VALID_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?
   balances: { endpoint: "/api/get_balances", cost: "$0.005" },
   token_price: { endpoint: "/api/get_token_price", cost: "$0.002" },
   swap_quote: { endpoint: "/api/get_swap_quote", cost: "$0.01" },
-  execute_swap: { endpoint: "/api/execute_swap", cost: "$0.02", cacheable: false },
   gas_prices: { endpoint: "/api/get_gas_prices", cost: "$0.001" },
   analyze_wallet: { endpoint: "/api/analyze_wallet", cost: "$0.01" },
 };
@@ -541,11 +540,11 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       }
       requestBody.token_address = tokenAddress;
       requestBody.chain = "base";
-    } else if (action === "swap_quote" || action === "execute_swap") {
-      const tokenIn = searchParams.get("token_in") || "0x0000000000000000000000000000000000000000"; // default: ETH
+    } else if (action === "swap_quote") {
+      // HeyElsa swap quote uses: from_chain, from_token, from_amount, to_chain, to_token, wallet_address
+      const tokenIn = searchParams.get("token_in") || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // default: native ETH
       const tokenOut = searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07"; // default: PULSE
       const amount = searchParams.get("amount");
-      const slippage = searchParams.get("slippage") || "1"; // 1% default
 
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         return NextResponse.json(
@@ -554,11 +553,11 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      requestBody.token_in = tokenIn;
-      requestBody.token_out = tokenOut;
-      requestBody.amount = amount;
-      requestBody.slippage = slippage;
-      requestBody.chain = "base";
+      requestBody.from_chain = "base";
+      requestBody.from_token = tokenIn;
+      requestBody.from_amount = amount;
+      requestBody.to_chain = "base";
+      requestBody.to_token = tokenOut;
       requestBody.wallet_address = address;
     } else if (action === "gas_prices") {
       requestBody.chain = "base";

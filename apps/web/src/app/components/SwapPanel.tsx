@@ -8,9 +8,19 @@ const PULSE_TOKEN = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
 const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PULSE_TOKEN}`;
 
 interface SwapQuoteResponse {
-  expectedOutput?: string;
-  priceImpact?: string;
-  route?: string;
+  success?: boolean;
+  quote?: {
+    from_amount: number;
+    from_amount_usd: number;
+    to_amount: number;
+    to_amount_usd: number;
+    to_amount_min: number;
+    price_impact: number;
+    gas_amount_usd: number;
+    estimated_seconds: number;
+    to_asset: string;
+    from_asset: string;
+  };
   error?: string;
   _cached?: boolean;
 }
@@ -174,21 +184,22 @@ export function SwapPanel() {
             <span
               style={{
                 flex: 1,
-                color: quote?.expectedOutput ? "var(--accent-bright)" : "var(--muted)",
+                color: quote?.quote?.to_amount ? "var(--accent-bright)" : "var(--muted)",
                 fontSize: "18px",
                 fontFamily: "inherit",
               }}
             >
-              {loading ? "..." : quote?.expectedOutput || "—"}
+              {loading ? "..." : quote?.quote?.to_amount ? Math.floor(quote.quote.to_amount).toLocaleString() : "—"}
             </span>
             <span style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 600 }}>PULSE</span>
           </div>
         </div>
       </div>
 
-      {quote?.priceImpact && (
-        <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "12px", textAlign: "right" }}>
-          Price impact: {quote.priceImpact}%{quote._cached && " (cached)"}
+      {quote?.quote && (
+        <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
+          <span>≈ ${quote.quote.to_amount_usd?.toFixed(2)} · Gas ${quote.quote.gas_amount_usd?.toFixed(4)}</span>
+          <span>Impact: {quote.quote.price_impact?.toFixed(2)}%{quote._cached ? " (cached)" : ""}</span>
         </div>
       )}
 
