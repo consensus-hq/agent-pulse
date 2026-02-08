@@ -33,7 +33,7 @@
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
-    "@elizaos/core": "^0.1.0"
+    "@elizaos/core": "^1.7.0"
   },
   "keywords": [
     "elizaos",
