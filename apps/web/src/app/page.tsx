@@ -28,6 +28,7 @@ function NavBar() {
     { label: "Get PULSE", href: "#wallet-panel", external: false },
     { label: "Docs", href: "/docs" },
     { label: "Build", href: "/build" },
+    { label: "DeFi", href: "/defi" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
     { label: "npm", href: "https://www.npmjs.com/package/@agent-pulse/sdk", external: true },
     { label: "ElizaOS", href: "https://www.npmjs.com/package/@agent-pulse/elizaos-plugin", external: true },
