@@ -8,18 +8,16 @@ import { base } from "viem/chains";
 export const runtime = "nodejs";
 
 /**
- * DeFi API Route — Hybrid HeyElsa + Direct On-Chain
+ * DeFi API Route — HeyElsa x402 Server-Side Proxy
  *
- * Actions handled DIRECTLY (no HeyElsa dependency):
- *   - swap_quote:   GeckoTerminal pool price → computed quote
- *   - swap_execute:  Returns Uniswap redirect URL
- *   - token_price:   GeckoTerminal fallback when HeyElsa fails
- *
- * Actions proxied through HeyElsa x402 (still alive):
- *   - portfolio
- *   - balances
- *   - gas_prices
- *   - analyze_wallet
+ * All actions proxied through HeyElsa x402 payment flow:
+ *   - swap_quote:     POST /api/swap_quote ($0.01)
+ *   - swap_execute:   POST /api/swap_execute ($0.01)
+ *   - portfolio:      POST /api/get_portfolio ($0.01)
+ *   - balances:       POST /api/get_balances ($0.005)
+ *   - gas_prices:     POST /api/get_gas_prices ($0.001)
+ *   - analyze_wallet: POST /api/analyze_wallet ($0.01)
+ *   - token_price:    HeyElsa primary, GeckoTerminal fallback
  *
  * Security: Rate limiting, budget caps, KV cache — unchanged.
  */
@@ -36,18 +34,15 @@ const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-// HeyElsa API base URL (still used for portfolio, balances, etc.)
+// HeyElsa API base URL
 export const HEYELSA_BASE_URL = process.env.HEYELSA_X402_API_URL || "https://x402-api.heyelsa.ai";
 
 // Security limits
 export const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)
 export const CACHE_TTL_SECONDS = 60;
 
-// PULSE token constants
-const PULSE_TOKEN = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
-const NATIVE_ETH_SENTINEL = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+// GeckoTerminal (fallback for token_price only)
 const GECKO_TERMINAL_BASE = "https://api.geckoterminal.com/api/v2";
-const GECKO_POOL_ID = "0x8e5caf64e13d1fb4a931b4184fab74ecb1f909b6e0100e7e5df51e3d58932c5a";
 
 // EIP-3009 TransferWithAuthorization types
 const TRANSFER_WITH_AUTHORIZATION_TYPES = {
@@ -69,19 +64,19 @@ const getUSDCDomain = () => ({
   verifyingContract: USDC_BASE as `0x${string}`,
 });
 
-// Valid actions — swap_quote/swap_execute/token_price handled directly; rest via HeyElsa
+// Valid actions — all via HeyElsa x402; token_price has GeckoTerminal fallback
 const HEYELSA_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?: boolean }> = {
   portfolio: { endpoint: "/api/get_portfolio", cost: "$0.01" },
   balances: { endpoint: "/api/get_balances", cost: "$0.005" },
   gas_prices: { endpoint: "/api/get_gas_prices", cost: "$0.001" },
   analyze_wallet: { endpoint: "/api/analyze_wallet", cost: "$0.01" },
+  swap_quote: { endpoint: "/api/swap_quote", cost: "$0.01" },
+  swap_execute: { endpoint: "/api/swap_execute", cost: "$0.01", cacheable: false },
 };
 
 // All valid action names (for validation)
 const ALL_ACTIONS = new Set([
   ...Object.keys(HEYELSA_ACTIONS),
-  "swap_quote",
-  "swap_execute",
   "token_price",
 ]);
 
@@ -398,25 +393,6 @@ export function isValidAddress(address: string): boolean {
 // GECKO TERMINAL PRICE UTILITIES
 // ============================================
 
-interface GeckoPoolData {
-  base_token_price_usd: string;
-  base_token_price_native_currency: string;
-  quote_token_price_usd: string;
-  quote_token_price_base_token: string;
-}
-
-async function fetchGeckoPoolData(): Promise<GeckoPoolData> {
-  const res = await fetch(
-    `${GECKO_TERMINAL_BASE}/networks/base/pools/${GECKO_POOL_ID}`,
-    { headers: { Accept: "application/json" }, next: { revalidate: 30 } }
-  );
-  if (!res.ok) {
-    throw new Error(`GeckoTerminal pool fetch failed: ${res.status}`);
-  }
-  const json = await res.json();
-  return json.data.attributes as GeckoPoolData;
-}
-
 async function fetchGeckoTokenPrice(tokenAddress: string): Promise<{ usd: number; symbol: string }> {
   const res = await fetch(
     `${GECKO_TERMINAL_BASE}/networks/base/tokens/${tokenAddress.toLowerCase()}`,
@@ -434,105 +410,8 @@ async function fetchGeckoTokenPrice(tokenAddress: string): Promise<{ usd: number
 }
 
 // ============================================
-// DIRECT HANDLERS (no HeyElsa dependency)
+// TOKEN PRICE HANDLER (HeyElsa primary, GeckoTerminal fallback)
 // ============================================
-
-async function handleSwapQuote(searchParams: URLSearchParams, address: string): Promise<NextResponse> {
-  const amount = searchParams.get("amount");
-  if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-    return NextResponse.json(
-      { error: "Missing or invalid parameter: amount (positive number required for swap)" },
-      { status: 400 }
-    );
-  }
-
-  const amountNum = Number(amount);
-
-  // Cache check
-  const cacheKey = `defi:swap_quote:${address.toLowerCase()}:${amount}`;
-  const cached = await kv.get<Record<string, unknown>>(cacheKey);
-  if (cached) {
-    await trackCacheHit();
-    return NextResponse.json({ ...cached, _cached: true, _cachedAt: new Date().toISOString() });
-  }
-  await trackCacheMiss();
-
-  try {
-    const pool = await fetchGeckoPoolData();
-
-    // pool: base = PULSE, quote = WETH
-    // quote_token_price_base_token = how many PULSE per 1 WETH
-    const pulsePerEth = Number(pool.quote_token_price_base_token);
-    const ethPriceUsd = Number(pool.quote_token_price_usd);
-    const pulsePriceUsd = Number(pool.base_token_price_usd);
-
-    if (!pulsePerEth || !ethPriceUsd) {
-      return NextResponse.json(
-        { error: "Unable to fetch pool price data" },
-        { status: 503 }
-      );
-    }
-
-    const toAmount = amountNum * pulsePerEth;
-    const fromAmountUsd = amountNum * ethPriceUsd;
-    const toAmountUsd = toAmount * pulsePriceUsd;
-
-    // Estimate price impact (small trades have negligible impact)
-    const priceImpact = amountNum > 1 ? 0.5 : amountNum > 0.1 ? 0.1 : 0.01;
-
-    // Base L2 gas is very cheap
-    const gasAmountUsd = 0.001;
-
-    const quoteData = {
-      quote: {
-        from_amount: amountNum,
-        from_amount_usd: fromAmountUsd,
-        to_amount: toAmount,
-        to_amount_usd: toAmountUsd,
-        to_amount_min: toAmount * 0.995, // 0.5% slippage
-        price_impact: priceImpact,
-        gas_amount_usd: gasAmountUsd,
-        estimated_seconds: 3,
-        from_asset: "ETH",
-        to_asset: "PULSE",
-      },
-      source: "geckoterminal",
-    };
-
-    // Cache for 30s (prices move)
-    await kv.set(cacheKey, quoteData, { ex: 30 });
-
-    return NextResponse.json({
-      ...quoteData,
-      _cached: false,
-      _fetchedAt: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("[swap_quote] Error:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch swap quote", message: err instanceof Error ? err.message : "Unknown error" },
-      { status: 503 }
-    );
-  }
-}
-
-function handleSwapExecute(searchParams: URLSearchParams): NextResponse {
-  const amount = searchParams.get("amount") || "0.001";
-  const tokenOut = searchParams.get("token_out") || PULSE_TOKEN;
-
-  const uniswapUrl = new URL("https://app.uniswap.org/swap");
-  uniswapUrl.searchParams.set("chain", "base");
-  uniswapUrl.searchParams.set("outputCurrency", tokenOut);
-  uniswapUrl.searchParams.set("exactAmount", amount);
-  uniswapUrl.searchParams.set("exactField", "input");
-
-  return NextResponse.json({
-    redirect: true,
-    url: uniswapUrl.toString(),
-    message: "Complete your swap on Uniswap",
-    _fetchedAt: new Date().toISOString(),
-  });
-}
 
 async function handleTokenPrice(searchParams: URLSearchParams): Promise<NextResponse> {
   const tokenAddress = searchParams.get("token");
@@ -708,34 +587,34 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
 
     await incrementRateLimit(clientIP);
 
-    // ── Direct handlers (no HeyElsa, no budget impact) ──
-    if (action === "swap_quote") {
-      return handleSwapQuote(searchParams, address);
-    }
-    if (action === "swap_execute") {
-      return handleSwapExecute(searchParams);
-    }
+    // ── token_price: HeyElsa primary with GeckoTerminal fallback ──
     if (action === "token_price") {
       return handleTokenPrice(searchParams);
     }
 
-    // ── HeyElsa proxy handlers (portfolio, balances, etc.) ──
+    // ── HeyElsa x402 proxy handlers (portfolio, balances, swaps, etc.) ──
     const actionConfig = HEYELSA_ACTIONS[action];
     if (!actionConfig) {
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
 
-    // Cache check for HeyElsa actions
-    const cacheKey = `defi:${action}:${address.toLowerCase()}`;
-    const cached = await kv.get<Record<string, unknown>>(cacheKey);
-    if (cached) {
-      console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
-      await trackCacheHit();
-      return NextResponse.json({
-        ...cached,
-        _cached: true,
-        _cachedAt: new Date().toISOString(),
-      });
+    // Cache check for HeyElsa actions (skip non-cacheable like swap_execute)
+    const isCacheable = actionConfig.cacheable !== false;
+    const cacheKey = action === "swap_quote"
+      ? `defi:swap_quote:${address.toLowerCase()}:${searchParams.get("amount")}:${(searchParams.get("token_in") || "").toLowerCase()}:${(searchParams.get("token_out") || "").toLowerCase()}`
+      : `defi:${action}:${address.toLowerCase()}`;
+
+    if (isCacheable) {
+      const cached = await kv.get<Record<string, unknown>>(cacheKey);
+      if (cached) {
+        console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
+        await trackCacheHit();
+        return NextResponse.json({
+          ...cached,
+          _cached: true,
+          _cachedAt: new Date().toISOString(),
+        });
+      }
     }
 
     // Budget check (only for paid HeyElsa calls)
@@ -753,11 +632,31 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    await trackCacheMiss();
+    if (isCacheable) {
+      await trackCacheMiss();
+    }
 
     const requestBody: Record<string, unknown> = {};
 
-    if (action === "gas_prices") {
+    if (action === "swap_quote" || action === "swap_execute") {
+      const tokenIn = searchParams.get("token_in") || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+      const tokenOut = searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07";
+      const amount = searchParams.get("amount");
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return NextResponse.json(
+          { error: "Missing or invalid parameter: amount (positive number required for swap)" },
+          { status: 400 }
+        );
+      }
+
+      requestBody.from_chain = "base";
+      requestBody.from_token = tokenIn;
+      requestBody.from_amount = amount;
+      requestBody.to_chain = "base";
+      requestBody.to_token = tokenOut;
+      requestBody.wallet_address = address;
+    } else if (action === "gas_prices") {
       requestBody.chain = "base";
     } else {
       requestBody.wallet_address = address;
@@ -783,8 +682,10 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
 
     const data = await response.json();
 
-    await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
-    console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
+    if (isCacheable) {
+      await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
+      console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
+    }
 
     return NextResponse.json({
       ...data,
