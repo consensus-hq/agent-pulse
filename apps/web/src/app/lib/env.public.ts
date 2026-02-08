@@ -1,6 +1,6 @@
 /** Read and trim a NEXT_PUBLIC_* env var (guards against stray newlines in Vercel config).
  *
- * IMPORTANT: Each env var MUST use literal `process.env.NEXT_PUBLIC_*` access.
+ * IMPORTANT: Each env var MUST use literal `process.env.NEXT_PUBLIC_CHAIN_ID`-style access.
  * Dynamic bracket access (process.env[key]) breaks Next.js client-side inlining
  * because Next.js replaces literal references at build time via static analysis.
  */
@@ -28,4 +28,6 @@ export const publicEnv = {
   deskWatchDeskVcAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_VC_AGENT ?? "").trim(),
   deskWatchDeskCbAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_CB_AGENT ?? "").trim(),
   deskWatchDesk03Agent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_03_AGENT ?? "").trim(),
+  deskWatchGameAddress: (process.env.NEXT_PUBLIC_DESK_WATCH_GAME_ADDRESS ?? "").trim(),
+  deskWatchLensAddress: (process.env.NEXT_PUBLIC_DESK_WATCH_LENS_ADDRESS ?? "").trim(),
 };
