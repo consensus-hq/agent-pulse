@@ -26,7 +26,6 @@ import {
 import {
   type SDKConfig,
   type WalletConfig,
-  type AgentPulseClientConfig,
   type AgentStatus,
   type ProtocolConfig,
   type ProtocolHealth,
@@ -46,6 +45,7 @@ import {
 
 import {
   AgentPulseClient,
+  type AgentPulseClientConfig,
 } from "./client.js";
 
 import {

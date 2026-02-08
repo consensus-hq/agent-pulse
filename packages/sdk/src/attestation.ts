@@ -6,7 +6,8 @@
  * @module attestation
  */
 
-import { type Address, baseSepolia } from "viem";
+import { type Address, type Chain } from "viem";
+import { base, baseSepolia } from "viem/chains";
 import type { AgentPulseClient } from "./client.js";
 import {
   type AttestationOutcome,
@@ -64,7 +65,7 @@ export class AttestationModule {
   async attest(
     address: Address,
     outcome: AttestationOutcome,
-    opts: AttestOptions = {}
+    _opts: AttestOptions = {}
   ): Promise<AttestResponse> {
     const config = this.client.getConfig();
     if (!config.wallet || !config.wallet.address) {
@@ -90,7 +91,7 @@ export class AttestationModule {
         functionName: "attest",
         args: [address, positive],
         account: config.wallet.address,
-        chain: baseSepolia,
+        chain: ((config as any).chainId === 84532 ? baseSepolia : base) as Chain,
       });
 
       // 2. Wait for confirmation

@@ -71,8 +71,8 @@ export class AgentPulseGate {
   private mode: GateMode;
   private gateIncomingEnabled: boolean;
   private gateOutgoingEnabled: boolean;
-  private thresholdMs: number;
-  private thresholdStr: string;
+  private thresholdMs!: number;
+  private thresholdStr!: string;
   private logger: { warn: (msg: string) => void; error: (msg: string) => void; info: (msg: string) => void };
   
   // Stats

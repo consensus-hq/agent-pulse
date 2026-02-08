@@ -1,21 +1,22 @@
 {
   "name": "@agent-pulse/sdk",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for Agent Pulse - on-chain liveness signaling protocol",
+  "version": "0.2.0",
+  "description": "TypeScript SDK for Agent Pulse — the on-chain liveness protocol for autonomous AI agents on Base. One-line alive checks, x402 micropayments, bidirectional gating.",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
@@ -32,25 +33,37 @@
     "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.3.0",
-    "vitest": "^4.0.0"
+    "vitest": "^1.0.0"
   },
   "keywords": [
     "agent-pulse",
     "liveness",
+    "agents",
+    "ai-agents",
     "base",
     "ethereum",
-    "sdk",
-    "agents",
+    "on-chain",
     "x402",
-    "micropayments"
+    "micropayments",
+    "heartbeat",
+    "uptime",
+    "reliability",
+    "sdk",
+    "web3"
   ],
   "license": "MIT",
+  "author": "Consensus HQ <eng@consensus.so>",
+  "homepage": "https://agent-pulse-nine.vercel.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/agent-pulse.git",
+    "url": "https://github.com/consensus-hq/agent-pulse.git",
     "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/consensus-hq/agent-pulse/issues"
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "sideEffects": false
 }
