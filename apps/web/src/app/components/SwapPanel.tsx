@@ -64,7 +64,7 @@ export function SwapPanel() {
     }
   }, [address, amount]);
 
-  const swapUrl = "/defi";
+  const HEYELSA_URL = "https://app.heyelsa.ai";
 
   return (
     <div
@@ -228,7 +228,9 @@ export function SwapPanel() {
           </button>
         )}
         <a
-          href={swapUrl}
+          href={HEYELSA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className={styles.button}
           style={{
             flex: 2,
@@ -239,12 +241,53 @@ export function SwapPanel() {
             display: "inline-block",
           }}
         >
-          Swap via HeyElsa ↗
+          Swap on HeyElsa ↗
         </a>
       </div>
 
+      {quote?.quote && (
+        <div
+          style={{
+            marginTop: "12px",
+            padding: "12px",
+            background: "#050805",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "4px",
+            fontSize: "11px",
+            color: "var(--muted)",
+            lineHeight: 1.6,
+          }}
+        >
+          💡 Got your quote? Open{" "}
+          <a
+            href={HEYELSA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--accent)", textDecoration: "underline" }}
+          >
+            HeyElsa
+          </a>{" "}
+          and tell Elsa:{" "}
+          <span style={{ color: "var(--accent-bright)" }}>
+            &quot;Swap {amount} ETH for PULSE on Base&quot;
+          </span>
+        </div>
+      )}
+
       <p style={{ margin: "12px 0 0", fontSize: "10px", color: "var(--dim)", lineHeight: 1.5 }}>
-        Swaps execute via HeyElsa x402 on Base. PULSE tokens are used to send on-chain liveness signals.
+        Swaps execute via{" "}
+        <a
+          href={HEYELSA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "var(--dim)", textDecoration: "underline" }}
+        >
+          HeyElsa
+        </a>{" "}
+        on Base. PULSE contract:{" "}
+        <span style={{ fontFamily: "monospace", fontSize: "9px" }}>
+          0x2111…8b07
+        </span>
       </p>
     </div>
   );
