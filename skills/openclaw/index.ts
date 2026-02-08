@@ -14,22 +14,20 @@ import {
   type GateMode,
   type GateOptions,
   AgentPulseError,
-  DEFAULTS,
 } from "@agent-pulse/sdk";
-import Ajv from "ajv";
+import { Ajv } from "ajv";
 
 import type {
   GateConfig,
   ParsedThreshold,
   GateRuntimeStatus,
-  GateCheckResult,
   GateStats,
   GateStatusOutput,
   OpenClawGate as IOpenClawGate,
   SkillStartupResult,
 } from "./types.js";
 
-import gateSchema from "./gate-schema.json" assert { type: "json" };
+import gateSchema from "./gate-schema.json" with { type: "json" };
 
 // ============================================================================
 // Constants
@@ -88,20 +86,16 @@ export function parseThreshold(threshold: string): ParsedThreshold | null {
  * OpenClaw Gate implementation wrapping AgentPulse SDK
  */
 class OpenClawGate implements IOpenClawGate {
-  private pulse: AgentPulse;
   private gate: AgentPulseGate;
   private config: GateConfig;
-  private status: GateRuntimeStatus;
-  private stats: GateStats;
-  private thresholdSeconds: number;
+  private _status: GateRuntimeStatus;
+  private _stats: GateStats;
 
-  constructor(pulse: AgentPulse, gate: AgentPulseGate, config: GateConfig) {
-    this.pulse = pulse;
+  constructor(gate: AgentPulseGate, config: GateConfig) {
     this.gate = gate;
     this.config = config;
-    this.thresholdSeconds = parseThreshold(config.threshold)?.seconds || 86400;
 
-    this.status = {
+    this._status = {
       active: true,
       mode: config.mode,
       threshold: config.threshold,
@@ -109,7 +103,7 @@ class OpenClawGate implements IOpenClawGate {
       lastCheck: Date.now(),
     };
 
-    this.stats = {
+    this._stats = {
       agentsChecked: 0,
       agentsRejected: 0,
       incomingChecks: 0,
@@ -145,11 +139,11 @@ class OpenClawGate implements IOpenClawGate {
     address: Address
   ): Promise<boolean> {
     // Update stats
-    this.stats.agentsChecked++;
+    this._stats.agentsChecked++;
     if (direction === "incoming") {
-      this.stats.incomingChecks++;
+      this._stats.incomingChecks++;
     } else {
-      this.stats.outgoingChecks++;
+      this._stats.outgoingChecks++;
     }
 
     const timestamp = Date.now();
@@ -160,11 +154,11 @@ class OpenClawGate implements IOpenClawGate {
         ? await this.gate.gateIncoming(address)
         : await this.gate.gateOutgoing(address);
 
-      this.stats.lastCheck = timestamp;
-      this.status.lastCheck = timestamp;
+      this._stats.lastCheck = timestamp;
+      this._status.lastCheck = timestamp;
 
       if (!allowed) {
-        this.stats.agentsRejected++;
+        this._stats.agentsRejected++;
 
         // In strict mode, gateIncoming/gateOutgoing already threw
         // This handles any additional rejection logic
@@ -179,7 +173,7 @@ class OpenClawGate implements IOpenClawGate {
 
       return allowed;
     } catch (error) {
-      this.stats.sdkErrors++;
+      this._stats.sdkErrors++;
 
       if (error instanceof AgentPulseError) {
         throw error;
@@ -207,14 +201,14 @@ class OpenClawGate implements IOpenClawGate {
    * Get current gate status
    */
   getStatus(): GateRuntimeStatus {
-    return { ...this.status };
+    return { ...this._status };
   }
 
   /**
    * Get gate statistics
    */
   getStats(): GateStats {
-    return { ...this.stats };
+    return { ...this._stats };
   }
 
   /**
@@ -225,8 +219,8 @@ class OpenClawGate implements IOpenClawGate {
       enabled: this.config.enabled,
       mode: this.config.mode,
       threshold: this.config.threshold,
-      status: this.status.active ? "active" : "degraded",
-      lastCheck: this.status.lastCheck || null,
+      status: this._status.active ? "active" : "degraded",
+      lastCheck: this._status.lastCheck || null,
       stats: this.getStats(),
       config: {
         chainId: this.config.chainId || DEFAULT_CHAIN_ID,
@@ -267,10 +261,16 @@ export async function startup(config: unknown): Promise<SkillStartupResult> {
     };
   }
 
-  const gateConfig = config as GateConfig;
+  // Extract raw mode before validation for error handling
+  const raw = config as Record<string, unknown>;
+  const requestedMode = (
+    raw["mode"] === "strict" || raw["mode"] === "warn" || raw["mode"] === "log"
+      ? raw["mode"]
+      : "log"
+  ) as GateMode;
 
   // If disabled, return early
-  if (!gateConfig.enabled) {
+  if (!raw["enabled"]) {
     console.log("[OpenClawSkill] Gate is disabled, skipping initialization");
     return {
       success: true,
@@ -284,19 +284,19 @@ export async function startup(config: unknown): Promise<SkillStartupResult> {
   }
 
   // Validate configuration
-  if (!validateGateConfig(gateConfig)) {
+  if (!validateGateConfig(config)) {
     const error = "[OpenClawSkill] Invalid gate configuration";
     console.error(error);
 
     // In strict mode, fail startup
-    if (gateConfig.mode === "strict") {
+    if (requestedMode === "strict") {
       return {
         success: false,
         error,
         status: {
           active: false,
-          mode: gateConfig.mode || "strict",
-          threshold: gateConfig.threshold || "",
+          mode: requestedMode,
+          threshold: (raw["threshold"] as string) || "",
           sdkInitialized: false,
           lastError: error,
         },
@@ -308,13 +308,16 @@ export async function startup(config: unknown): Promise<SkillStartupResult> {
       success: true,
       status: {
         active: false,
-        mode: gateConfig.mode || "log",
-        threshold: gateConfig.threshold || "",
+        mode: requestedMode,
+        threshold: (raw["threshold"] as string) || "",
         sdkInitialized: false,
         lastError: error,
       },
     };
   }
+
+  // config is now validated as GateConfig
+  const gateConfig: GateConfig = config;
 
   // Parse and validate threshold
   const parsedThreshold = parseThreshold(gateConfig.threshold);
@@ -354,12 +357,18 @@ export async function startup(config: unknown): Promise<SkillStartupResult> {
     // Create gate with mode-specific options
     const gateOptions: GateOptions = {
       mode: gateConfig.mode,
-      logger: console,
-      throwOnError: gateConfig.mode === "strict",
+      gateIncoming: true,
+      gateOutgoing: true,
+      threshold: gateConfig.threshold,
+      logger: {
+        warn: (msg: string) => console.warn(msg),
+        error: (msg: string) => console.error(msg),
+        info: (msg: string) => console.info(msg),
+      },
     };
 
     const sdkGate = pulse.createGate(gateOptions);
-    const openClawGate = new OpenClawGate(pulse, sdkGate, gateConfig);
+    const openClawGate = new OpenClawGate(sdkGate, gateConfig);
 
     console.log(`[OpenClawSkill] Gate initialized successfully (threshold: ${gateConfig.threshold})`);
 
@@ -486,4 +495,3 @@ export function getGateStatus(gate?: IOpenClawGate): GateStatusOutput | null {
 
 export { OpenClawGate };
 export type { GateConfig, GateStatusOutput, SkillStartupResult };
-export { validateGateConfig, parseThreshold };

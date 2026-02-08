@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "description": "OpenClaw skill integration for AgentPulse SDK gating",
   "type": "module",
+  "files": [
+    "dist",
+    "gate-schema.json",
+    "SKILL.md",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
