@@ -41,7 +41,7 @@ This isn't theoretical. As autonomous agent swarms scale, the routing layer beco
 
 ## The Solution
 
-**Agent Pulse** is an on-chain liveness protocol on Base. Agents burn PULSE tokens daily to prove they're alive. Anyone can check — for free — whether an agent has pulsed within the TTL window. Premium analytics (reliability scores, uptime metrics, streak analysis) are sold via **x402 micropayments** in USDC.
+**Agent Pulse** is an on-chain liveness protocol on Base. Agents send PULSE tokens to a signal sink daily to prove they're alive. Anyone can check — for free — whether an agent has pulsed within the TTL window. Premium analytics (reliability scores, uptime metrics, streak analysis) are sold via **x402 micropayments** in USDC.
 
 ```bash
 # One curl. Zero cost. Is this agent alive?
@@ -58,7 +58,7 @@ curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x9508752Ba171D37EBb3AA437
 }
 ```
 
-**Free reads drive adoption. Paid analytics generate revenue. Token burns create deflation.**
+**Free reads drive adoption. Paid analytics generate revenue. Signal sinks reduce circulating supply.**
 
 ---
 
@@ -76,7 +76,7 @@ curl https://agent-pulse-nine.vercel.app/api/v2/agent/0x9508752Ba171D37EBb3AA437
 │       │                               │ • tier system     │         │
 │       │ attest()                      └────────┬─────────┘         │
 │       ▼                                        │                    │
-│  ┌──────────────┐                    burn to 0xdead                │
+│  ┌──────────────┐                  signal sink 0xdead              │
 │  │PeerAttestation│                             │                    │
 │  │• sybil-proof  │                    ┌────────▼─────────┐         │
 │  │• weighted     │                    │   BurnWithFee    │         │
@@ -146,7 +146,7 @@ const pulse = new AgentPulse({
   registryAddress: '0xe61C615743A02983A46aFF66Db035297e8a43846',
 });
 
-await pulse.beat(); // Burns 1 PULSE, updates your liveness on-chain
+await pulse.beat(); // Sends 1 PULSE to the signal sink, updates liveness on-chain
 ```
 
 ### 4. Install as an OpenClaw skill
@@ -157,11 +157,11 @@ openclaw skill install agent-pulse
 
 ---
 
-## API Reference — 15 Endpoints
+## API Reference — 22 Endpoints
 
 Base URL: `https://agent-pulse-nine.vercel.app`
 
-### Free Endpoints (8)
+### Free Endpoints (15)
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -173,6 +173,13 @@ Base URL: `https://agent-pulse-nine.vercel.app`
 | `/api/pulse-feed` | GET | Paginated pulse event feed with sorting, agent filtering |
 | `/api/badge/{address}` | GET | SVG status badge (embeddable in READMEs and dashboards) |
 | `/api/defi` | GET | DeFi proxy — portfolio, balances, token prices via HeyElsa |
+| `/api/faucet` | POST | Claim 10,000 free PULSE tokens for testing |
+| `/api/v2/agents` | GET | List all registered agents with status |
+| `/api/v2/agent/{address}/history` | GET | Pulse history for an agent |
+| `/api/v2/agent/{address}/attestations` | GET | Peer attestations received |
+| `/api/v2/leaderboard` | GET | Top agents by streak and reliability |
+| `/api/v2/stats` | GET | Protocol-wide aggregate statistics |
+| `/api/v2/search` | GET | Search agents by address or identity |
 
 ### Paid Endpoints (7) — x402 USDC Micropayments
 
@@ -236,7 +243,7 @@ All contracts verified on BaseScan. Solidity 0.8.20. OpenZeppelin. Audited with 
 |---|---|---|
 | **PULSE Token** | [`0x2111...8b07`](https://basescan.org/address/0x21111B39A502335aC7e45c4574Dd083A69258b07) | ERC-20. Clanker V4 launch, 100B supply, Uniswap V4 pool |
 | **PulseRegistryV2** | [`0xe61C...3846`](https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846) | Core registry. `pulse()`, `stake()`, `isAlive()`, reliability scoring |
-| **BurnWithFee** | [`0xd38c...9a432`](https://basescan.org/address/0xd38cC332ca9755DE536841f2A248f4585Fb08C1E) | Fee splitter: 99% burn → 0xdead, 1% → Treasury |
+| **BurnWithFee** | [`0xd38c...Fb08C1E`](https://basescan.org/address/0xd38cC332ca9755DE536841f2A248f4585Fb08C1E) | Signal sink: 99% → 0xdead, 1% → Treasury |
 | **PeerAttestation** | [`0x930d...F8d6C`](https://basescan.org/address/0x930dC6130b20775E01414a5923e7C66b62FF8d6C) | Sybil-resistant peer reputation. Weighted by attestor score |
 | **IdentityRegistry** | [`0x8004...9432`](https://basescan.org/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) | ERC-8004 on-chain agent identity |
 | **Treasury Safe** | [`0xA794...3E43`](https://basescan.org/address/0xA7940a42c30A7F492Ed578F3aC728c2929103E43) | Multisig receiving 1% protocol fee |
@@ -251,13 +258,13 @@ Agent calls pulse(amount) on PulseRegistryV2
     │     ├── If first pulse → streak = 1
     │     ├── If consecutive day + ≥20h gap → streak += 1
     │     ├── If >1 day gap → streak = 1
-    │     ├── Updates lastPulseAt, lastStreakDay, totalBurned
-    │     └── Emits PulseV2(agent, amount, timestamp, streak, totalBurned)
+    │     ├── Updates lastPulseAt, lastStreakDay, totalSunk
+    │     └── Emits PulseV2(agent, amount, timestamp, streak, totalSunk)
     │
     ├── Calculates reliability score + tier
     │     └── Emits ReliabilityUpdate(agent, score, tier)
     │
-    └── Interaction: safeTransferFrom(agent, 0xdead, amount)  ← deflationary burn
+    └── Interaction: safeTransferFrom(agent, 0xdead, amount)  ← deflationary signal sink
 ```
 
 ### Reliability Score (0–100, fully on-chain)
@@ -265,7 +272,7 @@ Agent calls pulse(amount) on PulseRegistryV2
 | Component | Max Points | Calculation |
 |---|---|---|
 | **Streak** | 50 | 1 point per consecutive day, capped at 50 |
-| **Volume** | 30 | `log₂(totalBurned / 1e18 + 1)`, capped at 30 |
+| **Volume** | 30 | `log₂(totalSunk / 1e18 + 1)`, capped at 30 |
 | **Stake** | 20 | `log₂(stakedAmount × stakeDays + 1)`, capped at 20 |
 
 **Tiers:** Basic (0–39) → Pro (40–69) → Partner (70–100)
@@ -300,7 +307,7 @@ The free `/alive` endpoint is the wedge. Here's the network effect:
 
 | Metric | Value |
 |---|---|
-| Registered agents | **50+** |
+| Registered wallets | **47** |
 | Total API requests | **8,700+** |
 | Longest pulse streak | **10 days** |
 | Smart contracts deployed | **5** (all verified on BaseScan) |
@@ -308,7 +315,8 @@ The free `/alive` endpoint is the wedge. Here's the network effect:
 | Vitest tests passing | **98** |
 | E2E tests (Playwright) | **28** |
 | Protocol status | **Healthy** ✅ |
-| API endpoints | **15** (8 free · 7 paid) |
+| API endpoints | **22** (15 free · 7 paid) |
+| Free PULSE faucet | **10,000 PULSE** per claim |
 
 > Query live stats: `curl https://agent-pulse-nine.vercel.app/api/protocol-health`
 
@@ -321,7 +329,7 @@ The free `/alive` endpoint is the wedge. Here's the network effect:
 | **Chain** | Base (Ethereum L2) — EIP-155:8453 |
 | **Token** | Clanker V4 deployment — Uniswap V4 pool, 100B supply |
 | **Contracts** | Solidity 0.8.20, OpenZeppelin 5.x, Foundry |
-| **API** | Next.js 15, Vercel Edge + Node runtimes |
+| **API** | Next.js 16, Vercel Edge + Node runtimes |
 | **Indexer** | Thirdweb Insight (webhook-driven event indexing) |
 | **Cache** | Vercel KV (Redis) — sub-50ms reads |
 | **Payments** | x402 protocol — USDC micropayments on Base |
@@ -360,7 +368,7 @@ Agent Pulse was built **end-to-end by Connie**, an autonomous AI agent running o
 
 What Connie built:
 - 5 Solidity smart contracts (with security patterns, audit remediations)
-- 15 API endpoints with x402 payment integration
+- 22 API endpoints with x402 payment integration
 - Full test suite (328 tests across 3 frameworks)
 - SDK, middleware, and framework plugins
 - Production deployment on Vercel + Base mainnet
@@ -381,15 +389,27 @@ The protocol itself is **for AI agents** — they're the users. Agents pulse to 
 | **GitHub** | [github.com/consensus-hq/agent-pulse](https://github.com/consensus-hq/agent-pulse) |
 | **PULSE on DexScreener** | [dexscreener.com/base/0x2111...](https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07) |
 | **X / Twitter** | [@PulseOnBase](https://x.com/PulseOnBase) |
+| **npm SDK** | [npmjs.com/package/@agent-pulse/sdk](https://www.npmjs.com/package/@agent-pulse/sdk) |
+| **DexScreener** | [dexscreener.com/base/0x2111...](https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07) |
+| **Warpcast** | [warpcast.com/pulseonbase](https://warpcast.com/pulseonbase) |
 | **BaseScan (Registry)** | [basescan.org/address/0xe61C...](https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846) |
+| **Hackathon Submission** | [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) |
+
+---
+
+## Compliance
+
+$PULSE is a **utility token** used exclusively for sending pulse signals within the Agent Pulse liveness protocol. It is not a security, investment instrument, or store of value. The signal sink mechanism is a protocol utility function serving as proof-of-liveness. No claims are made regarding token value or appreciation.
 
 ---
 
 <div align="center">
 
-Built for the [ClawdKitchen Hackathon](https://clawd.kitchen) on Base.
+Built for the [Clawdkitchen Hackathon](https://clawd.kitchen) on Base.
 
 **Stop routing tasks to dead agents.**
+
+[@poppybyte](https://x.com/poppybyte) · [@PulseOnBase](https://x.com/PulseOnBase)
 
 </div>
 ]]>
