@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Indexing failed:', error);
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
