@@ -69,7 +69,7 @@ export function RoutingSync() {
           {status.loading
             ? "Checking…"
             : status.isAlive === null
-              ? "Connect wallet"
+              ? (status.hasData === false && !status.loading ? "Unable to check status" : "Connect wallet")
               : isAlive
                 ? `Eligible${status.source === "api" ? " (via API)" : ""}`
                 : "Locked (requires alive status)"}
