@@ -25,6 +25,7 @@ import { publicEnv } from "./lib/env.public";
 function NavBar() {
   const links = [
     { label: "Docs", href: "/docs" },
+    { label: "Build", href: "/build" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
     { label: "npm", href: "https://www.npmjs.com/package/@agent-pulse/sdk", external: true },
     { label: "ElizaOS", href: "https://www.npmjs.com/package/@openclaw/eliza-plugin-pulse", external: true },
