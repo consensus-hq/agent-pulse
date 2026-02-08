@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Metadata } from "next";
+import Link from "next/link";
 
 /* ================================================================
    Agent Pulse — Interactive API Documentation
@@ -772,7 +772,7 @@ export default function DocsPage() {
     <main style={styles.main}>
       {/* Header */}
       <div style={styles.header}>
-        <a href="/" style={styles.backLink}>← agent-pulse</a>
+        <Link href="/" style={styles.backLink}>← agent-pulse</Link>
         <h1 style={styles.title}>
           <span style={{ color: "var(--green)" }}>API</span> Documentation
         </h1>

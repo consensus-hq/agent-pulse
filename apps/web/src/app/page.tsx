@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import WalletPanel from "./components/WalletPanel";
 import { Erc8004Panel } from "./components/Erc8004Panel";
 import { PageHeader } from "./components/PageHeader";
@@ -45,25 +46,44 @@ function NavBar() {
         textTransform: "uppercase",
       }}
     >
-      {links.map((l, i) => (
-        <a
-          key={l.label}
-          href={l.href}
-          {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-          style={{
-            color: "var(--accent)",
-            textDecoration: "none",
-            transition: "color 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
-        >
-          [{l.label}]
-          {i < links.length - 1 && (
-            <span style={{ color: "var(--border-strong)", marginLeft: "20px", userSelect: "none" }}>·</span>
-          )}
-        </a>
-      ))}
+      {links.map((l, i) => {
+        const linkStyle = {
+          color: "var(--accent)",
+          textDecoration: "none" as const,
+          transition: "color 0.15s",
+        };
+        const content = (
+          <>
+            [{l.label}]
+            {i < links.length - 1 && (
+              <span style={{ color: "var(--border-strong)", marginLeft: "20px", userSelect: "none" }}>·</span>
+            )}
+          </>
+        );
+        return l.external ? (
+          <a
+            key={l.label}
+            href={l.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={linkStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
+          >
+            {content}
+          </a>
+        ) : (
+          <Link
+            key={l.label}
+            href={l.href}
+            style={linkStyle}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
+          >
+            {content}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -73,11 +93,7 @@ function NavBar() {
  * ─────────────────────────────────────────────────────────── */
 function GetStartedCards() {
   const [copied, setCopied] = useState<number | null>(null);
-  const [origin, setOrigin] = useState("https://agent-pulse-nine.vercel.app");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") setOrigin(window.location.origin);
-  }, []);
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://agent-pulse-nine.vercel.app";
 
   const cards = [
     {
