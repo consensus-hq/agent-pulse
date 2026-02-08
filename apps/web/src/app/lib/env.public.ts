@@ -28,4 +28,6 @@ export const publicEnv = {
   deskWatchDeskVcAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_VC_AGENT ?? "").trim(),
   deskWatchDeskCbAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_CB_AGENT ?? "").trim(),
   deskWatchDesk03Agent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_03_AGENT ?? "").trim(),
+  deskWatchGameAddress: (process.env.NEXT_PUBLIC_DESK_WATCH_GAME_ADDRESS ?? "").trim(),
+  deskWatchLensAddress: (process.env.NEXT_PUBLIC_DESK_WATCH_LENS_ADDRESS ?? "").trim(),
 };
