@@ -1,28 +1,37 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { StatusResponse } from "../lib/types";
-import { formatMs, formatUnix } from "../lib/format";
+import { formatUnix } from "../lib/format";
 import { useAgentStatus } from "../hooks/useAgentStatus";
 import { useWallet } from "../hooks/useWallet";
 import styles from "../page.module.css";
 
-interface StatusQueryProps {
-  statusCacheAge: number | null;
-}
-
-export function StatusQuery({ statusCacheAge }: StatusQueryProps) {
+export function StatusQuery() {
   const [statusAddress, setStatusAddress] = useState("");
   const [statusData, setStatusData] = useState<StatusResponse | null>(null);
   const [statusPayload, setStatusPayload] = useState("");
   const [statusError, setStatusError] = useState("");
   const [statusLoading, setStatusLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   const { address: connectedAddress } = useWallet();
   const connectedStatus = useAgentStatus(connectedAddress);
   const normalizedConnected = connectedAddress?.toLowerCase() ?? "";
   const isConnectedMatch = Boolean(connectedAddress)
     && statusAddress.trim().toLowerCase() === normalizedConnected;
+
+  // Tick every second so cache age stays live
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Derive cache age from local statusData (was previously broken — always null from parent)
+  const statusCacheAge = useMemo(() => {
+    if (!statusData?.updatedAt) return null;
+    return Math.max(0, Math.floor((now - statusData.updatedAt) / 1000));
+  }, [now, statusData?.updatedAt]);
 
   const handleStatusQuery = useCallback(async () => {
     const trimmed = statusAddress.trim();
