@@ -170,7 +170,7 @@ async function getPostHandler(): Promise<(req: NextRequest) => Promise<NextRespo
       console.error("[x402] Failed to load Thirdweb SDK:", err);
       // Fallback to error response if import fails
       cachedPostHandler = async () => NextResponse.json(
-        { error: "Internal Server Error: Failed to load payment module (Thirdweb)", details: String(err) },
+        { error: "Internal Server Error: Failed to load payment module (Thirdweb)" },
         { status: 500 }
       );
     }
@@ -227,7 +227,7 @@ async function getPostHandler(): Promise<(req: NextRequest) => Promise<NextRespo
     } catch (err) {
       console.error("[x402] Failed to load @x402 SDK:", err);
       cachedPostHandler = async () => NextResponse.json(
-        { error: "Internal Server Error: Failed to load payment module (@x402)", details: String(err) },
+        { error: "Internal Server Error: Failed to load payment module (@x402)" },
         { status: 500 }
       );
     }
@@ -246,7 +246,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     console.error("[x402] Critical route error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: String(err) },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 
 /**
  * x402 Payment Gate - Shared Helper for Paid API Endpoints
@@ -34,6 +35,11 @@ const FACILITATOR_URL =
 
 /** Bypass key for development / hackathon demo access */
 const BYPASS_KEY = process.env.PAID_API_BYPASS_KEY;
+
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 // ============================================
 // PRICE CONFIGURATION
@@ -277,7 +283,7 @@ export function withPaymentGate<T>(
     const apiKey =
       request.headers.get("x-api-key") || request.headers.get("X-API-KEY");
 
-    if (BYPASS_KEY && apiKey && apiKey === BYPASS_KEY) {
+    if (BYPASS_KEY && apiKey && safeCompare(apiKey, BYPASS_KEY)) {
       console.log(`[x402] Bypass access granted via API key`);
       return handler(request, {
         payer: "bypass",
