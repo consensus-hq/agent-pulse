@@ -6,6 +6,25 @@ import { PulseFeedResponse } from "../lib/types";
 import { formatMs, formatUnix, shortenHash } from "../lib/format";
 import styles from "../page.module.css";
 
+/**
+ * FIX: Safely format a wei-string amount via BigInt.
+ * If the amount is missing, empty, or non-numeric, return the raw string
+ * instead of throwing — a single bad record was crashing the entire
+ * feed component (React error boundary → blank section).
+ *
+ * NOTE: This file is also modified in PR #153. If both merge, keep
+ * the safeFormatAmount helper + Array.isArray guard — they are equivalent.
+ */
+function safeFormatAmount(amount: string | undefined): string {
+  if (!amount) return "0";
+  try {
+    return formatUnits(BigInt(amount), 18);
+  } catch {
+    // Malformed amount string — show raw value rather than crash
+    return amount;
+  }
+}
+
 interface PulseFeedProps {
   feedData: PulseFeedResponse | null;
   feedError: string;
@@ -34,7 +53,14 @@ export function PulseFeed({
     return () => window.clearInterval(id);
   }, [onRefresh]);
 
-  const feedRows = (feedData?.data ?? feedData?.recentPulses)?.slice(0, 10) ?? [];
+  // FIX: Guard against non-array data shapes — if the API returns an object
+  // or null for .data, the old ?.slice() would throw and blank the component.
+  const rawRows = Array.isArray(feedData?.data)
+    ? feedData.data
+    : Array.isArray(feedData?.recentPulses)
+      ? feedData.recentPulses
+      : [];
+  const feedRows = rawRows.slice(0, 10);
 
   return (
     <section className={styles.section}>
@@ -70,19 +96,23 @@ export function PulseFeed({
           </div>
         ) : (
           feedRows.map((pulse, index) => {
+            // FIX: Defend against missing/non-string agent field
+            const agent = typeof pulse.agent === "string" ? pulse.agent : "";
             const txHash = pulse.transactionHash ?? pulse.txHash ?? "";
-            const txUrl = explorerTxBaseUrl && txHash ? `${explorerTxBaseUrl}${txHash}` : "";
+            // FIX: trim explorerTxBaseUrl in case env had trailing whitespace
+            const txBase = explorerTxBaseUrl.trim();
+            const txUrl = txBase && txHash ? `${txBase}${txHash}` : "";
             
             return (
               <div 
-                key={`${pulse.agent}-${index}`}
+                key={`${agent || "unknown"}-${index}`}
                 className={`${styles.feedRow} ${index === 0 ? styles.pulseGlow : ''}`}
               >
-                <span className={styles.mono} title={pulse.agent}>
-                  {pulse.agent.slice(0, 8)}...{pulse.agent.slice(-6)}
+                <span className={styles.mono} title={agent || undefined}>
+                  {agent ? `${agent.slice(0, 8)}...${agent.slice(-6)}` : "—"}
                 </span>
                 <span style={{ color: 'var(--accent-bright)', fontWeight: 600 }}>
-                  {formatUnits(BigInt(pulse.amount), 18)}
+                  {safeFormatAmount(pulse.amount)}
                 </span>
                 <span style={{ color: 'var(--warning)' }}>
                   {pulse.streak}🔥
