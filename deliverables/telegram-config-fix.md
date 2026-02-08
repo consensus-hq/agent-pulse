@@ -12,7 +12,6 @@
   "enabled": true,
   "dmPolicy": "open",
   "botToken": "<REDACTED>",
-
   "groups": {
     "*": {
       "requireMention": true
