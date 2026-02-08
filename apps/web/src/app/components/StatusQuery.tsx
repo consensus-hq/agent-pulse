@@ -77,6 +77,7 @@ export function StatusQuery() {
             className={styles.input}
             style={{ paddingLeft: '28px' }}
             placeholder="Agent wallet address (0x...)"
+            aria-label="Agent wallet address"
             value={statusAddress}
             onChange={(e) => setStatusAddress(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void handleStatusQuery()}
