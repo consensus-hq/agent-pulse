@@ -13,6 +13,7 @@ import { RoutingSync } from "./components/RoutingSync";
 import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
 import { Hero } from "./components/Hero";
+import { SwapPanel } from "./components/SwapPanel";
 const DefiPanel = dynamic(() => import("./components/DefiPanel"), { ssr: false });
 import { PulseFeedResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
@@ -24,6 +25,7 @@ import { publicEnv } from "./lib/env.public";
  * ─────────────────────────────────────────────────────────── */
 function NavBar() {
   const links = [
+    { label: "Get PULSE", href: "https://app.uniswap.org/swap?chain=base&outputCurrency=0x21111B39A502335aC7e45c4574Dd083A69258b07", external: true },
     { label: "Docs", href: "/docs" },
     { label: "Build", href: "/build" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
@@ -438,6 +440,9 @@ export default function Home() {
            <RoutingSync />
            <DefiPanel />
         </div>
+
+        {/* Swap ETH → PULSE */}
+        <SwapPanel />
 
         <PulseFeed
           feedData={feedData}

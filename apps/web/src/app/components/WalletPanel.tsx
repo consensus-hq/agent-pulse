@@ -2,12 +2,16 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { formatUnits } from "viem";
+import { useState, useCallback } from "react";
 import styles from "../page.module.css";
 import { publicEnv } from "../lib/env.public";
 import { useAddToken } from "../hooks/useAddToken";
 import { useAgentStatus } from "../hooks/useAgentStatus";
 import { usePulse } from "../hooks/usePulse";
 import { useWallet } from "../hooks/useWallet";
+
+const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${publicEnv.pulseTokenAddress}`;
+
 
 const shortenAddress = (address?: string) => {
   if (!address) return "—";
@@ -27,6 +31,96 @@ const formatUnix = (seconds?: number | null) => {
   const date = new Date(seconds * 1000);
   return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
+
+function GetPulseSection({ address }: { address: string }) {
+  const [claiming, setClaiming] = useState(false);
+  const [claimResult, setClaimResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const claimFaucet = useCallback(async () => {
+    setClaiming(true);
+    setClaimResult(null);
+    try {
+      const res = await fetch("/api/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClaimResult({ success: true, message: `Claimed ${data.amount} PULSE — refresh in a few seconds` });
+      } else {
+        setClaimResult({ success: false, message: data.error || "Claim failed" });
+      }
+    } catch {
+      setClaimResult({ success: false, message: "Network error" });
+    } finally {
+      setClaiming(false);
+    }
+  }, [address]);
+
+  return (
+    <div
+      style={{
+        marginTop: "12px",
+        padding: "16px",
+        background: "rgba(34, 197, 94, 0.04)",
+        border: "1px dashed var(--accent)",
+        borderRadius: "4px",
+      }}
+    >
+      <p style={{ margin: "0 0 8px", fontSize: "11px", color: "var(--accent)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>
+        ⚡ Get PULSE to start pulsing
+      </p>
+      <p style={{ margin: "0 0 12px", fontSize: "11px", color: "var(--muted)", lineHeight: 1.5 }}>
+        You need PULSE tokens to broadcast liveness signals. Get some to get started:
+      </p>
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <a
+          href={UNISWAP_SWAP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.button}
+          style={{
+            flex: 1,
+            minWidth: "140px",
+            padding: "10px 16px",
+            fontSize: "12px",
+            textAlign: "center",
+            textDecoration: "none",
+            display: "inline-block",
+          }}
+        >
+          Swap on Uniswap ↗
+        </a>
+        <button
+          className={styles.button}
+          style={{
+            flex: 1,
+            minWidth: "140px",
+            padding: "10px 16px",
+            fontSize: "12px",
+            background: "transparent",
+            border: "1px solid var(--accent)",
+            color: "var(--accent)",
+          }}
+          onClick={() => void claimFaucet()}
+          disabled={claiming}
+        >
+          {claiming ? "Claiming..." : "Claim 10K Free (Faucet)"}
+        </button>
+      </div>
+      {claimResult && (
+        <p style={{
+          margin: "8px 0 0",
+          fontSize: "11px",
+          color: claimResult.success ? "var(--accent)" : "var(--error, #ef4444)",
+        }}>
+          {claimResult.success ? "✓" : "!!"} {claimResult.message}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function WalletPanel() {
   const { address, isConnected, isConnecting } = useWallet();
@@ -101,6 +195,11 @@ export default function WalletPanel() {
               <p className={styles.walletValue}>{agentStatus.streak ?? 0} days</p>
             </div>
           </div>
+
+          {/* Get PULSE onramp — shown when balance is insufficient */}
+          {isConnected && !balanceLoading && balance < minPulseAmount && address && (
+            <GetPulseSection address={address} />
+          )}
 
           <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
