@@ -406,6 +406,14 @@ export default function Home() {
               ? retryPayload.meta.timestamp * 1000
               : Date.now();
           }
+          if (!retryPayload.cache) {
+            const cc = retryResponse.headers.get("cache-control") ?? "";
+            const ttlMatch = cc.match(/max-age=(\d+)/);
+            retryPayload.cache = {
+              hit: retryResponse.headers.get("x-vercel-cache") === "HIT",
+              ttlSeconds: ttlMatch ? Number(ttlMatch[1]) : undefined,
+            };
+          }
           if (!Array.isArray(retryPayload.data)) {
             retryPayload.data = Array.isArray(retryPayload.recentPulses)
               ? retryPayload.recentPulses

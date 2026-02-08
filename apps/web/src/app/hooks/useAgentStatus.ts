@@ -116,9 +116,9 @@ export function useAgentStatus(agentAddress?: `0x${string}`): AgentStatus {
   if (apiFallback) {
     return {
       isAlive: apiFallback.isAlive,
-      lastPulseAt: apiFallback.lastPulse || null,
-      streak: apiFallback.streak || null,
-      hazardScore: apiFallback.hazardScore || null,
+      lastPulseAt: apiFallback.lastPulse ?? null,
+      streak: apiFallback.streak ?? null,
+      hazardScore: apiFallback.hazardScore ?? null,
       loading: apiLoading,
       hasData: true,
       source: "api",

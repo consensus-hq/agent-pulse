@@ -148,7 +148,7 @@ export default function WalletPanel() {
   const pulseSignalLabel = agentStatus.loading
     ? "CHECKING…"
     : agentStatus.isAlive === null
-    ? "CHECKING…"
+    ? (agentStatus.hasData === false ? "UNKNOWN" : "CHECKING…")
     : agentStatus.isAlive
     ? "ACTIVE"
     : "INACTIVE";
