@@ -6,7 +6,6 @@ import { useWallet } from "../hooks/useWallet";
 import { publicEnv } from "../lib/env.public";
 
 const NATIVE_ETH_SENTINEL = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${publicEnv.pulseTokenAddress}`;
 
 interface SwapQuoteResponse {
   success?: boolean;
@@ -65,7 +64,7 @@ export function SwapPanel() {
     }
   }, [address, amount]);
 
-  const uniswapUrl = `${UNISWAP_SWAP_URL}&exactAmount=${amount}&exactField=input`;
+  const swapUrl = "/defi";
 
   return (
     <div
@@ -229,9 +228,7 @@ export function SwapPanel() {
           </button>
         )}
         <a
-          href={uniswapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={swapUrl}
           className={styles.button}
           style={{
             flex: 2,
@@ -242,12 +239,12 @@ export function SwapPanel() {
             display: "inline-block",
           }}
         >
-          Swap on Uniswap ↗
+          Swap via HeyElsa ↗
         </a>
       </div>
 
       <p style={{ margin: "12px 0 0", fontSize: "10px", color: "var(--dim)", lineHeight: 1.5 }}>
-        Swaps execute on Uniswap (Base). PULSE tokens are used to send on-chain liveness signals.
+        Swaps execute via HeyElsa x402 on Base. PULSE tokens are used to send on-chain liveness signals.
       </p>
     </div>
   );
