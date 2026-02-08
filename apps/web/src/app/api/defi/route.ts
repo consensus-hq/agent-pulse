@@ -4,6 +4,9 @@ import { createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 
+// Ensure this route runs on Node.js (uses Buffer + crypto.randomBytes)
+export const runtime = "nodejs";
+
 /**
  * HeyElsa x402 Server-Side Proxy
  * 
@@ -14,7 +17,7 @@ import { base } from "viem/chains";
  * 
  * Security:
  * - HEYELSA_PAYMENT_KEY is server-side only (no NEXT_PUBLIC_ prefix)
- * - Max payment guard: rejects 402 asking for > $0.10 per call
+ * - Max payment guard: rejects 402 asking for > $0.05 per call
  * - Rate limiting: 10 req/min, 100 req/hour per IP
  * - Daily budget cap: $1.00 USDC max spend
  * - Logs payment amounts for monitoring
@@ -31,8 +34,8 @@ import { base } from "viem/chains";
 const RATE_LIMIT_PER_MINUTE = 10;
 const RATE_LIMIT_PER_HOUR = 100;
 const DAILY_BUDGET_USDC_ATOMIC = 1000000n; // $1.00 USDC (6 decimals)
-const RATE_LIMIT_TTL_MINUTES = 60; // 1 minute window
-const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
+const RATE_LIMIT_TTL_MINUTES = 60; // 60 seconds (1 minute window)
+const RATE_LIMIT_TTL_HOURS = 3600; // 3600 seconds (1 hour window)
 
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -151,9 +154,10 @@ async function getDailySpend(): Promise<bigint> {
 async function addToDailySpend(amount: bigint): Promise<void> {
   const { dateKey } = getTimeBuckets();
   const key = `budget:daily:${dateKey}`;
-  const current = await getDailySpend();
-  const newTotal = current + amount;
-  await kv.set(key, newTotal.toString(), { ex: 86400 });
+  // Atomic increment avoids read-modify-write race under concurrency
+  await kv.incrby(key, Number(amount));
+  // Ensure TTL is set (idempotent if already set)
+  await kv.expire(key, 86400);
 }
 
 async function isBudgetExceeded(): Promise<boolean> {
@@ -575,13 +579,15 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       const errorText = await response.text();
       console.error(`[HeyElsa x402] API error: ${response.status}`, errorText);
       
+      // Pass through 4xx as 400 (client/input errors), use 503 only for 5xx/network failures
+      const clientStatus = response.status >= 400 && response.status < 500 ? 400 : 503;
       return NextResponse.json(
         { 
           error: "HeyElsa API error", 
           status: response.status,
           message: errorText 
         },
-        { status: 503 }
+        { status: clientStatus }
       );
     }
 

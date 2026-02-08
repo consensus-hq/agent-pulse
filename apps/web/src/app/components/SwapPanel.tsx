@@ -53,7 +53,7 @@ export function SwapPanel() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Failed to get quote");
+        setError(data.message ?? data.error ?? "Failed to get quote");
       } else {
         setQuote(data);
       }
@@ -190,7 +190,7 @@ export function SwapPanel() {
                 fontFamily: "inherit",
               }}
             >
-              {loading ? "..." : quote?.quote?.to_amount ? Math.floor(quote.quote.to_amount).toLocaleString() : "—"}
+              {loading ? "..." : quote?.quote?.to_amount ? Math.floor(Number(quote.quote.to_amount)).toLocaleString() : "—"}
             </span>
             <span style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 600 }}>PULSE</span>
           </div>
@@ -199,8 +199,8 @@ export function SwapPanel() {
 
       {quote?.quote && (
         <div style={{ fontSize: "10px", color: "var(--muted)", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-          <span>≈ ${quote.quote.to_amount_usd?.toFixed(2)} · Gas ${quote.quote.gas_amount_usd?.toFixed(4)}</span>
-          <span>Impact: {quote.quote.price_impact?.toFixed(2)}%{quote._cached ? " (cached)" : ""}</span>
+          <span>≈ ${Number(quote.quote.to_amount_usd ?? 0).toFixed(2)} · Gas ${Number(quote.quote.gas_amount_usd ?? 0).toFixed(4)}</span>
+          <span>Impact: {Number(quote.quote.price_impact ?? 0).toFixed(2)}%{quote._cached ? " (cached)" : ""}</span>
         </div>
       )}
 

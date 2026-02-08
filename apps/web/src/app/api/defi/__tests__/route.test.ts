@@ -552,7 +552,7 @@ describe("HeyElsa x402 Proxy", () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.error).toBe("Invalid action");
-      expect(body.validActions).toEqual(["portfolio", "balances", "token_price"]);
+      expect(body.validActions).toEqual(["portfolio", "balances", "token_price", "swap_quote", "swap_execute", "gas_prices", "analyze_wallet"]);
     });
 
     it("should return 400 for missing address", async () => {
