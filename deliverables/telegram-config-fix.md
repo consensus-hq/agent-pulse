@@ -11,7 +11,8 @@
 {
   "enabled": true,
   "dmPolicy": "open",
-  "botToken": "8322090130:AAG...uHTI",
+  "botToken": "<REDACTED>",
+
   "groups": {
     "*": {
       "requireMention": true
