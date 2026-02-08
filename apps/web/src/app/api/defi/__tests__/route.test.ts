@@ -6,6 +6,7 @@ const mockState = {
   kvGet: vi.fn(),
   kvSet: vi.fn(),
   kvIncr: vi.fn().mockResolvedValue(1),
+  kvIncrby: vi.fn().mockResolvedValue(1),
   kvExpire: vi.fn().mockResolvedValue(1),
   signTypedData: vi.fn(),
 };
@@ -16,6 +17,7 @@ vi.mock("@vercel/kv", () => ({
     get: (...args: unknown[]) => mockState.kvGet(...args),
     set: (...args: unknown[]) => mockState.kvSet(...args),
     incr: (...args: unknown[]) => mockState.kvIncr(...args),
+    incrby: (...args: unknown[]) => mockState.kvIncrby(...args),
     expire: (...args: unknown[]) => mockState.kvExpire(...args),
     pipeline: vi.fn(() => ({
       incr: vi.fn(),
