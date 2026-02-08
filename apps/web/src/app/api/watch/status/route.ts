@@ -6,6 +6,7 @@ import { ensureCurrentRound, getDeskWatchState } from "../_lib/state";
 type DeskStats = {
   watchers: number;
   poolAtomic: string;
+  totalWeight: number;
   isDead: boolean;
   deathId?: string;
 };
@@ -19,18 +20,19 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
   for (const w of state.watches) {
     if (w.roundId !== round.id) continue;
     if (!deskStats[w.deskId]) {
-      deskStats[w.deskId] = { watchers: 0, poolAtomic: "0", isDead: false };
+      deskStats[w.deskId] = { watchers: 0, poolAtomic: "0", totalWeight: 0, isDead: false };
     }
     deskStats[w.deskId].watchers += 1;
     deskStats[w.deskId].poolAtomic = (
       BigInt(deskStats[w.deskId].poolAtomic) + BigInt(w.costAtomic)
     ).toString();
+    deskStats[w.deskId].totalWeight += w.multiplier;
   }
 
   for (const d of state.deaths) {
     if (d.roundId !== round.id) continue;
     if (!deskStats[d.deskId]) {
-      deskStats[d.deskId] = { watchers: 0, poolAtomic: "0", isDead: true, deathId: d.id };
+      deskStats[d.deskId] = { watchers: 0, poolAtomic: "0", totalWeight: 0, isDead: true, deathId: d.id };
       continue;
     }
     deskStats[d.deskId].isDead = true;
@@ -41,7 +43,9 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
   const roundDeaths = state.deaths.filter((d) => d.roundId === round.id);
 
   const totalPoolAtomic = roundWatches.reduce((sum, w) => sum + BigInt(w.costAtomic), 0n);
-  const totalClaimedAtomic = state.claims.reduce((sum, c) => sum + BigInt(c.rewardAtomic), 0n);
+  const totalClaimedAtomic = state.claims
+    .filter((c) => c.roundId === round.id)
+    .reduce((sum, c) => sum + BigInt(c.rewardAtomic), 0n);
 
   return NextResponse.json({
     round: {
@@ -61,4 +65,3 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
     serverTime: Date.now(),
   });
 }
-
