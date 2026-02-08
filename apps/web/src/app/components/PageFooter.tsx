@@ -11,7 +11,7 @@ const socialLinks = [
   { label: "X (Company)", href: "https://x.com/ConsensusCLI", icon: "𝕏" },
   { label: "X (Connie)", href: "https://x.com/ConnieOnBase", icon: "🤖" },
   { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", icon: "⌨" },
-  { label: "Moltbook", href: "https://www.moltbook.com/profile/ConsensusCLI", icon: "📖" },
+  { label: "Moltbook", href: "https://moltbook.com/u/AgentPulse", icon: "📖" },
   { label: "DexScreener", href: `https://dexscreener.com/base/${pulseToken}`, icon: "📊" },
   { label: "BaseScan", href: `https://basescan.org/address/${pulseRegistry}`, icon: "🔍" },
   { label: "Clanker", href: `https://clanker.world/clanker/${pulseToken}`, icon: "🪙" },
