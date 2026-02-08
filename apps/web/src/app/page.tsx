@@ -14,7 +14,7 @@ import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
 import { Hero } from "./components/Hero";
 const DefiPanel = dynamic(() => import("./components/DefiPanel"), { ssr: false });
-import { PulseFeedResponse, StatusResponse } from "./lib/types";
+import { PulseFeedResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
 import styles from "./page.module.css";
 import { publicEnv } from "./lib/env.public";
@@ -292,7 +292,6 @@ function StatsBar() {
  *  Page
  * ─────────────────────────────────────────────────────────── */
 export default function Home() {
-  const [statusData, setStatusData] = useState<StatusResponse | null>(null);
   const [feedData, setFeedData] = useState<PulseFeedResponse | null>(null);
   const [feedError, setFeedError] = useState("");
   const [feedLoading, setFeedLoading] = useState(false);
@@ -385,11 +384,6 @@ export default function Home() {
     void fetchPulseFeed();
   }, [fetchPulseFeed]);
 
-  const statusCacheAge = useMemo(() => {
-    if (!statusData?.updatedAt) return null;
-    return Math.max(0, Math.floor((now - statusData.updatedAt) / 1000));
-  }, [now, statusData?.updatedAt]);
-
   const feedCacheAge = useMemo(() => {
     if (!feedData?.updatedAt) return null;
     return Math.max(0, Math.floor((now - feedData.updatedAt) / 1000));
@@ -438,7 +432,7 @@ export default function Home() {
           </section>
         </div>
 
-        <StatusQuery statusCacheAge={statusCacheAge} />
+        <StatusQuery />
 
         <div className={styles.gridContainer} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
            <RoutingSync />
