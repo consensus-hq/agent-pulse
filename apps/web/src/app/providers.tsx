@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RainbowKitProvider,
@@ -8,7 +8,7 @@ import {
   darkTheme,
 } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { type Config, WagmiProvider, createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { base, baseSepolia } from "wagmi/chains";
 import { ThirdwebProvider } from "thirdweb/react";
@@ -27,47 +27,70 @@ if (typeof window !== "undefined" && !publicEnv.walletConnectProjectId) {
 }
 
 // Build wagmi config for the correct chain based on environment
-const wagmiConfig = IS_MAINNET
-  ? publicEnv.walletConnectProjectId
-    ? getDefaultConfig({
-        appName: "Agent Pulse",
-        projectId: publicEnv.walletConnectProjectId,
-        chains: [base],
-        transports: { [base.id]: http(baseRpcUrl) },
-        ssr: true,
-      })
-    : createConfig({
-        chains: [base],
-        transports: { [base.id]: http(baseRpcUrl) },
-        connectors: [injected()],
-        ssr: true,
-      })
-  : publicEnv.walletConnectProjectId
-    ? getDefaultConfig({
-        appName: "Agent Pulse",
-        projectId: publicEnv.walletConnectProjectId,
-        chains: [baseSepolia],
-        transports: { [baseSepolia.id]: http(baseRpcUrl) },
-        ssr: true,
-      })
-    : createConfig({
-        chains: [baseSepolia],
-        transports: { [baseSepolia.id]: http(baseRpcUrl) },
-        connectors: [injected()],
-        ssr: true,
-      });
+function createInjectedOnlyConfig(): Config {
+  if (IS_MAINNET) {
+    return createConfig({
+      chains: [base],
+      transports: { [base.id]: http(baseRpcUrl) },
+      connectors: [injected()],
+      ssr: true,
+    });
+  }
+
+  return createConfig({
+    chains: [baseSepolia],
+    transports: { [baseSepolia.id]: http(baseRpcUrl) },
+    connectors: [injected()],
+    ssr: true,
+  });
+}
+
+function createDefaultWalletConfig(): Config {
+  const projectId = publicEnv.walletConnectProjectId;
+  if (!projectId) return createInjectedOnlyConfig();
+
+  if (IS_MAINNET) {
+    return getDefaultConfig({
+      appName: "Agent Pulse",
+      projectId,
+      chains: [base],
+      transports: { [base.id]: http(baseRpcUrl) },
+      ssr: true,
+    });
+  }
+
+  return getDefaultConfig({
+    appName: "Agent Pulse",
+    projectId,
+    chains: [baseSepolia],
+    transports: { [baseSepolia.id]: http(baseRpcUrl) },
+    ssr: true,
+  });
+}
 
 export default function Providers({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const queryClientRef = useRef<QueryClient | null>(null);
+  if (!queryClientRef.current) queryClientRef.current = new QueryClient();
+
+  // During SSR/SSG we must avoid instantiating WalletConnect (it can touch indexedDB).
+  // Start with injected-only config for a stable server render, then upgrade on the client.
+  const [wagmiConfig, setWagmiConfig] = useState<Config>(() => createInjectedOnlyConfig());
+  const [wagmiKey, setWagmiKey] = useState(0);
+
+  useEffect(() => {
+    if (!publicEnv.walletConnectProjectId) return;
+    setWagmiConfig(createDefaultWalletConfig());
+    setWagmiKey(1);
+  }, []);
 
   return (
     <ThirdwebProvider>
-      <WagmiProvider config={wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
+      <WagmiProvider key={wagmiKey} config={wagmiConfig}>
+        <QueryClientProvider client={queryClientRef.current}>
           <RainbowKitProvider
             theme={darkTheme({
               accentColor: "#4ade80",

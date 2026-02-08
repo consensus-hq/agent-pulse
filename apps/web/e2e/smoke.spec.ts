@@ -10,42 +10,46 @@ test.describe("Agent Pulse Smoke Tests", () => {
 
   test("status query section is visible", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /status query/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /agent lookup/i })).toBeVisible();
   });
 
   test("pulse feed section shows data", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /pulse feed/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /pulse stream/i })).toBeVisible();
     // Wait for feed to load
     await page.waitForTimeout(2000);
   });
 
   test("wallet section is present", async ({ page }) => {
     await page.goto("/");
-    // The Authenticate button is rendered but hidden until wallet provider loads.
-    // Verify the wallet panel section exists instead.
-    await expect(page.locator("[data-auth-status]").first()).toBeAttached();
+    await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
   test("status query with valid address", async ({ page }) => {
     await page.goto("/");
     const input = page.getByLabel("Agent wallet address");
     await input.fill(VALID_ADDRESS);
-    await page.getByRole("button", { name: "Query" }).click();
+    await page.getByRole("button", { name: /query/i }).click();
     // Wait for response
     await page.waitForTimeout(2000);
     // Should show some JSON response (isAlive field)
-    await expect(page.locator("pre[role='status']")).toContainText("isAlive");
+    const statusSection = page.locator("section", {
+      has: page.getByRole("heading", { name: /agent lookup/i }),
+    });
+    await expect(statusSection.locator("pre")).toContainText("isAlive");
   });
 
   test("status query with invalid address shows error", async ({ page }) => {
     await page.goto("/");
     const input = page.getByLabel("Agent wallet address");
     await input.fill("invalid");
-    await page.getByRole("button", { name: "Query" }).click();
+    await page.getByRole("button", { name: /query/i }).click();
     await page.waitForTimeout(1500);
     // Should show error
-    await expect(page.locator("text=error")).toBeVisible();
+    const statusSection = page.locator("section", {
+      has: page.getByRole("heading", { name: /agent lookup/i }),
+    });
+    await expect(statusSection.getByText(/!!\s*error/i)).toBeVisible();
   });
 
   test("network indicator shows mainnet chain", async ({ page }) => {
