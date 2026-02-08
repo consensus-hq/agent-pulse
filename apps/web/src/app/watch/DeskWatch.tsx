@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useChainId, useWalletClient } from "wagmi";
-import { isAddress, type Hex } from "viem";
+import { isAddress, type Hex, type WalletClient } from "viem";
 import { publicEnv } from "../lib/env.public";
 import { useAgentStatus } from "../hooks/useAgentStatus";
 
@@ -110,7 +110,7 @@ function parseEip155ChainId(network: string): number | null {
 
 async function createX402ExactPaymentHeader(args: {
   accept: X402Accept;
-  walletClient: NonNullable<ReturnType<typeof useWalletClient>["data"]>;
+  walletClient: WalletClient;
   from: `0x${string}`;
 }): Promise<string> {
   const { accept, walletClient, from } = args;
@@ -201,7 +201,9 @@ function HeartbeatLine({ data, color, width = 300, height = 44 }: { data: number
       return `${x},${y}`;
     })
     .join(" ");
-  const id = `grad-${color.replace("#", "")}-${Math.random().toString(36).slice(2, 6)}`;
+  // Stable across renders/SSR to satisfy `react-hooks/purity` and avoid SVG id collisions.
+  const reactId = useId();
+  const id = `grad-${reactId}`.replace(/[^a-zA-Z0-9_-]/g, "");
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height, overflow: "visible", display: "block" }}>
@@ -286,7 +288,7 @@ function PulseRing({ status, size = 10 }: { status: GameStatus; size?: number })
 }
 
 function TimeSince({ timestampSec }: { timestampSec: number | null }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
@@ -301,7 +303,7 @@ function TimeSince({ timestampSec }: { timestampSec: number | null }) {
 }
 
 function RoundTimer({ startedAt, endsAt }: { startedAt: number; endsAt: number }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
