@@ -25,7 +25,7 @@ import { publicEnv } from "./lib/env.public";
  * ─────────────────────────────────────────────────────────── */
 function NavBar() {
   const links = [
-    { label: "Get PULSE", href: "https://app.uniswap.org/swap?chain=base&outputCurrency=0x21111B39A502335aC7e45c4574Dd083A69258b07", external: true },
+    { label: "Get PULSE", href: "#wallet-panel", external: false },
     { label: "Docs", href: "/docs" },
     { label: "Build", href: "/build" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
@@ -64,19 +64,40 @@ function NavBar() {
             )}
           </>
         );
-        return l.external ? (
-          <a
-            key={l.label}
-            href={l.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={linkStyle}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
-          >
-            {content}
-          </a>
-        ) : (
+        if (l.external) {
+          return (
+            <a
+              key={l.label}
+              href={l.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={linkStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
+            >
+              {content}
+            </a>
+          );
+        }
+        if (l.href.startsWith("#")) {
+          return (
+            <a
+              key={l.label}
+              href={l.href}
+              style={linkStyle}
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.querySelector(l.href);
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent-bright, #86efac)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--accent)")}
+            >
+              {content}
+            </a>
+          );
+        }
+        return (
           <Link
             key={l.label}
             href={l.href}
@@ -425,7 +446,7 @@ export default function Home() {
             <Erc8004Panel address="" showPulseEligibility={true} />
           </section>
 
-          <section className={styles.section}>
+          <section id="wallet-panel" className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Transmission</h2>
               <span className={styles.tag}>x402 Pulse</span>
