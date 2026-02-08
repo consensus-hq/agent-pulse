@@ -24,6 +24,7 @@ import { publicEnv } from "./lib/env.public";
  * ─────────────────────────────────────────────────────────── */
 function NavBar() {
   const links = [
+    { label: "Get PULSE", href: "https://app.uniswap.org/swap?chain=base&outputCurrency=0x21111B39A502335aC7e45c4574Dd083A69258b07", external: true },
     { label: "Docs", href: "/docs" },
     { label: "Build", href: "/build" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
