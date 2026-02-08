@@ -374,7 +374,7 @@ export default function Home() {
     return Math.max(0, Math.floor((now - feedData.updatedAt) / 1000));
   }, [now, feedData?.updatedAt]);
 
-  const isAlive = Boolean(statusData?.isAlive);
+  // isAlive gating is now handled inside <RoutingSync /> via useAgentStatus
 
   return (
     <div className={styles.page}>
@@ -420,7 +420,7 @@ export default function Home() {
         <StatusQuery statusCacheAge={statusCacheAge} />
 
         <div className={styles.gridContainer} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-           <RoutingSync isAlive={isAlive} />
+           <RoutingSync />
            <DefiPanel />
         </div>
 
