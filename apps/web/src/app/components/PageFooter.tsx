@@ -1,16 +1,20 @@
 "use client";
 
 import styles from "../page.module.css";
+import { getContractAddress } from "@/lib/config";
+
+const pulseToken = getContractAddress("pulseToken");
+const pulseRegistry = getContractAddress("pulseRegistry");
 
 const socialLinks = [
   { label: "X (Product)", href: "https://x.com/PulseOnBase", icon: "𝕏" },
   { label: "X (Company)", href: "https://x.com/ConsensusCLI", icon: "𝕏" },
   { label: "X (Connie)", href: "https://x.com/ConnieOnBase", icon: "🤖" },
   { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", icon: "⌨" },
-  { label: "Moltbook", href: "https://www.moltbook.com/profile/ConsensusCLI", icon: "📖" },
-  { label: "DexScreener", href: "https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07", icon: "📊" },
-  { label: "BaseScan", href: "https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846", icon: "🔍" },
-  { label: "Clanker", href: "https://clanker.world/clanker/0x21111B39A502335aC7e45c4574Dd083A69258b07", icon: "🪙" },
+  { label: "Moltbook", href: "https://moltbook.com/u/AgentPulse", icon: "📖" },
+  { label: "DexScreener", href: `https://dexscreener.com/base/${pulseToken}`, icon: "📊" },
+  { label: "BaseScan", href: `https://basescan.org/address/${pulseRegistry}`, icon: "🔍" },
+  { label: "Clanker", href: `https://clanker.world/clanker/${pulseToken}`, icon: "🪙" },
 ];
 
 export function PageFooter() {

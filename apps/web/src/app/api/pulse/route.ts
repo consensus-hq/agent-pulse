@@ -6,9 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 // ENV CONFIG
 // ============================================
 
-const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "";
+const CHAIN_ID = process.env.CHAIN_ID || process.env.NEXT_PUBLIC_CHAIN_ID || "8453";
 const IS_MAINNET = CHAIN_ID === "8453";
-const NETWORK = IS_MAINNET ? "eip155:8453" : "eip155:84532";
+const NETWORK: `${string}:${string}` = `eip155:${CHAIN_ID}`;
 
 const PULSE_AMOUNT = process.env.PULSE_AMOUNT || "1000000000000000000";
 const PULSE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_PULSE_TOKEN_ADDRESS || "";

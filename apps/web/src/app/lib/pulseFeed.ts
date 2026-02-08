@@ -8,25 +8,33 @@ export type PulseFeedItem = {
   explorerUrl?: string;
 };
 
+/**
+ * Current API response format from /api/pulse-feed
+ */
 type PulseFeedResponse = {
-  updatedAt: number;
-  cache?: { hit: boolean; ttlSeconds: number };
-  window?: { fromBlock: string; toBlock: string };
-  agents?: Array<{
-    address: string;
-    isAlive: boolean;
-    lastPulseAt: number;
-    streak: number;
-    hazardScore: number;
-  }>;
-  recentPulses?: Array<{
+  data: Array<{
     agent: string;
     amount: string;
     timestamp: number;
     streak: number;
-    txHash: string;
-    blockNumber: string;
+    blockNumber: number;
+    transactionHash: string;
+    logIndex: number;
+    timestampFormatted: string;
   }>;
+  pagination: {
+    page: number;
+    limit: number;
+    totalEvents: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  meta: {
+    requestId: string;
+    durationMs: number;
+    timestamp: number;
+  };
 };
 
 const fallbackFeed: PulseFeedItem[] = [];
@@ -49,26 +57,21 @@ export async function loadPulseFeed(): Promise<PulseFeedItem[]> {
     }
 
     const data = (await response.json()) as PulseFeedResponse;
-    const pulses = data.recentPulses ?? [];
-    const agents = data.agents ?? [];
+    const pulses = data.data ?? [];
 
     if (pulses.length === 0) {
       return fallbackFeed;
     }
 
-    const agentMap = new Map(agents.map((agent) => [agent.address, agent]));
-
-    return pulses.map((pulse) => {
-      const agent = agentMap.get(pulse.agent);
-      return {
-        agent: pulse.agent,
-        lastSeen: toIso(agent?.lastPulseAt ?? pulse.timestamp),
-        streak: agent ? `${agent.streak} day streak` : `${pulse.streak} day streak`,
-        amount: pulse.amount,
-        note: agent?.isAlive ? "alive" : "stale",
-        txHash: pulse.txHash,
-      };
-    });
+    return pulses.map((pulse) => ({
+      agent: pulse.agent,
+      lastSeen: toIso(pulse.timestamp),
+      streak: pulse.streak > 0 ? `${pulse.streak} day streak` : "new",
+      amount: pulse.amount,
+      note: "alive",
+      txHash: pulse.transactionHash,
+      explorerUrl: `https://basescan.org/tx/${pulse.transactionHash}`,
+    }));
   } catch {
     return fallbackFeed;
   }

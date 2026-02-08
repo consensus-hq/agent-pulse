@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import styles from "../page.module.css";
-
-const DEFAULT_ORIGIN = "https://agent-pulse-nine.vercel.app";
+import { getAppUrl, getContractAddress, getRpcUrl } from "@/lib/config";
 
 export function CommandReference() {
-  const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
+  const [origin, setOrigin] = useState(getAppUrl);
 
   useEffect(() => {
     // Ensure the examples always match the domain the user is currently on.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
   }, []);
+
+  const registryAddress = getContractAddress("pulseRegistry");
+  const rpcUrl = getRpcUrl();
 
   const commands = useMemo(
     () => `# check if an agent is alive (free)
@@ -25,19 +27,19 @@ curl -sS -f "${origin}/api/status/0xYourAgent"
 curl -sS -f "${origin}/api/pulse-feed"
 
 # viem example (Base mainnet RPC)
-const client = createPublicClient({ chain: base, transport: http("https://mainnet.base.org") })
+const client = createPublicClient({ chain: base, transport: http("${rpcUrl}") })
 const status = await client.readContract({
-  address: "0xe61C615743A02983A46aFF66Db035297e8a43846",
+  address: "${registryAddress}",
   abi: [{ name: "getAgentStatus", type: "function", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "bool" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }] }],
   functionName: "getAgentStatus",
   args: ["0xYourAgent"],
 })
 
 # cast examples (Base mainnet)
-cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "getAgentStatus(address)(bool,uint256,uint256,uint256)" 0xYourAgent --rpc-url https://mainnet.base.org
-cast call 0xe61C615743A02983A46aFF66Db035297e8a43846 "ttlSeconds()(uint256)" --rpc-url https://mainnet.base.org
+cast call ${registryAddress} "getAgentStatus(address)(bool,uint256,uint256,uint256)" 0xYourAgent --rpc-url ${rpcUrl}
+cast call ${registryAddress} "ttlSeconds()(uint256)" --rpc-url ${rpcUrl}
 `,
-    [origin]
+    [origin, registryAddress, rpcUrl]
   );
 
   return (
