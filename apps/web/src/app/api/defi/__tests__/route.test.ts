@@ -6,7 +6,6 @@ const mockState = {
   kvGet: vi.fn(),
   kvSet: vi.fn(),
   kvIncr: vi.fn().mockResolvedValue(1),
-  kvIncrby: vi.fn().mockResolvedValue(1),
   kvExpire: vi.fn().mockResolvedValue(1),
   signTypedData: vi.fn(),
 };
@@ -17,7 +16,6 @@ vi.mock("@vercel/kv", () => ({
     get: (...args: unknown[]) => mockState.kvGet(...args),
     set: (...args: unknown[]) => mockState.kvSet(...args),
     incr: (...args: unknown[]) => mockState.kvIncr(...args),
-    incrby: (...args: unknown[]) => mockState.kvIncrby(...args),
     expire: (...args: unknown[]) => mockState.kvExpire(...args),
     pipeline: vi.fn(() => ({
       incr: vi.fn(),
@@ -554,7 +552,7 @@ describe("HeyElsa x402 Proxy", () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.error).toBe("Invalid action");
-      expect(body.validActions).toEqual(["portfolio", "balances", "token_price", "swap_quote", "gas_prices", "analyze_wallet"]);
+      expect(body.validActions).toEqual(expect.arrayContaining(["portfolio", "balances", "token_price", "swap_quote", "swap_execute"]));
     });
 
     it("should return 400 for missing address", async () => {

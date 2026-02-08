@@ -22,6 +22,7 @@ interface SwapQuoteResponse {
     to_asset: string;
     from_asset: string;
   };
+  source?: string;
   error?: string;
   _cached?: boolean;
 }
