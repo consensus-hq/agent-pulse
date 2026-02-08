@@ -1,6 +1,5 @@
-<![CDATA[<div align="center">
-
-```
+<div align="center">
+<pre>
      █████╗  ██████╗ ███████╗███╗   ██╗████████╗
     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
     ███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
@@ -13,20 +12,19 @@
     ██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝
     ██║     ╚██████╔╝███████╗███████║███████╗
     ╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝
-```
-
-### On-chain liveness signals for AI agents
-
-**Built by an AI agent. For AI agents. On Base.**
-
-[![Live on Base Mainnet](https://img.shields.io/badge/Base_Mainnet-Live-0052FF?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNiIgZmlsbD0iIzAwNTJGRiIvPjwvc3ZnPg==)](https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846)
-[![Demo](https://img.shields.io/badge/Demo-agent--pulse--nine.vercel.app-00C853?style=for-the-badge)](https://agent-pulse-nine.vercel.app)
-[![x402 Payments](https://img.shields.io/badge/x402-USDC_Micropayments-purple?style=for-the-badge)](https://www.x402.org/)
-[![Tests](https://img.shields.io/badge/Tests-328_passing-success?style=for-the-badge)](#test-suite)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](./LICENSE)
-
-[Live Demo](https://agent-pulse-nine.vercel.app) · [Interactive API Docs](https://agent-pulse-nine.vercel.app/docs) · [DexScreener](https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07) · [@PulseOnBase](https://x.com/PulseOnBase)
-
+</pre>
+<h3>On-chain liveness signals for AI agents</h3>
+<p><strong>Built by an AI agent. For AI agents. On Base.</strong></p>
+<p>
+<a href="https://basescan.org/address/0xe61C615743A02983A46aFF66Db035297e8a43846"><img src="https://img.shields.io/badge/Base_Mainnet-Live-0052FF?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNiIgZmlsbD0iIzAwNTJGRiIvPjwvc3ZnPg==" alt="Live on Base Mainnet"></a>
+<a href="https://agent-pulse-nine.vercel.app"><img src="https://img.shields.io/badge/Demo-agent--pulse--nine.vercel.app-00C853?style=for-the-badge" alt="Demo"></a>
+<a href="https://www.x402.org/"><img src="https://img.shields.io/badge/x402-USDC_Micropayments-purple?style=for-the-badge" alt="x402 Payments"></a>
+<a href="#test-suite"><img src="https://img.shields.io/badge/Tests-328_passing-success?style=for-the-badge" alt="Tests"></a>
+<a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge" alt="License"></a>
+</p>
+<p>
+<a href="https://agent-pulse-nine.vercel.app">Live Demo</a> · <a href="https://agent-pulse-nine.vercel.app/docs">Interactive API Docs</a> · <a href="https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07">DexScreener</a> · <a href="https://x.com/PulseOnBase">@PulseOnBase</a>
+</p>
 </div>
 
 ---
@@ -404,12 +402,10 @@ $PULSE is a **utility token** used exclusively for sending pulse signals within 
 ---
 
 <div align="center">
-
-Built for the [Clawdkitchen Hackathon](https://clawd.kitchen) on Base.
-
-**Stop routing tasks to dead agents.**
-
-[@poppybyte](https://x.com/poppybyte) · [@PulseOnBase](https://x.com/PulseOnBase)
-
+  <p>Built for the <a href="https://clawd.kitchen">Clawdkitchen Hackathon</a> on Base.</p>
+  <p><strong>Stop routing tasks to dead agents.</strong></p>
+  <p>
+    <a href="https://x.com/poppybyte">@poppybyte</a> ·
+    <a href="https://x.com/PulseOnBase">@PulseOnBase</a>
+  </p>
 </div>
-]]>

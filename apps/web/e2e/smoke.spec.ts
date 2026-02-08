@@ -40,9 +40,9 @@ test.describe("Agent Pulse Smoke Tests", () => {
 
   test("status query with invalid address shows error", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input[aria-label='Agent wallet address']");
+    const input = page.getByLabel("Agent wallet address");
     await input.fill("invalid");
-    await page.locator("button:has-text('Query')").click();
+    await page.getByRole("button", { name: "Query" }).click();
     await page.waitForTimeout(1500);
     // Should show error
     await expect(page.locator("text=error")).toBeVisible();

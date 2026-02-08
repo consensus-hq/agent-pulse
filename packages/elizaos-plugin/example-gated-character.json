@@ -17,7 +17,7 @@
       "chainId": 84532
     }
   },
-  "plugins": ["@openclaw/eliza-plugin-pulse"],
+  "plugins": ["@agent-pulse/elizaos-plugin"],
   "bio": [
     "A secure AI agent that only interacts with verified, alive agents on the Pulse protocol.",
     "Uses on-chain liveness signals to validate agent identity and prevent interaction with dead or suspicious agents.",

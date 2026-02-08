@@ -1,4 +1,4 @@
-# @openclaw/eliza-plugin-pulse
+# @agent-pulse/elizaos-plugin
 
 ElizaOS plugin for the [Agent Pulse](https://agentpulse.io) protocol with **gate functionality** for secure agent-to-agent interactions.
 
@@ -17,7 +17,7 @@ Agent Pulse is a decentralized liveness protocol where agents prove they're aliv
 ## Installation
 
 ```bash
-npm install @openclaw/eliza-plugin-pulse
+npm install @agent-pulse/elizaos-plugin
 ```
 
 ## Quick Start
@@ -27,7 +27,7 @@ npm install @openclaw/eliza-plugin-pulse
 ```json
 {
   "name": "MyAgent",
-  "plugins": ["@openclaw/eliza-plugin-pulse"],
+  "plugins": ["@agent-pulse/elizaos-plugin"],
   "settings": {
     "pulse": {
       "gate": {
@@ -236,7 +236,7 @@ TTL: 24h | Min pulse: 1 PULSE
 ### Check if an Agent is Alive
 
 ```typescript
-import { isAlive, getPulseGateSettings } from "@openclaw/eliza-plugin-pulse";
+import { isAlive, getPulseGateSettings } from "@agent-pulse/elizaos-plugin";
 
 const settings = getPulseGateSettings(runtime);
 if (settings) {
@@ -255,7 +255,7 @@ if (settings) {
 ### Extract Identity from Message
 
 ```typescript
-import { extractIdentity, isLikelyAgent } from "@openclaw/eliza-plugin-pulse";
+import { extractIdentity, isLikelyAgent } from "@agent-pulse/elizaos-plugin";
 
 const identity = extractIdentity(message, runtime);
 if (identity.found) {
@@ -269,7 +269,7 @@ const isAgent = isLikelyAgent(message, runtime);
 ### Manual Gate Check
 
 ```typescript
-import { makeGateDecision } from "@openclaw/eliza-plugin-pulse";
+import { makeGateDecision } from "@agent-pulse/elizaos-plugin";
 
 const decision = makeGateDecision(
   "strict",           // mode
