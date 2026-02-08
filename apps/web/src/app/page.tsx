@@ -28,7 +28,7 @@ function NavBar() {
     { label: "Build", href: "/build" },
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
     { label: "npm", href: "https://www.npmjs.com/package/@agent-pulse/sdk", external: true },
-    { label: "ElizaOS", href: "https://www.npmjs.com/package/@openclaw/eliza-plugin-pulse", external: true },
+    { label: "ElizaOS", href: "https://www.npmjs.com/package/@agent-pulse/elizaos-plugin", external: true },
     { label: "DexScreener", href: "https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07", external: true },
   ];
 
@@ -119,7 +119,7 @@ function GetStartedCards() {
     {
       title: "ElizaOS",
       tag: "Plugin",
-      command: "npm install @openclaw/eliza-plugin-pulse",
+      command: "npm install @agent-pulse/elizaos-plugin",
       description: "ElizaOS plugin. Native liveness for agent frameworks.",
     },
   ];
