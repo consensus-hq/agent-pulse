@@ -494,7 +494,7 @@ function WatchButton({
 
 type StatusResponse = {
   round: { id: string; startedAt: number; endsAt: number; remainingMs: number; status: string };
-  deskStats: Record<string, { watchers: number; poolAtomic: string; isDead: boolean; deathId?: string }>;
+  deskStats: Record<string, { watchers: number; poolAtomic: string; totalWeight: number; isDead: boolean; deathId?: string }>;
   totals: { watchers: number; poolAtomic: string; deaths: number; claimedAtomic: string };
   serverTime: number;
 };
@@ -1363,10 +1363,10 @@ export default function DeskWatch() {
       const st = stats[w.deskId];
       if (!st?.isDead || !st.deathId) continue;
       const pool = BigInt(st.poolAtomic || "0");
-      const watchers = BigInt(st.watchers || 0);
+      const totalWeight = BigInt(st.totalWeight || 0);
       const rewardPool = (pool * 2n * 9000n) / 10_000n; // matches server: 2x pool, 10% protocol cut
       const myWeight = BigInt(w.multiplier || 1);
-      const estAtomic = watchers > 0n ? (rewardPool * myWeight) / watchers : 0n;
+      const estAtomic = totalWeight > 0n ? (rewardPool * myWeight) / totalWeight : 0n;
       const rewardUsd = formatUsdFromMicro(estAtomic);
 
       setDeathModal((cur) => (cur?.deskId === w.deskId ? { ...cur, rewardUsd } : { deskId: w.deskId, rewardUsd }));
