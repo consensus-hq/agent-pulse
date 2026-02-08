@@ -10,7 +10,7 @@ import { useAgentStatus } from "../hooks/useAgentStatus";
 import { usePulse } from "../hooks/usePulse";
 import { useWallet } from "../hooks/useWallet";
 
-const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${publicEnv.pulseTokenAddress}`;
+const SWAP_PAGE_URL = "/defi";
 
 
 const shortenAddress = (address?: string) => {
@@ -76,9 +76,7 @@ function GetPulseSection({ address }: { address: string }) {
       </p>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <a
-          href={UNISWAP_SWAP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={SWAP_PAGE_URL}
           className={styles.button}
           style={{
             flex: 1,
@@ -90,7 +88,7 @@ function GetPulseSection({ address }: { address: string }) {
             display: "inline-block",
           }}
         >
-          Swap on Uniswap ↗
+          Swap ETH → PULSE
         </a>
         <button
           className={styles.button}
@@ -148,9 +146,9 @@ export default function WalletPanel() {
   const canPulse = isReady && minPulseAmount > 0n && !isPending;
 
   const pulseSignalLabel = agentStatus.loading
-    ? "LOADING"
+    ? "CHECKING…"
     : agentStatus.isAlive === null
-    ? "UNKNOWN"
+    ? "CHECKING…"
     : agentStatus.isAlive
     ? "ACTIVE"
     : "INACTIVE";

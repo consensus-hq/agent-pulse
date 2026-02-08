@@ -395,9 +395,32 @@ export default function Home() {
 
         setFeedData(payload);
       }
-    } catch {
-      setFeedError("Network error.");
-      setFeedData(null);
+    } catch (err) {
+      // Retry once on network error before showing error to user
+      try {
+        const retryResponse = await fetch(feedUrl, { cache: "no-store" });
+        if (retryResponse.ok) {
+          const retryPayload = (await retryResponse.json()) as PulseFeedResponse;
+          if (!retryPayload.updatedAt) {
+            retryPayload.updatedAt = retryPayload.meta?.timestamp
+              ? retryPayload.meta.timestamp * 1000
+              : Date.now();
+          }
+          if (!Array.isArray(retryPayload.data)) {
+            retryPayload.data = Array.isArray(retryPayload.recentPulses)
+              ? retryPayload.recentPulses
+              : [];
+          }
+          setFeedData(retryPayload);
+          setFeedError("");
+        } else {
+          setFeedError("Pulse feed unavailable.");
+          setFeedData(null);
+        }
+      } catch {
+        setFeedError("Network error.");
+        setFeedData(null);
+      }
     } finally {
       setFeedLoading(false);
       feedInitialLoad.current = false;

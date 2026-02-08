@@ -66,11 +66,13 @@ export function RoutingSync() {
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>Routing sync</h2>
         <span className={styles.muted}>
-          {status.isAlive === null
-            ? "Unknown (RPC)"
-            : isAlive
-              ? "Eligible"
-              : "Locked (requires alive status)"}
+          {status.loading
+            ? "Checking…"
+            : status.isAlive === null
+              ? "Connect wallet"
+              : isAlive
+                ? `Eligible${status.source === "api" ? " (via API)" : ""}`
+                : "Locked (requires alive status)"}
         </span>
       </div>
       <div className={styles.row}>
