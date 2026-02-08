@@ -25,4 +25,7 @@ export const publicEnv = {
   lastRunLabel: (process.env.NEXT_PUBLIC_LAST_RUN_LABEL ?? "").trim(),
   aliveWindowSeconds: (process.env.NEXT_PUBLIC_ALIVE_WINDOW_SECONDS ?? "").trim(),
   inboxKeyTtlSeconds: (process.env.NEXT_PUBLIC_INBOX_KEY_TTL_SECONDS ?? "").trim(),
+  deskWatchDeskVcAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_VC_AGENT ?? "").trim(),
+  deskWatchDeskCbAgent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_CB_AGENT ?? "").trim(),
+  deskWatchDesk03Agent: (process.env.NEXT_PUBLIC_DESK_WATCH_DESK_03_AGENT ?? "").trim(),
 };
