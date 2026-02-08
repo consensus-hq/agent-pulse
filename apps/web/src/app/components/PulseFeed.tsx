@@ -6,6 +6,16 @@ import { PulseFeedResponse } from "../lib/types";
 import { formatMs, formatUnix, shortenHash } from "../lib/format";
 import styles from "../page.module.css";
 
+/** Safely format a wei-string amount. Returns the raw string on failure instead of crashing. */
+function safeFormatAmount(amount: string | undefined): string {
+  if (!amount) return "0";
+  try {
+    return formatUnits(BigInt(amount), 18);
+  } catch {
+    return amount;
+  }
+}
+
 interface PulseFeedProps {
   feedData: PulseFeedResponse | null;
   feedError: string;
@@ -82,7 +92,7 @@ export function PulseFeed({
                   {pulse.agent.slice(0, 8)}...{pulse.agent.slice(-6)}
                 </span>
                 <span style={{ color: 'var(--accent-bright)', fontWeight: 600 }}>
-                  {formatUnits(BigInt(pulse.amount), 18)}
+                  {safeFormatAmount(pulse.amount)}
                 </span>
                 <span style={{ color: 'var(--warning)' }}>
                   {pulse.streak}🔥

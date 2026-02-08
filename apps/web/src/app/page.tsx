@@ -346,9 +346,30 @@ export default function Home() {
         setFeedError(payload?.error ?? "Pulse feed unavailable.");
         setFeedData(null);
       } else {
-        if (!payload.updatedAt && payload.meta?.timestamp) {
-          payload.updatedAt = payload.meta.timestamp * 1000;
+        // Derive updatedAt from meta.timestamp (seconds → ms) or fall back to now
+        if (!payload.updatedAt) {
+          payload.updatedAt = payload.meta?.timestamp
+            ? payload.meta.timestamp * 1000
+            : Date.now();
         }
+
+        // Populate cache metadata from response headers so PulseFeed can display TTL
+        if (!payload.cache) {
+          const cc = response.headers.get("cache-control") ?? "";
+          const ttlMatch = cc.match(/max-age=(\d+)/);
+          payload.cache = {
+            hit: response.headers.get("x-vercel-cache") === "HIT",
+            ttlSeconds: ttlMatch ? Number(ttlMatch[1]) : undefined,
+          };
+        }
+
+        // Guard: ensure data is always an array (prevent downstream crashes)
+        if (!Array.isArray(payload.data)) {
+          payload.data = Array.isArray(payload.recentPulses)
+            ? payload.recentPulses
+            : [];
+        }
+
         setFeedData(payload);
       }
     } catch {
