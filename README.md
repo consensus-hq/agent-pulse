@@ -26,7 +26,7 @@
 <a href="https://agent-pulse-nine.vercel.app">Live Demo</a> · <a href="https://agent-pulse-nine.vercel.app/docs">Interactive API Docs</a> · <a href="https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07">DexScreener</a> · <a href="https://x.com/PulseOnBase">@PulseOnBase</a>
 </p>
 <p>
-<strong>📹 <a href="https://x.com/PulseOnBase/status/2020520232461214194">Watch the Demo Video</a></strong> · <a href="https://litter.catbox.moe/sg4nbx.mp4">Direct MP4</a>
+<strong>📹 <a href="https://litter.catbox.moe/sg4nbx.mp4">Watch the Demo Video (MP4)</a></strong>
 </p>
 </div>
 
