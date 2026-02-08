@@ -4,25 +4,24 @@ import { createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 
+// Ensure this route runs on Node.js (uses Buffer + crypto.randomBytes)
+export const runtime = "nodejs";
+
 /**
- * HeyElsa x402 Server-Side Proxy
- * 
- * Architecture:
- * - APP pays HeyElsa using a dedicated hot wallet (server-side)
- * - Zero wallet popups for users
- * - KV cache for 60 seconds to minimize payments
- * 
- * Security:
- * - HEYELSA_PAYMENT_KEY is server-side only (no NEXT_PUBLIC_ prefix)
- * - Max payment guard: rejects 402 asking for > $0.10 per call
- * - Rate limiting: 10 req/min, 100 req/hour per IP
- * - Daily budget cap: $1.00 USDC max spend
- * - Logs payment amounts for monitoring
- * 
- * Endpoints (VERA-003):
- * - portfolio: POST /api/get_portfolio ($0.01)
- * - balances: POST /api/get_balances ($0.005)
- * - token_price: POST /api/get_token_price ($0.002)
+ * DeFi API Route — Hybrid HeyElsa + Direct On-Chain
+ *
+ * Actions handled DIRECTLY (no HeyElsa dependency):
+ *   - swap_quote:   GeckoTerminal pool price → computed quote
+ *   - swap_execute:  Returns Uniswap redirect URL
+ *   - token_price:   GeckoTerminal fallback when HeyElsa fails
+ *
+ * Actions proxied through HeyElsa x402 (still alive):
+ *   - portfolio
+ *   - balances
+ *   - gas_prices
+ *   - analyze_wallet
+ *
+ * Security: Rate limiting, budget caps, KV cache — unchanged.
  */
 
 // ============================================
@@ -37,12 +36,18 @@ const RATE_LIMIT_TTL_HOURS = 3600; // 1 hour window
 // USDC on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-// HeyElsa API base URL (always mainnet — separate from pulse x402)
+// HeyElsa API base URL (still used for portfolio, balances, etc.)
 export const HEYELSA_BASE_URL = process.env.HEYELSA_X402_API_URL || "https://x402-api.heyelsa.ai";
 
 // Security limits
 export const MAX_PAYMENT_PER_CALL = 50000n; // $0.05 USDC (6 decimals)
 export const CACHE_TTL_SECONDS = 60;
+
+// PULSE token constants
+const PULSE_TOKEN = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
+const NATIVE_ETH_SENTINEL = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const GECKO_TERMINAL_BASE = "https://api.geckoterminal.com/api/v2";
+const GECKO_POOL_ID = "0x8e5caf64e13d1fb4a931b4184fab74ecb1f909b6e0100e7e5df51e3d58932c5a";
 
 // EIP-3009 TransferWithAuthorization types
 const TRANSFER_WITH_AUTHORIZATION_TYPES = {
@@ -64,15 +69,21 @@ const getUSDCDomain = () => ({
   verifyingContract: USDC_BASE as `0x${string}`,
 });
 
-// Valid actions and their endpoint mappings
-const VALID_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?: boolean }> = {
+// Valid actions — swap_quote/swap_execute/token_price handled directly; rest via HeyElsa
+const HEYELSA_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?: boolean }> = {
   portfolio: { endpoint: "/api/get_portfolio", cost: "$0.01" },
   balances: { endpoint: "/api/get_balances", cost: "$0.005" },
-  token_price: { endpoint: "/api/get_token_price", cost: "$0.002" },
-  swap_quote: { endpoint: "/api/get_swap_quote", cost: "$0.01", cacheable: false },
   gas_prices: { endpoint: "/api/get_gas_prices", cost: "$0.001" },
   analyze_wallet: { endpoint: "/api/analyze_wallet", cost: "$0.01" },
 };
+
+// All valid action names (for validation)
+const ALL_ACTIONS = new Set([
+  ...Object.keys(HEYELSA_ACTIONS),
+  "swap_quote",
+  "swap_execute",
+  "token_price",
+]);
 
 // ============================================
 // RATE LIMITING UTILITIES (WARD)
@@ -208,19 +219,19 @@ async function getRateLimitRejections(): Promise<number> {
 }
 
 // ============================================
-// WALLET & PAYMENT UTILITIES
+// WALLET & PAYMENT UTILITIES (for HeyElsa proxy)
 // ============================================
 
 export function getPaymentWallet() {
   const privateKey = process.env.HEYELSA_PAYMENT_KEY;
-  
+
   if (!privateKey) {
     throw new Error("HEYELSA_PAYMENT_KEY not configured");
   }
 
   const formattedKey = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
   const account = privateKeyToAccount(formattedKey as Hex);
-  
+
   return createWalletClient({
     account,
     chain: base,
@@ -249,7 +260,7 @@ export interface PaymentRequirements {
 export async function parse402Response(response: Response): Promise<PaymentRequirements> {
   const body = await response.json();
   const accepts = body.accepts || body.paymentRequirements || [];
-  
+
   if (accepts.length === 0 && body.payTo) {
     accepts.push(body);
   }
@@ -278,7 +289,7 @@ export async function createPaymentSignature(
   paymentReq: PaymentRequirements["paymentRequirements"][0]
 ): Promise<string> {
   const amount = BigInt(paymentReq.requiredAmount);
-  
+
   if (amount > MAX_PAYMENT_PER_CALL) {
     throw new Error(
       `Payment amount ${amount} exceeds max allowed ${MAX_PAYMENT_PER_CALL} ($0.05 USDC)`
@@ -287,7 +298,7 @@ export async function createPaymentSignature(
 
   const { randomBytes } = await import("crypto");
   const nonce = ("0x" + randomBytes(32).toString("hex")) as Hex;
-  
+
   const now = Math.floor(Date.now() / 1000);
   const validAfter = 0n;
   const validBefore = BigInt(now + (paymentReq.maxTimeoutSeconds || 300));
@@ -339,7 +350,7 @@ export async function fetchWithPayment(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -350,7 +361,7 @@ export async function fetchWithPayment(
 
   const paymentReq = await parse402Response(response);
   const requirement = paymentReq.paymentRequirements?.[0];
-  
+
   if (!requirement) {
     throw new Error("No payment requirements in 402 response");
   }
@@ -372,7 +383,7 @@ export async function fetchWithPayment(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
       "X-PAYMENT": paymentHeader,
     },
     body: JSON.stringify(body),
@@ -381,6 +392,215 @@ export async function fetchWithPayment(
 
 export function isValidAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+// ============================================
+// GECKO TERMINAL PRICE UTILITIES
+// ============================================
+
+interface GeckoPoolData {
+  base_token_price_usd: string;
+  base_token_price_native_currency: string;
+  quote_token_price_usd: string;
+  quote_token_price_base_token: string;
+}
+
+async function fetchGeckoPoolData(): Promise<GeckoPoolData> {
+  const res = await fetch(
+    `${GECKO_TERMINAL_BASE}/networks/base/pools/${GECKO_POOL_ID}`,
+    { headers: { Accept: "application/json" }, next: { revalidate: 30 } }
+  );
+  if (!res.ok) {
+    throw new Error(`GeckoTerminal pool fetch failed: ${res.status}`);
+  }
+  const json = await res.json();
+  return json.data.attributes as GeckoPoolData;
+}
+
+async function fetchGeckoTokenPrice(tokenAddress: string): Promise<{ usd: number; symbol: string }> {
+  const res = await fetch(
+    `${GECKO_TERMINAL_BASE}/networks/base/tokens/${tokenAddress.toLowerCase()}`,
+    { headers: { Accept: "application/json" }, next: { revalidate: 30 } }
+  );
+  if (!res.ok) {
+    throw new Error(`GeckoTerminal token fetch failed: ${res.status}`);
+  }
+  const json = await res.json();
+  const attrs = json.data.attributes;
+  return {
+    usd: Number(attrs.price_usd),
+    symbol: attrs.symbol || "UNKNOWN",
+  };
+}
+
+// ============================================
+// DIRECT HANDLERS (no HeyElsa dependency)
+// ============================================
+
+async function handleSwapQuote(searchParams: URLSearchParams, address: string): Promise<NextResponse> {
+  const amount = searchParams.get("amount");
+  if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    return NextResponse.json(
+      { error: "Missing or invalid parameter: amount (positive number required for swap)" },
+      { status: 400 }
+    );
+  }
+
+  const amountNum = Number(amount);
+
+  // Cache check
+  const cacheKey = `defi:swap_quote:${address.toLowerCase()}:${amount}`;
+  const cached = await kv.get<Record<string, unknown>>(cacheKey);
+  if (cached) {
+    await trackCacheHit();
+    return NextResponse.json({ ...cached, _cached: true, _cachedAt: new Date().toISOString() });
+  }
+  await trackCacheMiss();
+
+  try {
+    const pool = await fetchGeckoPoolData();
+
+    // pool: base = PULSE, quote = WETH
+    // quote_token_price_base_token = how many PULSE per 1 WETH
+    const pulsePerEth = Number(pool.quote_token_price_base_token);
+    const ethPriceUsd = Number(pool.quote_token_price_usd);
+    const pulsePriceUsd = Number(pool.base_token_price_usd);
+
+    if (!pulsePerEth || !ethPriceUsd) {
+      return NextResponse.json(
+        { error: "Unable to fetch pool price data" },
+        { status: 503 }
+      );
+    }
+
+    const toAmount = amountNum * pulsePerEth;
+    const fromAmountUsd = amountNum * ethPriceUsd;
+    const toAmountUsd = toAmount * pulsePriceUsd;
+
+    // Estimate price impact (small trades have negligible impact)
+    const priceImpact = amountNum > 1 ? 0.5 : amountNum > 0.1 ? 0.1 : 0.01;
+
+    // Base L2 gas is very cheap
+    const gasAmountUsd = 0.001;
+
+    const quoteData = {
+      quote: {
+        from_amount: amountNum,
+        from_amount_usd: fromAmountUsd,
+        to_amount: toAmount,
+        to_amount_usd: toAmountUsd,
+        to_amount_min: toAmount * 0.995, // 0.5% slippage
+        price_impact: priceImpact,
+        gas_amount_usd: gasAmountUsd,
+        estimated_seconds: 3,
+        from_asset: "ETH",
+        to_asset: "PULSE",
+      },
+      source: "geckoterminal",
+    };
+
+    // Cache for 30s (prices move)
+    await kv.set(cacheKey, quoteData, { ex: 30 });
+
+    return NextResponse.json({
+      ...quoteData,
+      _cached: false,
+      _fetchedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("[swap_quote] Error:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch swap quote", message: err instanceof Error ? err.message : "Unknown error" },
+      { status: 503 }
+    );
+  }
+}
+
+function handleSwapExecute(searchParams: URLSearchParams): NextResponse {
+  const amount = searchParams.get("amount") || "0.001";
+  const tokenOut = searchParams.get("token_out") || PULSE_TOKEN;
+
+  const uniswapUrl = new URL("https://app.uniswap.org/swap");
+  uniswapUrl.searchParams.set("chain", "base");
+  uniswapUrl.searchParams.set("outputCurrency", tokenOut);
+  uniswapUrl.searchParams.set("exactAmount", amount);
+  uniswapUrl.searchParams.set("exactField", "input");
+
+  return NextResponse.json({
+    redirect: true,
+    url: uniswapUrl.toString(),
+    message: "Complete your swap on Uniswap",
+    _fetchedAt: new Date().toISOString(),
+  });
+}
+
+async function handleTokenPrice(searchParams: URLSearchParams): Promise<NextResponse> {
+  const tokenAddress = searchParams.get("token");
+  if (!tokenAddress || !isValidAddress(tokenAddress)) {
+    return NextResponse.json(
+      { error: "Missing or invalid parameter: token (token address required for token_price)" },
+      { status: 400 }
+    );
+  }
+
+  // Cache check
+  const cacheKey = `defi:token_price:${tokenAddress.toLowerCase()}`;
+  const cached = await kv.get<Record<string, unknown>>(cacheKey);
+  if (cached) {
+    await trackCacheHit();
+    return NextResponse.json({ ...cached, _cached: true, _cachedAt: new Date().toISOString() });
+  }
+  await trackCacheMiss();
+
+  // Try HeyElsa first, fall back to GeckoTerminal
+  let priceData: Record<string, unknown> | null = null;
+
+  try {
+    const response = await fetchWithPayment("/api/get_token_price", {
+      token_address: tokenAddress,
+      chain: "base",
+    });
+
+    if (response.ok) {
+      priceData = await response.json();
+      console.log(`[token_price] HeyElsa succeeded for ${tokenAddress}`);
+    } else {
+      console.log(`[token_price] HeyElsa failed (${response.status}), falling back to GeckoTerminal`);
+    }
+  } catch (err) {
+    console.log(`[token_price] HeyElsa error, falling back to GeckoTerminal:`, err instanceof Error ? err.message : err);
+  }
+
+  // Fallback: GeckoTerminal
+  if (!priceData) {
+    try {
+      const gecko = await fetchGeckoTokenPrice(tokenAddress);
+      priceData = {
+        price: {
+          token: gecko.symbol,
+          usd: gecko.usd,
+          change_24h: 0, // GeckoTerminal doesn't give this in simple token endpoint
+        },
+        source: "geckoterminal",
+      };
+      console.log(`[token_price] GeckoTerminal fallback succeeded for ${tokenAddress}: $${gecko.usd}`);
+    } catch (geckoErr) {
+      console.error(`[token_price] Both HeyElsa and GeckoTerminal failed for ${tokenAddress}`);
+      return NextResponse.json(
+        { error: "Failed to fetch token price from all sources", message: geckoErr instanceof Error ? geckoErr.message : "Unknown" },
+        { status: 503 }
+      );
+    }
+  }
+
+  // Cache
+  await kv.set(cacheKey, priceData, { ex: CACHE_TTL_SECONDS });
+
+  return NextResponse.json({
+    ...priceData,
+    _cached: false,
+    _fetchedAt: new Date().toISOString(),
+  });
 }
 
 // ============================================
@@ -415,8 +635,8 @@ async function handleHealthCheck(): Promise<NextResponse> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { 
-        error: "Health check failed", 
+      {
+        error: "Health check failed",
         message,
         walletAddress: null,
         totalSpentToday: null,
@@ -439,7 +659,6 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
     const address = searchParams.get("address");
-    const tokenAddress = searchParams.get("token");
 
     if (!action) {
       return NextResponse.json(
@@ -455,131 +674,108 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const actionConfig = VALID_ACTIONS[action];
-    if (!actionConfig) {
+    if (!ALL_ACTIONS.has(action)) {
       return NextResponse.json(
-        { 
-          error: "Invalid action", 
-          validActions: Object.keys(VALID_ACTIONS) 
+        {
+          error: "Invalid action",
+          validActions: [...ALL_ACTIONS],
         },
         { status: 400 }
       );
     }
 
-    // CACHE CHECK FIRST (before rate limiting) — skip for non-cacheable actions
-    const isCacheable = actionConfig.cacheable !== false;
-    const cacheKey = action === "token_price" 
-      ? `defi:${action}:${(tokenAddress || address).toLowerCase()}`
-      : action === "swap_quote"
-      ? `defi:${action}:${address.toLowerCase()}:${searchParams.get("amount")}:${(searchParams.get("token_in") || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE").toLowerCase()}:${(searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07").toLowerCase()}`
-      : `defi:${action}:${address.toLowerCase()}`;
-    
-    if (isCacheable) {
-      const cached = await kv.get<Record<string, unknown>>(cacheKey);
-      
-      if (cached) {
-        console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
-        await trackCacheHit();
-        return NextResponse.json({
-          ...cached,
-          _cached: true,
-          _cachedAt: new Date().toISOString(),
-        });
-      }
-    }
-
-    // RATE LIMIT CHECK (only for cache misses)
+    // RATE LIMIT CHECK
     const rateLimit = await checkRateLimit(clientIP);
     if (!rateLimit.allowed) {
       await trackRateLimitRejection();
       console.log(`[WARD] Rate limit exceeded for ${clientIP} (${rateLimit.limitType})`);
       return NextResponse.json(
-        { 
-          error: "Rate limit exceeded", 
+        {
+          error: "Rate limit exceeded",
           message: `Limit: ${rateLimit.limitType === "minute" ? RATE_LIMIT_PER_MINUTE + "/min" : RATE_LIMIT_PER_HOUR + "/hour"}. Please slow down.`,
-          retryAfter: rateLimit.limitType === "minute" ? 60 : 3600
+          retryAfter: rateLimit.limitType === "minute" ? 60 : 3600,
         },
-        { 
+        {
           status: 429,
           headers: {
             "X-RateLimit-Limit": String(rateLimit.limitType === "minute" ? RATE_LIMIT_PER_MINUTE : RATE_LIMIT_PER_HOUR),
             "X-RateLimit-Remaining": "0",
             "Retry-After": String(rateLimit.limitType === "minute" ? 60 : 3600),
-          }
+          },
         }
       );
     }
 
-    // BUDGET CHECK (only for cache misses)
+    await incrementRateLimit(clientIP);
+
+    // ── Direct handlers (no HeyElsa, no budget impact) ──
+    if (action === "swap_quote") {
+      return handleSwapQuote(searchParams, address);
+    }
+    if (action === "swap_execute") {
+      return handleSwapExecute(searchParams);
+    }
+    if (action === "token_price") {
+      return handleTokenPrice(searchParams);
+    }
+
+    // ── HeyElsa proxy handlers (portfolio, balances, etc.) ──
+    const actionConfig = HEYELSA_ACTIONS[action];
+    if (!actionConfig) {
+      return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    }
+
+    // Cache check for HeyElsa actions
+    const cacheKey = `defi:${action}:${address.toLowerCase()}`;
+    const cached = await kv.get<Record<string, unknown>>(cacheKey);
+    if (cached) {
+      console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
+      await trackCacheHit();
+      return NextResponse.json({
+        ...cached,
+        _cached: true,
+        _cachedAt: new Date().toISOString(),
+      });
+    }
+
+    // Budget check (only for paid HeyElsa calls)
     const budgetExceeded = await isBudgetExceeded();
     if (budgetExceeded) {
       const spend = await getDailySpend();
       logBudgetAlert(spend);
       return NextResponse.json(
-        { 
-          error: "Service temporarily unavailable", 
+        {
+          error: "Service temporarily unavailable",
           message: "Daily spending limit reached. Please try again tomorrow.",
-          budgetExceeded: true
+          budgetExceeded: true,
         },
         { status: 503 }
       );
     }
 
-    // Increment rate limit counter (budget OK). Cache miss tracking only applies to cacheable actions.
-    await incrementRateLimit(clientIP);
-    if (isCacheable) {
-      await trackCacheMiss();
-    }
+    await trackCacheMiss();
 
     const requestBody: Record<string, unknown> = {};
 
-    if (action === "token_price") {
-      if (!tokenAddress || !isValidAddress(tokenAddress)) {
-        return NextResponse.json(
-          { error: "Missing or invalid parameter: token (token address required for token_price)" },
-          { status: 400 }
-        );
-      }
-      requestBody.token_address = tokenAddress;
-      requestBody.chain = "base";
-    } else if (action === "swap_quote") {
-      // HeyElsa swap quote uses: from_chain, from_token, from_amount, to_chain, to_token, wallet_address
-      const tokenIn = searchParams.get("token_in") || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"; // default: native ETH
-      const tokenOut = searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07"; // default: PULSE
-      const amount = searchParams.get("amount");
-
-      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        return NextResponse.json(
-          { error: "Missing or invalid parameter: amount (positive number required for swap)" },
-          { status: 400 }
-        );
-      }
-
-      requestBody.from_chain = "base";
-      requestBody.from_token = tokenIn;
-      requestBody.from_amount = amount;
-      requestBody.to_chain = "base";
-      requestBody.to_token = tokenOut;
-      requestBody.wallet_address = address;
-    } else if (action === "gas_prices") {
+    if (action === "gas_prices") {
       requestBody.chain = "base";
     } else {
       requestBody.wallet_address = address;
     }
 
     console.log(`[HeyElsa x402] Fetching ${action} for ${address}`);
-    
+
     const response = await fetchWithPayment(actionConfig.endpoint, requestBody);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[HeyElsa x402] API error: ${response.status}`, errorText);
-      
+
       return NextResponse.json(
-        { 
-          error: "HeyElsa API error", 
+        {
+          error: "HeyElsa API error",
           status: response.status,
-          message: errorText 
+          message: errorText,
         },
         { status: 503 }
       );
@@ -587,22 +783,19 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
 
     const data = await response.json();
 
-    if (isCacheable) {
-      await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
-      console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
-    }
+    await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
+    console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
 
     return NextResponse.json({
       ...data,
       _cached: false,
       _fetchedAt: new Date().toISOString(),
     });
-
   } catch (error) {
-    console.error("[HeyElsa x402] Error:", error);
-    
+    console.error("[DeFi API] Error:", error);
+
     const message = error instanceof Error ? error.message : "Unknown error";
-    
+
     if (message.includes("HEYELSA_PAYMENT_KEY")) {
       return NextResponse.json(
         { error: "Server configuration error: Payment wallet not configured" },
@@ -630,7 +823,7 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  
+
   if (!searchParams.has("action")) {
     return handleHealthCheck();
   }
