@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { getContractAddress, getRpcUrl } from "@/lib/config";
 
 /* ================================================================
    Agent Pulse — Build on Agent Pulse (Developer Portal)
@@ -16,10 +17,10 @@ import Link from "next/link";
 // ────────────────────────────────────────────
 
 const CONTRACTS = {
-  PulseToken: "0x21111B39A502335aC7e45c4574Dd083A69258b07",
-  PulseRegistry: "0xe61C615743A02983A46aFF66Db035297e8a43846",
-  BurnWithFee: "0xd38cC332ca9755DE536841f2A248f4585Fb08C1E",
-  PeerAttestation: "0x930dC6130b20775E01414a5923e7C66b62FF8d6C",
+  PulseToken: getContractAddress("pulseToken"),
+  PulseRegistry: getContractAddress("pulseRegistry"),
+  BurnWithFee: getContractAddress("burnWithFee"),
+  PeerAttestation: getContractAddress("peerAttestation"),
 } as const;
 
 const BASESCAN = "https://basescan.org/address";
@@ -177,7 +178,7 @@ contract LivenessGated {
 const CODE_TS_SDK = `import { PulseClient } from "@agent-pulse/sdk";
 
 const pulse = new PulseClient({
-  rpcUrl: "https://mainnet.base.org",
+  rpcUrl: "${getRpcUrl()}",
   registryAddress: "${CONTRACTS.PulseRegistry}",
 });
 
@@ -194,7 +195,7 @@ if (status.isAlive && status.streak >= 10) {
 const CODE_TS_ATTEST = `import { PulseClient } from "@agent-pulse/sdk";
 
 const pulse = new PulseClient({
-  rpcUrl: "https://mainnet.base.org",
+  rpcUrl: "${getRpcUrl()}",
   registryAddress: "${CONTRACTS.PulseRegistry}",
   peerAttestationAddress: "${CONTRACTS.PeerAttestation}",
   signer: yourWalletSigner,
@@ -212,7 +213,7 @@ const CODE_TS_BURN = `import { PulseClient } from "@agent-pulse/sdk";
 import { parseEther } from "viem";
 
 const pulse = new PulseClient({
-  rpcUrl: "https://mainnet.base.org",
+  rpcUrl: "${getRpcUrl()}",
   burnWithFeeAddress: "${CONTRACTS.BurnWithFee}",
   signer: yourWalletSigner,
 });
