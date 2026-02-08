@@ -65,10 +65,14 @@ const getUSDCDomain = () => ({
 });
 
 // Valid actions and their endpoint mappings
-const VALID_ACTIONS: Record<string, { endpoint: string; cost: string }> = {
+const VALID_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?: boolean }> = {
   portfolio: { endpoint: "/api/get_portfolio", cost: "$0.01" },
   balances: { endpoint: "/api/get_balances", cost: "$0.005" },
   token_price: { endpoint: "/api/get_token_price", cost: "$0.002" },
+  swap_quote: { endpoint: "/api/get_swap_quote", cost: "$0.01" },
+  execute_swap: { endpoint: "/api/execute_swap", cost: "$0.02", cacheable: false },
+  gas_prices: { endpoint: "/api/get_gas_prices", cost: "$0.001" },
+  analyze_wallet: { endpoint: "/api/analyze_wallet", cost: "$0.01" },
 };
 
 // ============================================
@@ -463,20 +467,26 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // CACHE CHECK FIRST (before rate limiting)
+    // CACHE CHECK FIRST (before rate limiting) — skip for non-cacheable actions
+    const isCacheable = actionConfig.cacheable !== false;
     const cacheKey = action === "token_price" 
       ? `defi:${action}:${(tokenAddress || address).toLowerCase()}`
+      : action === "swap_quote"
+      ? `defi:${action}:${address.toLowerCase()}:${searchParams.get("amount")}:${searchParams.get("token_in") || "eth"}:${searchParams.get("token_out") || "pulse"}`
       : `defi:${action}:${address.toLowerCase()}`;
-    const cached = await kv.get<Record<string, unknown>>(cacheKey);
     
-    if (cached) {
-      console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
-      await trackCacheHit();
-      return NextResponse.json({
-        ...cached,
-        _cached: true,
-        _cachedAt: new Date().toISOString(),
-      });
+    if (isCacheable) {
+      const cached = await kv.get<Record<string, unknown>>(cacheKey);
+      
+      if (cached) {
+        console.log(`[HeyElsa x402] Cache hit for ${action}:${address}`);
+        await trackCacheHit();
+        return NextResponse.json({
+          ...cached,
+          _cached: true,
+          _cachedAt: new Date().toISOString(),
+        });
+      }
     }
 
     // RATE LIMIT CHECK (only for cache misses)
@@ -531,6 +541,27 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       }
       requestBody.token_address = tokenAddress;
       requestBody.chain = "base";
+    } else if (action === "swap_quote" || action === "execute_swap") {
+      const tokenIn = searchParams.get("token_in") || "0x0000000000000000000000000000000000000000"; // default: ETH
+      const tokenOut = searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07"; // default: PULSE
+      const amount = searchParams.get("amount");
+      const slippage = searchParams.get("slippage") || "1"; // 1% default
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return NextResponse.json(
+          { error: "Missing or invalid parameter: amount (positive number required for swap)" },
+          { status: 400 }
+        );
+      }
+
+      requestBody.token_in = tokenIn;
+      requestBody.token_out = tokenOut;
+      requestBody.amount = amount;
+      requestBody.slippage = slippage;
+      requestBody.chain = "base";
+      requestBody.wallet_address = address;
+    } else if (action === "gas_prices") {
+      requestBody.chain = "base";
     } else {
       requestBody.wallet_address = address;
     }
@@ -555,8 +586,10 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
 
     const data = await response.json();
 
-    await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
-    console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
+    if (isCacheable) {
+      await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
+      console.log(`[HeyElsa x402] Cached ${action} for ${address} (TTL: ${CACHE_TTL_SECONDS}s)`);
+    }
 
     return NextResponse.json({
       ...data,

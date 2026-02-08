@@ -13,6 +13,7 @@ import { RoutingSync } from "./components/RoutingSync";
 import { StatusQuery } from "./components/StatusQuery";
 import { PulseFeed } from "./components/PulseFeed";
 import { Hero } from "./components/Hero";
+import { SwapPanel } from "./components/SwapPanel";
 const DefiPanel = dynamic(() => import("./components/DefiPanel"), { ssr: false });
 import { PulseFeedResponse, StatusResponse } from "./lib/types";
 import { formatMaybeEpoch } from "./lib/format";
@@ -424,6 +425,9 @@ export default function Home() {
            <RoutingSync isAlive={isAlive} />
            <DefiPanel />
         </div>
+
+        {/* Swap ETH → PULSE */}
+        <SwapPanel />
 
         <PulseFeed
           feedData={feedData}
