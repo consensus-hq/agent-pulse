@@ -8,7 +8,7 @@ const pulseRegistry = getContractAddress("pulseRegistry");
 
 const socialLinks = [
   { label: "X (Product)", href: "https://x.com/PulseOnBase", icon: "𝕏" },
-  { label: "X (Company)", href: "https://x.com/ConsensusCLI", icon: "𝕏" },
+  { label: "X (Creator)", href: "https://x.com/poppybyte", icon: "𝕏" },
   { label: "X (Connie)", href: "https://x.com/ConnieOnBase", icon: "🤖" },
   { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", icon: "⌨" },
   { label: "Moltbook", href: "https://moltbook.com/u/AgentPulse", icon: "📖" },
