@@ -1,15 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
-import type { PriceConfig } from "../x402";
+import type { PaymentInfo, PriceConfig } from "../x402";
 
 // ============================================================================
 // Mock setup
 // ============================================================================
 
-const mockFetch = vi.fn<
-  [input: string | URL | Request, init?: RequestInit | undefined],
-  Promise<Response>
->();
+const mockFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
 
 // Helper to dynamically import x402 with fresh env var evaluation
 async function importX402() {
@@ -95,7 +92,7 @@ describe("x402 Payment Gate - Bypass Key", () => {
     process.env.PAID_API_BYPASS_KEY = "test-bypass-key";
     const { withPaymentGate } = await importX402();
     
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio", {
@@ -120,7 +117,7 @@ describe("x402 Payment Gate - Bypass Key", () => {
     process.env.PAID_API_BYPASS_KEY = "test-bypass-key";
     const { withPaymentGate } = await importX402();
     
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio", {
@@ -136,7 +133,7 @@ describe("x402 Payment Gate - Bypass Key", () => {
     process.env.PAID_API_BYPASS_KEY = "test-bypass-key";
     const { withPaymentGate } = await importX402();
     
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio", {
@@ -156,7 +153,7 @@ describe("x402 Payment Gate - Bypass Key", () => {
     delete process.env.PAID_API_BYPASS_KEY;
     const { withPaymentGate } = await importX402();
     
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio", {
@@ -176,7 +173,7 @@ describe("x402 Payment Gate - Bypass Key", () => {
 describe("x402 Payment Gate - Payment Header", () => {
   it("returns 400 for invalid base64 payment header", async () => {
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio", {
@@ -193,7 +190,7 @@ describe("x402 Payment Gate - Payment Header", () => {
 
   it("returns 400 for malformed JSON in payment header", async () => {
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const invalidPayload = Buffer.from("not-json").toString("base64");
@@ -212,7 +209,7 @@ describe("x402 Payment Gate - Payment Header", () => {
       .mockResolvedValueOnce(makeSettleResponse(true, "0x" + "a".repeat(64)));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -234,7 +231,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(false, "insufficient_funds"));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -255,7 +252,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(false));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -276,7 +273,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     );
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -296,7 +293,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     mockFetch.mockRejectedValueOnce(new Error("ECONNREFUSED"));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -319,7 +316,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(true));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -342,7 +339,7 @@ describe("x402 Payment Gate - Facilitator Verification", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(true));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -370,7 +367,7 @@ describe("x402 Payment Gate - Settlement", () => {
       .mockResolvedValueOnce(makeSettleResponse(true, "0x" + "a".repeat(64)));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ data: "protected" }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ data: "protected" }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -399,7 +396,7 @@ describe("x402 Payment Gate - Settlement", () => {
       .mockResolvedValueOnce(makeSettleResponse(false, undefined, "insufficient_funds"));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -423,7 +420,7 @@ describe("x402 Payment Gate - Settlement", () => {
       .mockResolvedValueOnce(makeSettleResponse(false));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -445,7 +442,7 @@ describe("x402 Payment Gate - Settlement", () => {
       .mockRejectedValueOnce(new Error("Network timeout"));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -468,7 +465,7 @@ describe("x402 Payment Gate - Settlement", () => {
       .mockResolvedValueOnce(makeSettleResponse(true, txHash));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -490,7 +487,7 @@ describe("x402 Payment Gate - Settlement", () => {
 describe("x402 Payment Gate - 402 Challenge Response", () => {
   it("returns 402 challenge when no auth provided", async () => {
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.price, handler);
 
     const request = new NextRequest("https://example.com/api/paid/price");
@@ -521,7 +518,7 @@ describe("x402 Payment Gate - 402 Challenge Response", () => {
 
   it("returns 402 with correct price for portfolio endpoint", async () => {
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const request = new NextRequest("https://example.com/api/paid/portfolio");
@@ -534,7 +531,7 @@ describe("x402 Payment Gate - 402 Challenge Response", () => {
 
   it("returns 402 with correct price for health endpoint", async () => {
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.health, handler);
 
     const request = new NextRequest("https://example.com/api/paid/health");
@@ -569,7 +566,7 @@ describe("withPayment backward compatibility", () => {
     process.env.PAID_API_BYPASS_KEY = "test-bypass-key";
     const { withPayment } = await importX402();
     
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPayment(PRICES.health, handler);
 
     const request = new NextRequest("https://example.com/api/paid/health", {
@@ -593,7 +590,7 @@ describe("x402 Payment Gate - Edge Cases", () => {
       .mockResolvedValueOnce(makeSettleResponse(true, "0x" + "a".repeat(64)));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => {
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => {
       throw new Error("Handler error");
     });
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
@@ -613,7 +610,7 @@ describe("x402 Payment Gate - Edge Cases", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(true));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -633,7 +630,7 @@ describe("x402 Payment Gate - Edge Cases", () => {
     mockFetch.mockResolvedValueOnce(makeVerifyResponse(true));
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
@@ -658,7 +655,7 @@ describe("x402 Payment Gate - Edge Cases", () => {
     );
 
     const { withPaymentGate } = await importX402();
-    const handler = vi.fn(async () => NextResponse.json({ success: true }));
+    const handler = vi.fn(async (_req: NextRequest, _payment: PaymentInfo) => NextResponse.json({ success: true }));
     const wrapped = withPaymentGate(PRICES.portfolio, handler);
 
     const paymentHeader = makeValidPaymentPayload(PRICES.portfolio);
