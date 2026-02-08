@@ -363,9 +363,9 @@ export class X402PaymentHandler {
       }
 
       return {
-        price: accepts.maxAmountRequired || accepts.price,
+        price: (accepts.maxAmountRequired || accepts.price) as string,
         recipient: accepts.payTo as Address,
-        resource: accepts.resource || data.resource,
+        resource: (accepts.resource || data.resource) as string,
       };
     } catch {
       // Check headers as fallback

@@ -9,13 +9,14 @@
 
 import {
   type Address,
+  type Chain,
   type PublicClient,
   type WalletClient,
   createPublicClient,
   createWalletClient,
   http,
 } from "viem";
-import { baseSepolia } from "viem/chains";
+import { base, baseSepolia } from "viem/chains";
 
 import {
   type SDKConfig,
@@ -35,7 +36,6 @@ import {
 } from "./types.js";
 
 import {
-  X402PaymentHandler,
   signX402Payment,
   encodeX402PaymentHeader,
 } from "./x402.js";
@@ -197,17 +197,18 @@ export class AgentPulseClient {
     this.pulseToken = config.contracts?.pulseToken ?? DEFAULTS.PULSE_TOKEN;
     this.pulseRegistry = config.contracts?.pulseRegistry ?? DEFAULTS.PULSE_REGISTRY;
 
+    // Select chain based on configured chainId (Base mainnet by default)
+    const chain: Chain = this.config.chainId === 84532 ? baseSepolia : base;
+    const transport = config.rpcUrl ? http(config.rpcUrl) : http();
+
     // Create public client for reading from chain
-    this.publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: config.rpcUrl ? http(config.rpcUrl) : http(),
-    });
+    this.publicClient = createPublicClient({ chain, transport });
 
     // Create wallet client if private key provided
     if (config.wallet?.privateKey) {
       this.walletClient = createWalletClient({
-        chain: baseSepolia,
-        transport: config.rpcUrl ? http(config.rpcUrl) : http(),
+        chain,
+        transport,
         account: config.wallet.address,
       });
     }
@@ -384,13 +385,15 @@ export class AgentPulseClient {
 
       // Approve if needed
       if (allowance < amountBigInt) {
+        const writeChain: Chain = this.config.chainId === 84532 ? baseSepolia : base;
+
         const approveHash = await this.walletClient.writeContract({
           address: this.pulseToken,
           abi: PULSE_TOKEN_ABI,
           functionName: "approve",
           args: [this.pulseRegistry, amountBigInt * 10n], // Approve 10x for future pulses
           account: this.config.wallet.address,
-          chain: baseSepolia,
+          chain: writeChain,
         });
 
         // Wait for approval to be mined
@@ -398,13 +401,14 @@ export class AgentPulseClient {
       }
 
       // Send pulse
+      const writeChainForPulse: Chain = this.config.chainId === 84532 ? baseSepolia : base;
       const txHash = await this.walletClient.writeContract({
         address: this.pulseRegistry,
         abi: PULSE_REGISTRY_ABI,
         functionName: "pulse",
         args: [amountBigInt],
         account: this.config.wallet.address,
-        chain: baseSepolia,
+        chain: writeChainForPulse,
       });
 
       // Wait for receipt
