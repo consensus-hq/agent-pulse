@@ -32,6 +32,7 @@ function NavBar() {
     { label: "GitHub", href: "https://github.com/consensus-hq/agent-pulse", external: true },
     { label: "npm", href: "https://www.npmjs.com/package/@agent-pulse/sdk", external: true },
     { label: "ElizaOS", href: "https://www.npmjs.com/package/@agent-pulse/elizaos-plugin", external: true },
+    { label: "OpenClaw", href: "https://github.com/consensus-hq/agent-pulse/tree/main/skills/agent-pulse", external: true },
     { label: "DexScreener", href: "https://dexscreener.com/base/0x21111B39A502335aC7e45c4574Dd083A69258b07", external: true },
   ];
 
@@ -139,6 +140,7 @@ function GetStartedCards() {
       tag: "Agent",
       command: "clawhub install agent-pulse",
       description: "Auto-pulse from any OpenClaw agent.",
+      href: "https://github.com/consensus-hq/agent-pulse/tree/main/skills/agent-pulse",
     },
     {
       title: "ElizaOS",
@@ -200,17 +202,35 @@ function GetStartedCards() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "var(--accent)",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                }}
-              >
-                {card.title}
-              </span>
+              {("href" in card && card.href) ? (
+                <a
+                  href={card.href as string}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "var(--accent)",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    textDecoration: "none",
+                  }}
+                >
+                  {card.title} ↗
+                </a>
+              ) : (
+                <span
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: "var(--accent)",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  {card.title}
+                </span>
+              )}
               <span
                 style={{
                   background: "var(--accent-dim)",

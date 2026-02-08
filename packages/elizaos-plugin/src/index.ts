@@ -165,7 +165,7 @@ const baseActions = [
  * - Non-agent user → skip gate entirely
  */
 const agentPulsePlugin: Plugin = {
-  name: "@openclaw/eliza-plugin-pulse",
+  name: "@agent-pulse/elizaos-plugin",
   description:
     "Agent Pulse protocol integration with gate functionality. " +
     "Validates incoming/outgoing interactions with external agents using on-chain liveness signals.",
@@ -201,7 +201,7 @@ const agentPulsePlugin: Plugin = {
 
     // Log initialization
     elizaLogger.log("═══════════════════════════════════════════");
-    elizaLogger.log("  @openclaw/eliza-plugin-pulse initialized");
+    elizaLogger.log("  @agent-pulse/elizaos-plugin initialized");
     elizaLogger.log("═══════════════════════════════════════════");
     elizaLogger.log(`  Network: Base Sepolia (${envConfig.AGENT_PULSE_CHAIN_ID})`);
     elizaLogger.log(`  Registry: ${envConfig.AGENT_PULSE_REGISTRY_ADDRESS}`);
