@@ -10,8 +10,7 @@ import { useAgentStatus } from "../hooks/useAgentStatus";
 import { usePulse } from "../hooks/usePulse";
 import { useWallet } from "../hooks/useWallet";
 
-const PULSE_TOKEN = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
-const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PULSE_TOKEN}`;
+const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${publicEnv.pulseTokenAddress}`;
 
 
 const shortenAddress = (address?: string) => {

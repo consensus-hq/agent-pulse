@@ -3,9 +3,10 @@
 import { useState, useCallback } from "react";
 import styles from "../page.module.css";
 import { useWallet } from "../hooks/useWallet";
+import { publicEnv } from "../lib/env.public";
 
-const PULSE_TOKEN = "0x21111B39A502335aC7e45c4574Dd083A69258b07";
-const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${PULSE_TOKEN}`;
+const NATIVE_ETH_SENTINEL = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const UNISWAP_SWAP_URL = `https://app.uniswap.org/swap?chain=base&outputCurrency=${publicEnv.pulseTokenAddress}`;
 
 interface SwapQuoteResponse {
   success?: boolean;
@@ -44,8 +45,8 @@ export function SwapPanel() {
         action: "swap_quote",
         address,
         amount,
-        token_in: "0x0000000000000000000000000000000000000000",
-        token_out: PULSE_TOKEN,
+        token_in: NATIVE_ETH_SENTINEL,
+        token_out: publicEnv.pulseTokenAddress,
       });
 
       const res = await fetch(`/api/defi?${params}`);
@@ -203,6 +204,7 @@ export function SwapPanel() {
         </div>
       )}
 
+      {/* NOTE: `error` is rendered as plain text (React escapes it); no dangerouslySetInnerHTML here. */}
       {error && (
         <p style={{ fontSize: "11px", color: "var(--error, #ef4444)", marginBottom: "12px" }}>!! {error}</p>
       )}

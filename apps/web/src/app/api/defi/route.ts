@@ -69,7 +69,7 @@ const VALID_ACTIONS: Record<string, { endpoint: string; cost: string; cacheable?
   portfolio: { endpoint: "/api/get_portfolio", cost: "$0.01" },
   balances: { endpoint: "/api/get_balances", cost: "$0.005" },
   token_price: { endpoint: "/api/get_token_price", cost: "$0.002" },
-  swap_quote: { endpoint: "/api/get_swap_quote", cost: "$0.01" },
+  swap_quote: { endpoint: "/api/get_swap_quote", cost: "$0.01", cacheable: false },
   gas_prices: { endpoint: "/api/get_gas_prices", cost: "$0.001" },
   analyze_wallet: { endpoint: "/api/analyze_wallet", cost: "$0.01" },
 };
@@ -471,7 +471,7 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
     const cacheKey = action === "token_price" 
       ? `defi:${action}:${(tokenAddress || address).toLowerCase()}`
       : action === "swap_quote"
-      ? `defi:${action}:${address.toLowerCase()}:${searchParams.get("amount")}:${searchParams.get("token_in") || "eth"}:${searchParams.get("token_out") || "pulse"}`
+      ? `defi:${action}:${address.toLowerCase()}:${searchParams.get("amount")}:${(searchParams.get("token_in") || "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE").toLowerCase()}:${(searchParams.get("token_out") || "0x21111B39A502335aC7e45c4574Dd083A69258b07").toLowerCase()}`
       : `defi:${action}:${address.toLowerCase()}`;
     
     if (isCacheable) {
@@ -525,9 +525,11 @@ async function handleDefiRequest(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Increment rate limit counter (cache miss + budget OK)
+    // Increment rate limit counter (budget OK). Cache miss tracking only applies to cacheable actions.
     await incrementRateLimit(clientIP);
-    await trackCacheMiss();
+    if (isCacheable) {
+      await trackCacheMiss();
+    }
 
     const requestBody: Record<string, unknown> = {};
 
